@@ -1,8 +1,36 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 
-const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
+const SelectUnit = ({ onClose, onSelect, currentSelection }) => {
   const [selectedUnit, setSelectedUnit] = useState(currentSelection);
+  const [unidades, setUnidades] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar TODAS as unidades da tabela
+  useEffect(() => {
+    const loadUnidades = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('unidades')
+          .select('*')
+          .eq('ativo', true)
+          .order('nome');
+        
+        if (data) {
+          setUnidades(data);
+          console.log(`Carregadas ${data.length} unidades da tabela`);
+        } else {
+          console.error('Erro ao carregar unidades:', error);
+        }
+      } catch (error) {
+        console.error('Erro ao conectar com Supabase:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUnidades();
+  }, []);
 
   const handleContinue = () => {
     if (selectedUnit) {
@@ -29,8 +57,14 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
         </div>
 
         {/* Units List */}
-        <div className="space-y-4 pb-32">
-          {units.map((unit) => (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-gray-500">Carregando unidades...</p>
+          </div>
+        ) : (
+          <div className="space-y-4 pb-32">
+            {unidades.map((unit) => (
             <button
               key={unit.id}
               onClick={() => setSelectedUnit(unit)}
