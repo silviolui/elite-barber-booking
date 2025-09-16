@@ -30,11 +30,12 @@ function App() {
   };
 
   const handleDataSelect = (type, data) => {
-    setBookingData(prev => ({
-      ...prev,
+    const newBookingData = {
+      ...bookingData,
       [type]: data
-    }));
-    console.log(`Selected ${type}:`, data); // Para desenvolvimento
+    };
+    setBookingData(newBookingData);
+    console.log('Booking data updated:', newBookingData); // Para desenvolvimento
   };
 
   if (!isLoggedIn) {
