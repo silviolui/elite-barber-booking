@@ -6,7 +6,6 @@ import BottomNavigation from './components/BottomNavigation';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState('home');
   const [activeTab, setActiveTab] = useState('agenda');
   const [showModal, setShowModal] = useState(null);
   const [bookingData, setBookingData] = useState({
@@ -43,7 +42,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-black">
-      {currentScreen === 'home' && activeTab === 'agenda' && (
+      {activeTab === 'agenda' && (
         <BookingHome onNext={handleStepSelect} />
       )}
       

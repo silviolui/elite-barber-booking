@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar } from 'lucide-react';
 
 const BookingHome = ({ onNext }) => {
-  const [selectedStep, setSelectedStep] = useState(null);
-
   const handleStepClick = (step) => {
-    setSelectedStep(step);
     onNext(step);
   };
 
