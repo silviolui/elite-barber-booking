@@ -44,17 +44,6 @@ const SignUpScreen = ({ onBack, onSignUp }) => {
     setError('');
 
     try {
-      // MODO DEMO - Remove quando Supabase estiver funcionando
-      if (formData.email && formData.password && formData.name) {
-        onSignUp({ 
-          id: Date.now().toString(), 
-          email: formData.email, 
-          name: formData.name,
-          phone: formData.phone
-        });
-        return;
-      }
-      
       const { data, error } = await auth.signUp(
         formData.email, 
         formData.password,
@@ -76,14 +65,8 @@ const SignUpScreen = ({ onBack, onSignUp }) => {
         onSignUp(data.user);
       }
     } catch (err) {
-      // MODO DEMO - Funciona offline  
-      onSignUp({ 
-        id: Date.now().toString(), 
-        email: formData.email, 
-        name: formData.name,
-        phone: formData.phone
-      });
-      console.error('SignUp error (using demo mode):', err);
+      setError('Erro de conexão. Verifique sua internet.');
+      console.error('SignUp error:', err);
     } finally {
       setLoading(false);
     }
