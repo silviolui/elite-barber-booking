@@ -158,10 +158,10 @@ function App() {
     setShowSignUp(false);
   };
 
-  const handleLogout = async () => {
-    await auth.signOut();
-    setUser(null);
-  };
+  // const handleLogout = async () => {
+  //   await auth.signOut();
+  //   setUser(null);
+  // };
 
   const handleStepClick = (step) => {
     setCurrentScreen(step);
