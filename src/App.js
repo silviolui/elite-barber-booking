@@ -186,48 +186,45 @@ function App() {
     }));
   };
 
-  // Função para o cliente finalizar agendamento
-  const handleConfirmBooking = async () => {
-    if (!user || !selections.unit || !selections.professional || !selections.services.length || !selections.date || !selections.time) {
-      alert('Por favor, complete todas as etapas do agendamento');
-      return;
-    }
+  // Função para o cliente finalizar agendamento (será usada nos componentes)
+  // const handleConfirmBooking = async () => {
+  //   if (!user || !selections.unit || !selections.professional || !selections.services.length || !selections.date || !selections.time) {
+  //     alert('Por favor, complete todas as etapas do agendamento');
+  //     return;
+  //   }
 
-    const agendamentoData = {
-      unidadeId: selections.unit.id,
-      profissionalId: selections.professional.id,
-      data: selections.date,
-      horarioInicio: selections.time,
-      horarioFim: selections.time, // Calcular baseado na duração dos serviços
-      precoTotal: selections.services.reduce((total, service) => total + service.preco, 0),
-      servicos: selections.services,
-      observacoes: `Agendamento do cliente: ${user.name || user.email}`
-    };
+  //   const agendamentoData = {
+  //     unidadeId: selections.unit.id,
+  //     profissionalId: selections.professional.id,
+  //     data: selections.date,
+  //     horarioInicio: selections.time,
+  //     horarioFim: selections.time, // Calcular baseado na duração dos serviços
+  //     precoTotal: selections.services.reduce((total, service) => total + service.preco, 0),
+  //     servicos: selections.services,
+  //     observacoes: `Agendamento do cliente: ${user.name || user.email}`
+  //   };
 
-    try {
-      const result = await supabaseData.criarAgendamento(user.id, agendamentoData);
-      if (result.success) {
-        alert('Agendamento criado com sucesso!');
-        // Recarregar agendamentos do cliente
-        await loadClientData(user.id);
-        // Voltar para home
-        setCurrentScreen('home');
-        // Limpar seleções
-        setSelections({
-          unit: null,
-          professional: null,
-          services: [],
-          date: null,
-          time: null
-        });
-      } else {
-        alert('Erro ao criar agendamento: ' + result.error);
-      }
-    } catch (error) {
-      alert('Erro ao criar agendamento');
-      console.error('Booking error:', error);
-    }
-  };
+  //   try {
+  //     const result = await supabaseData.criarAgendamento(user.id, agendamentoData);
+  //     if (result.success) {
+  //       alert('Agendamento criado com sucesso!');
+  //       await loadClientData(user.id);
+  //       setCurrentScreen('home');
+  //       setSelections({
+  //         unit: null,
+  //         professional: null,
+  //         services: [],
+  //         date: null,
+  //         time: null
+  //       });
+  //     } else {
+  //       alert('Erro ao criar agendamento: ' + result.error);
+  //     }
+  //   } catch (error) {
+  //     alert('Erro ao criar agendamento');
+  //     console.error('Booking error:', error);
+  //   }
+  // };
 
   // Loading state
   if (loading) {
