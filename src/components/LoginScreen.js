@@ -20,16 +20,6 @@ const LoginScreen = ({ onLogin, onShowSignUp }) => {
     setError('');
 
     try {
-      // MODO DEMO - Remove quando Supabase estiver funcionando
-      if (email && password) {
-        onLogin({ 
-          id: '1', 
-          email: email, 
-          name: email.split('@')[0] 
-        });
-        return;
-      }
-      
       const { data, error } = await auth.signIn(email, password);
       
       if (error) {
@@ -40,13 +30,8 @@ const LoginScreen = ({ onLogin, onShowSignUp }) => {
         onLogin(data.user);
       }
     } catch (err) {
-      // MODO DEMO - Funciona offline
-      onLogin({ 
-        id: '1', 
-        email: email, 
-        name: email.split('@')[0] 
-      });
-      console.error('Login error (using demo mode):', err);
+      setError('Erro de conexão. Verifique sua internet.');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
