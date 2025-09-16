@@ -34,6 +34,7 @@ function App() {
       ...prev,
       [type]: data
     }));
+    console.log(`Selected ${type}:`, data); // Para desenvolvimento
   };
 
   if (!isLoggedIn) {
