@@ -23,7 +23,7 @@ ALTER TABLE users RENAME COLUMN updated_at TO atualizado_em;
 -- 3. RENOMEAR COLUNAS - EMPRESAS
 ALTER TABLE empresas RENAME COLUMN name TO nome;
 ALTER TABLE empresas RENAME COLUMN description TO descricao;
-ALTER TABLE empresas RENAME COLUMN logo_url TO logo_url;
+-- logo_url mantém o mesmo nome (não precisa renomear)
 ALTER TABLE empresas RENAME COLUMN created_at TO criado_em;
 ALTER TABLE empresas RENAME COLUMN updated_at TO atualizado_em;
 
@@ -33,8 +33,7 @@ ALTER TABLE unidades RENAME COLUMN name TO nome;
 ALTER TABLE unidades RENAME COLUMN address TO endereco;
 ALTER TABLE unidades RENAME COLUMN phone TO telefone;
 ALTER TABLE unidades RENAME COLUMN image_url TO imagem_url;
-ALTER TABLE unidades RENAME COLUMN latitude TO latitude;
-ALTER TABLE unidades RENAME COLUMN longitude TO longitude;
+-- latitude e longitude mantêm os mesmos nomes
 ALTER TABLE unidades RENAME COLUMN opening_hours TO horario_funcionamento;
 ALTER TABLE unidades RENAME COLUMN is_active TO ativo;
 ALTER TABLE unidades RENAME COLUMN created_at TO criado_em;
@@ -86,7 +85,7 @@ ALTER TABLE agendamentos RENAME COLUMN appointment_date TO data_agendamento;
 ALTER TABLE agendamentos RENAME COLUMN start_time TO horario_inicio;
 ALTER TABLE agendamentos RENAME COLUMN end_time TO horario_fim;
 ALTER TABLE agendamentos RENAME COLUMN total_price TO preco_total;
-ALTER TABLE agendamentos RENAME COLUMN status TO status;
+-- status mantém o mesmo nome
 ALTER TABLE agendamentos RENAME COLUMN payment_status TO status_pagamento;
 ALTER TABLE agendamentos RENAME COLUMN notes TO observacoes;
 ALTER TABLE agendamentos RENAME COLUMN created_at TO criado_em;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Lock, X } from 'lucide-react';
 import { auth } from '../lib/supabase';
 
-const LoginScreen = ({ onLogin }) => {
+const LoginScreen = ({ onLogin, onShowSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -151,7 +151,7 @@ const LoginScreen = ({ onLogin }) => {
             </button>
             
             <div className="text-white text-base">
-              Não possui conta? <button className="underline hover:text-gray-300 transition-colors">Faça seu cadastro</button>
+              Não possui conta? <button onClick={onShowSignUp} className="underline hover:text-gray-300 transition-colors">Faça seu cadastro</button>
             </div>
           </div>
         </div>

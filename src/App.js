@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from './lib/supabase';
 import LoginScreen from './components/LoginScreen';
+import SignUpScreen from './components/SignUpScreen';
 import BookingHome from './components/BookingHome';
 import BottomNavigation from './components/BottomNavigation';
 import SelectUnit from './components/SelectUnit';
@@ -103,6 +104,7 @@ const PlaceholderScreen = ({ title }) => (
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState('agenda');
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selections, setSelections] = useState({
@@ -140,6 +142,20 @@ function App() {
 
   const handleLogin = (user) => {
     setUser(user);
+    setShowSignUp(false);
+  };
+
+  const handleSignUp = (user) => {
+    setUser(user);
+    setShowSignUp(false);
+  };
+
+  const handleShowSignUp = () => {
+    setShowSignUp(true);
+  };
+
+  const handleBackToLogin = () => {
+    setShowSignUp(false);
   };
 
   const handleLogout = async () => {
@@ -210,9 +226,22 @@ function App() {
     );
   }
 
-  // Show login screen if not authenticated
+  // Show login/signup screen if not authenticated
   if (!user) {
-    return <LoginScreen onLogin={handleLogin} />;
+    if (showSignUp) {
+      return (
+        <SignUpScreen 
+          onSignUp={handleSignUp}
+          onBack={handleBackToLogin}
+        />
+      );
+    }
+    return (
+      <LoginScreen 
+        onLogin={handleLogin} 
+        onShowSignUp={handleShowSignUp}
+      />
+    );
   }
 
   const renderMainContent = () => {
