@@ -1,13 +1,28 @@
 import React from 'react';
-import { ChevronRight, MapPin, User, Scissors, Calendar } from 'lucide-react';
+import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 
-const BookingHome = ({ onNext }) => {
+const BookingHome = ({ onNext, selections }) => {
+  const isUnitSelected = selections?.unit !== null;
+  const isProfessionalSelected = selections?.professional !== null;
+  const isServiceSelected = selections?.services?.length > 0;
+  const isDateSelected = selections?.date !== null && selections?.time !== null;
+
   const handleStepClick = (step) => {
-    onNext(step);
+    if (step === 'unidade') {
+      onNext(step);
+    } else if (step === 'barbeiro' && isUnitSelected) {
+      onNext('profissional');
+    } else if (step === 'servico' && isProfessionalSelected) {
+      onNext(step);
+    } else if (step === 'data' && isServiceSelected) {
+      onNext(step);
+    }
   };
 
+  const canFinalize = isUnitSelected && isProfessionalSelected && isServiceSelected && isDateSelected;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="px-6 py-4 flex items-center justify-between">
@@ -36,72 +51,108 @@ const BookingHome = ({ onNext }) => {
       <div className="px-6 pt-8 pb-24">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-gray-900 text-2xl font-bold mb-2">Agende seu horário</h2>
+          <h2 className="text-gray-900 text-2xl font-bold mb-2">Novo Agendamento</h2>
           <p className="text-gray-600 text-base">
-            Escolha os serviços que desejar e agende no melhor horário para você
+            Preencha as informações para agendar
           </p>
         </div>
+
         {/* Booking Steps - Clean Cards */}
         <div className="space-y-4">
+          {/* Unidade */}
           <button
             onClick={() => handleStepClick('unidade')}
             className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
           >
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
-                <MapPin size={20} className="text-pink-600" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isUnitSelected ? 'bg-green-500 text-white' : 'bg-pink-100 text-pink-600'
+              }`}>
+                {isUnitSelected ? <Check size={20} /> : <MapPin size={20} />}
               </div>
               <div className="text-left">
-                <div className="text-gray-900 text-base font-semibold">Selecionar unidade</div>
-                <div className="text-gray-500 text-sm">Escolha a barbearia</div>
+                <div className="text-gray-900 text-base font-semibold">Unidade</div>
+                <div className="text-gray-500 text-sm">
+                  {selections?.unit ? selections.unit.name.split(' - ')[1] || 'Selecionado' : 'Escolher unidade'}
+                </div>
               </div>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
           
+          {/* Profissional */}
           <button
             onClick={() => handleStepClick('barbeiro')}
-            className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
+            disabled={!isUnitSelected}
+            className={`w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100 ${
+              !isUnitSelected ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <User size={20} className="text-blue-600" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isProfessionalSelected ? 'bg-green-500 text-white' : 'bg-blue-100 text-blue-600'
+              }`}>
+                {isProfessionalSelected ? <Check size={20} /> : <User size={20} />}
               </div>
               <div className="text-left">
-                <div className="text-gray-900 text-base font-semibold">Selecionar barbeiro</div>
-                <div className="text-gray-500 text-sm">Escolha seu profissional</div>
+                <div className="text-gray-900 text-base font-semibold">Profissional</div>
+                <div className="text-gray-500 text-sm">
+                  {selections?.professional ? selections.professional.name : 'Escolher profissional'}
+                </div>
               </div>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
           
+          {/* Serviços */}
           <button
             onClick={() => handleStepClick('servico')}
-            className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
+            disabled={!isProfessionalSelected}
+            className={`w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100 ${
+              !isProfessionalSelected ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <Scissors size={20} className="text-orange-600" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isServiceSelected ? 'bg-green-500 text-white' : 'bg-orange-100 text-orange-600'
+              }`}>
+                {isServiceSelected ? <Check size={20} /> : <Scissors size={20} />}
               </div>
               <div className="text-left">
-                <div className="text-gray-900 text-base font-semibold">Selecionar serviços</div>
-                <div className="text-gray-500 text-sm">Escolha os procedimentos</div>
+                <div className="text-gray-900 text-base font-semibold">Serviços</div>
+                <div className="text-gray-500 text-sm">
+                  {selections?.services?.length > 0 
+                    ? `${selections.services.length} selecionado${selections.services.length > 1 ? 's' : ''}` 
+                    : 'Escolher serviços'
+                  }
+                </div>
               </div>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
           </button>
           
+          {/* Data/Horário */}
           <button
             onClick={() => handleStepClick('data')}
-            className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
+            disabled={!isServiceSelected}
+            className={`w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100 ${
+              !isServiceSelected ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Calendar size={20} className="text-green-600" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isDateSelected ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600'
+              }`}>
+                {isDateSelected ? <Check size={20} /> : <Calendar size={20} />}
               </div>
               <div className="text-left">
-                <div className="text-gray-900 text-base font-semibold">Data e horário</div>
-                <div className="text-gray-500 text-sm">Quando você prefere</div>
+                <div className="text-gray-900 text-base font-semibold">Data e Horário</div>
+                <div className="text-gray-500 text-sm">
+                  {selections?.date && selections?.time 
+                    ? `${selections.date} às ${selections.time}`
+                    : 'Escolher horário'
+                  }
+                </div>
               </div>
             </div>
             <ChevronRight size={20} className="text-gray-400" />
@@ -109,8 +160,15 @@ const BookingHome = ({ onNext }) => {
         </div>
         
         {/* CTA Button */}
-        <button className="w-full bg-gray-200 text-gray-400 rounded-2xl py-4 mt-8 font-semibold cursor-not-allowed">
-          Finalizar Agendamento
+        <button 
+          className={`w-full rounded-2xl py-4 mt-8 font-semibold transition-all ${
+            canFinalize 
+              ? 'bg-primary text-white hover:bg-orange-600 shadow-lg' 
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+          disabled={!canFinalize}
+        >
+          {canFinalize ? 'Finalizar Agendamento' : 'Preencha as informações acima'}
         </button>
       </div>
     </div>
