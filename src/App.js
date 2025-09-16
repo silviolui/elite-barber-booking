@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronRight, MapPin, User, Scissors, Calendar, X, Eye, EyeOff, History, CreditCard, Newspaper, Clock, Check } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
-// Mock Data Structure
-const mockData = {
+// Mock Data Structure (para uso futuro)
+// const mockData = {
   units: [
     {
       id: 1,
@@ -76,7 +76,7 @@ const mockData = {
       { id: 22, name: 'Corte Masculino', duration: 35, price: 50.00 }
     ]
   }
-};
+// };
 
 // Componente de Login
 const LoginScreen = ({ onLogin }) => {
