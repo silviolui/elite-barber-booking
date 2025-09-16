@@ -11,8 +11,8 @@ const BottomNavigation = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800">
-      <div className="flex">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+      <div className="flex items-center px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -21,12 +21,16 @@ const BottomNavigation = ({ activeTab, onTabChange }) => {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex-1 py-3 px-2 flex flex-col items-center space-y-1 ${
-                isActive ? 'text-white' : 'text-gray-500'
+              className={`flex-1 py-3 px-1 flex flex-col items-center space-y-1 transition-colors ${
+                isActive 
+                  ? 'text-primary' 
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <Icon size={20} />
-              <span className="text-xs font-medium">{tab.label}</span>
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>
+                {tab.label}
+              </span>
             </button>
           );
         })}
