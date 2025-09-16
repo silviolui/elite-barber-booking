@@ -10,7 +10,7 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
   useEffect(() => {
     const loadRealUnits = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('unidades')
           .select('*')
           .eq('ativo', true);
