@@ -1,8 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
   const [selectedUnit, setSelectedUnit] = useState(currentSelection);
+  const [realUnits, setRealUnits] = useState(units || []);
+
+  // Carregar unidades REAIS da tabela
+  useEffect(() => {
+    const loadRealUnits = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('unidades')
+          .select('*')
+          .eq('ativo', true);
+        
+        if (data && data.length > 0) {
+          console.log(`Carregadas ${data.length} unidades da tabela`);
+          setRealUnits(data);
+        } else {
+          console.log('Usando dados mock como fallback');
+          setRealUnits(units);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar unidades, usando mock:', error);
+        setRealUnits(units);
+      }
+    };
+
+    loadRealUnits();
+  }, [units]);
 
   const handleContinue = () => {
     if (selectedUnit) {
@@ -30,7 +57,7 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
 
         {/* Units List */}
         <div className="space-y-4 pb-32">
-          {units.map((unit) => (
+          {realUnits.map((unit) => (
             <button
               key={unit.id}
               onClick={() => setSelectedUnit(unit)}
@@ -44,7 +71,7 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
               {/* Background Image */}
               <div 
                 className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${unit.image})` }}
+                style={{ backgroundImage: `url(${unit.imagem_url || unit.image})` }}
               />
               <div className={`absolute inset-0 transition-colors ${
                 selectedUnit?.id === unit.id 
@@ -53,15 +80,15 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
               }`}>
                 <div className="absolute inset-0 bg-black bg-opacity-50"></div>
                 <img
-                  src={unit.image}
-                  alt={unit.name}
+                  src={unit.imagem_url || unit.image}
+                  alt={unit.nome || unit.name}
                   className="w-full h-32 object-cover"
                 />
               </div>
               
               <div className="p-4">
-                <h4 className="text-gray-900 font-semibold text-lg mb-1">{unit.name}</h4>
-                <p className="text-gray-600 text-sm">{unit.address}</p>
+                <h4 className="text-gray-900 font-semibold text-lg mb-1">{unit.nome || unit.name}</h4>
+                <p className="text-gray-600 text-sm">{unit.endereco || unit.address}</p>
               </div>
               
               {selectedUnit?.id === unit.id && (
