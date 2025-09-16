@@ -1,9 +1,6 @@
 -- ELITE BARBER BOOKING - Database Schema
 -- Execute this SQL in Supabase SQL Editor
 
--- Enable Row Level Security
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
-
 -- Create custom types
 CREATE TYPE appointment_status AS ENUM ('pending', 'confirmed', 'completed', 'cancelled');
 CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'refunded');
@@ -164,6 +161,78 @@ SELECT
   '(71) 99999-0003',
   'https://images.unsplash.com/photo-1562004760-aceed7bb0fe3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
 FROM companies c WHERE c.name = 'BookIA Elite Barber';
+
+-- Insert sample professionals
+INSERT INTO professionals (unit_id, name, specialty, image_url, rating, experience_years)
+SELECT 
+  u.id,
+  'Carlos Silva',
+  'Especialista em Cortes',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+  4.9,
+  8
+FROM units u WHERE u.name = 'BookIA - Boulevard Shopping Camaçari';
+
+INSERT INTO professionals (unit_id, name, specialty, image_url, rating, experience_years)
+SELECT 
+  u.id,
+  'Ana Santos',
+  'Coloração e Design',
+  'https://images.unsplash.com/photo-1494790108755-2616b332ab55?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+  4.8,
+  6
+FROM units u WHERE u.name = 'BookIA - Boulevard Shopping Camaçari';
+
+INSERT INTO professionals (unit_id, name, specialty, image_url, rating, experience_years)
+SELECT 
+  u.id,
+  'João Costa',
+  'Cortes Masculinos',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+  4.7,
+  5
+FROM units u WHERE u.name = 'BookIA - Boulevard Shopping Camaçari';
+
+-- Insert sample services
+INSERT INTO services (professional_id, name, duration_minutes, price)
+SELECT 
+  p.id,
+  'Corte Masculino',
+  30,
+  45.00
+FROM professionals p WHERE p.name = 'Carlos Silva';
+
+INSERT INTO services (professional_id, name, duration_minutes, price)
+SELECT 
+  p.id,
+  'Barba Completa',
+  20,
+  25.00
+FROM professionals p WHERE p.name = 'Carlos Silva';
+
+INSERT INTO services (professional_id, name, duration_minutes, price)
+SELECT 
+  p.id,
+  'Corte + Barba',
+  45,
+  65.00
+FROM professionals p WHERE p.name = 'Carlos Silva';
+
+INSERT INTO services (professional_id, name, duration_minutes, price)
+SELECT 
+  p.id,
+  'Corte Feminino',
+  60,
+  80.00
+FROM professionals p WHERE p.name = 'Ana Santos';
+
+INSERT INTO services (professional_id, name, duration_minutes, price)
+SELECT 
+  p.id,
+  'Coloração',
+  120,
+  150.00
+FROM professionals p WHERE p.name = 'Ana Santos';
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
