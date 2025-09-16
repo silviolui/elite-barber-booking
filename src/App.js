@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import LoginScreen from './components/LoginScreen';
 import SignUpScreen from './components/SignUpScreen';
 import BookingHome from './components/BookingHome';
