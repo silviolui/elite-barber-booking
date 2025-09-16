@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { auth } from './lib/supabase';
 import LoginScreen from './components/LoginScreen';
 import BookingHome from './components/BookingHome';
 import BottomNavigation from './components/BottomNavigation';
@@ -100,7 +101,8 @@ const PlaceholderScreen = ({ title }) => (
 );
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('agenda');
   const [currentScreen, setCurrentScreen] = useState('home');
   const [selections, setSelections] = useState({
@@ -111,9 +113,38 @@ function App() {
     time: null
   });
 
-  const handleLogin = (credentials) => {
-    console.log('Login:', credentials);
-    setIsLoggedIn(true);
+  useEffect(() => {
+    // Check if user is already logged in
+    const getSession = async () => {
+      const { data: { session } } = await auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+      }
+      setLoading(false);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = (user) => {
+    setUser(user);
+  };
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    setUser(null);
   };
 
   const handleStepClick = (step) => {
@@ -167,7 +198,20 @@ function App() {
     }));
   };
 
-  if (!isLoggedIn) {
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 

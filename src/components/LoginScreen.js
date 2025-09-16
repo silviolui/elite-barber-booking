@@ -1,15 +1,39 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Lock, X } from 'lucide-react';
+import { auth } from '../lib/supabase';
 
 const LoginScreen = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email && password) {
-      onLogin({ email, password });
+    if (!email || !password) {
+      setError('Preencha todos os campos');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error } = await auth.signIn(email, password);
+      
+      if (error) {
+        setError(error.message === 'Invalid login credentials' 
+          ? 'E-mail ou senha incorretos' 
+          : 'Erro ao fazer login. Tente novamente.');
+      } else if (data.user) {
+        onLogin(data.user);
+      }
+    } catch (err) {
+      setError('Erro de conexão. Verifique sua internet.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,13 +125,21 @@ const LoginScreen = ({ onLogin }) => {
               </button>
             </div>
             
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-xl p-3 text-red-200 text-sm text-center">
+                {error}
+              </div>
+            )}
+            
             {/* Login Button */}
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-lg"
+                disabled={loading}
+                className="w-full bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-lg"
               >
-                Login
+                {loading ? 'Entrando...' : 'Login'}
               </button>
             </div>
           </form>
