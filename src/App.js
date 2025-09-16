@@ -66,6 +66,18 @@ function App() {
       });
     } catch (error) {
       console.error('Erro ao carregar dados do cliente:', error);
+      
+      // FALLBACK: Usar dados básicos se Supabase falhar
+      setUnidades([
+        {
+          id: '1',
+          nome: 'BookIA - Boulevard Shopping Camaçari',
+          endereco: 'BA-535, s/n - Industrial, Camaçari',
+          imagem_url: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+          ativo: true
+        }
+      ]);
+      setAgendamentos([]);
     }
   };
 
