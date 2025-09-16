@@ -1,36 +1,8 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 
-const SelectUnit = ({ onClose, onSelect, currentSelection }) => {
+const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
   const [selectedUnit, setSelectedUnit] = useState(currentSelection);
-  const [unidades, setUnidades] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Carregar TODAS as unidades da tabela
-  useEffect(() => {
-    const loadUnidades = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('unidades')
-          .select('*')
-          .eq('ativo', true)
-          .order('nome');
-        
-        if (data) {
-          setUnidades(data);
-          console.log(`Carregadas ${data.length} unidades da tabela`);
-        } else {
-          console.error('Erro ao carregar unidades:', error);
-        }
-      } catch (error) {
-        console.error('Erro ao conectar com Supabase:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUnidades();
-  }, []);
 
   const handleContinue = () => {
     if (selectedUnit) {
@@ -57,14 +29,8 @@ const SelectUnit = ({ onClose, onSelect, currentSelection }) => {
         </div>
 
         {/* Units List */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-gray-500">Carregando unidades...</p>
-          </div>
-        ) : (
-          <div className="space-y-4 pb-32">
-            {unidades.map((unit) => (
+        <div className="space-y-4 pb-32">
+          {units.map((unit) => (
             <button
               key={unit.id}
               onClick={() => setSelectedUnit(unit)}
@@ -83,27 +49,26 @@ const SelectUnit = ({ onClose, onSelect, currentSelection }) => {
               <div className={`absolute inset-0 transition-colors ${
                 selectedUnit?.id === unit.id 
                   ? 'bg-primary bg-opacity-80' 
-                  : 'bg-black bg-opacity-50'
-              }`} />
-              
-              {/* Content */}
-              <div className="relative p-4 flex flex-col justify-end h-36">
-                <div className="flex items-end justify-between">
-                  <div className="flex-1">
-                    <h4 className="text-white font-semibold text-base mb-2 leading-tight">{unit.name}</h4>
-                    <p className="text-white text-opacity-90 text-sm font-medium leading-tight">{unit.address}</p>
-                  </div>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ml-3 flex-shrink-0 transition-all ${
-                    selectedUnit?.id === unit.id
-                      ? 'border-white bg-white'
-                      : 'border-white border-opacity-60'
-                  }`}>
-                    {selectedUnit?.id === unit.id && (
-                      <Check size={14} className="text-primary" />
-                    )}
-                  </div>
-                </div>
+                  : 'bg-black bg-opacity-40'
+              }`}>
+                <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+                <img
+                  src={unit.image}
+                  alt={unit.name}
+                  className="w-full h-32 object-cover"
+                />
               </div>
+              
+              <div className="p-4">
+                <h4 className="text-gray-900 font-semibold text-lg mb-1">{unit.name}</h4>
+                <p className="text-gray-600 text-sm">{unit.address}</p>
+              </div>
+              
+              {selectedUnit?.id === unit.id && (
+                <div className="absolute top-4 right-4 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                  <Check size={16} className="text-white" />
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -114,9 +79,9 @@ const SelectUnit = ({ onClose, onSelect, currentSelection }) => {
         <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200">
           <button
             onClick={handleContinue}
-            className="w-full py-4 rounded-2xl font-semibold text-lg bg-primary text-white hover:bg-orange-600 transition-colors"
+            className="w-full bg-primary text-white py-4 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
           >
-            Continuar com {selectedUnit.name.split(' - ')[1]}
+            Continuar
           </button>
         </div>
       )}
