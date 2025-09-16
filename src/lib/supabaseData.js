@@ -17,9 +17,9 @@ export const supabaseData = {
     return data || [];
   },
 
-  // Carregar unidades de uma empresa
-  async getUnidades(empresaId = null) {
-    let query = supabase
+  // Carregar TODAS as unidades ativas para o cliente escolher
+  async getUnidades() {
+    const { data, error } = await supabase
       .from('unidades')
       .select(`
         *,
@@ -29,13 +29,8 @@ export const supabaseData = {
           descricao
         )
       `)
-      .eq('ativo', true);
-    
-    if (empresaId) {
-      query = query.eq('empresa_id', empresaId);
-    }
-    
-    const { data, error } = await query;
+      .eq('ativo', true)
+      .order('nome');
     
     if (error) {
       console.error('Erro ao carregar unidades:', error);
@@ -81,13 +76,13 @@ export const supabaseData = {
     return data || [];
   },
 
-  // Criar agendamento para o usuário
-  async criarAgendamento(usuarioId, agendamentoData) {
+  // Criar agendamento para o CLIENTE
+  async criarAgendamento(clienteId, agendamentoData) {
     const { data, error } = await supabase
       .from('agendamentos')
       .insert([
         {
-          usuario_id: usuarioId,
+          usuario_id: clienteId,
           profissional_id: agendamentoData.profissionalId,
           unidade_id: agendamentoData.unidadeId,
           data_agendamento: agendamentoData.data,

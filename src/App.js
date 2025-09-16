@@ -49,23 +49,23 @@ function App() {
     time: null
   });
 
-  // Função para carregar todos os dados do usuário
-  const loadUserData = async (userId) => {
+  // Função para carregar dados para o CLIENTE
+  const loadClientData = async (clienteId) => {
     try {
-      // Carregar unidades disponíveis
+      // Carregar TODAS as unidades ativas (cliente pode escolher qualquer uma)
       const unidadesData = await supabaseData.getUnidades();
       setUnidades(unidadesData);
       
-      // Carregar agendamentos do usuário
-      const agendamentosData = await supabaseData.getAgendamentosUsuario(userId);
+      // Carregar histórico de agendamentos do CLIENTE
+      const agendamentosData = await supabaseData.getAgendamentosUsuario(clienteId);
       setAgendamentos(agendamentosData);
       
-      console.log(`Dados carregados para usuário ${userId}:`, {
+      console.log(`Dados carregados para CLIENTE ${clienteId}:`, {
         unidades: unidadesData.length,
         agendamentos: agendamentosData.length
       });
     } catch (error) {
-      console.error('Erro ao carregar dados do usuário:', error);
+      console.error('Erro ao carregar dados do cliente:', error);
     }
   };
 
@@ -75,7 +75,7 @@ function App() {
       const { data: { session } } = await auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        await loadUserData(session.user.id);
+        await loadClientData(session.user.id);
       }
       setLoading(false);
     };
@@ -86,7 +86,7 @@ function App() {
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
-        await loadUserData(session.user.id);
+        await loadClientData(session.user.id);
       } else {
         setUser(null);
         // Limpar dados quando usuário sai
@@ -105,8 +105,8 @@ function App() {
     setUser(user);
     setShowSignUp(false);
     
-    // Carregar dados do usuário quando faz login
-    await loadUserData(user.id);
+    // Carregar dados para o cliente quando faz login
+    await loadClientData(user.id);
   };
 
   const handleSignUp = (user) => {
@@ -184,6 +184,49 @@ function App() {
       date,
       time
     }));
+  };
+
+  // Função para o cliente finalizar agendamento
+  const handleConfirmBooking = async () => {
+    if (!user || !selections.unit || !selections.professional || !selections.services.length || !selections.date || !selections.time) {
+      alert('Por favor, complete todas as etapas do agendamento');
+      return;
+    }
+
+    const agendamentoData = {
+      unidadeId: selections.unit.id,
+      profissionalId: selections.professional.id,
+      data: selections.date,
+      horarioInicio: selections.time,
+      horarioFim: selections.time, // Calcular baseado na duração dos serviços
+      precoTotal: selections.services.reduce((total, service) => total + service.preco, 0),
+      servicos: selections.services,
+      observacoes: `Agendamento do cliente: ${user.name || user.email}`
+    };
+
+    try {
+      const result = await supabaseData.criarAgendamento(user.id, agendamentoData);
+      if (result.success) {
+        alert('Agendamento criado com sucesso!');
+        // Recarregar agendamentos do cliente
+        await loadClientData(user.id);
+        // Voltar para home
+        setCurrentScreen('home');
+        // Limpar seleções
+        setSelections({
+          unit: null,
+          professional: null,
+          services: [],
+          date: null,
+          time: null
+        });
+      } else {
+        alert('Erro ao criar agendamento: ' + result.error);
+      }
+    } catch (error) {
+      alert('Erro ao criar agendamento');
+      console.error('Booking error:', error);
+    }
   };
 
   // Loading state
