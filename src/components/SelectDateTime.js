@@ -104,7 +104,30 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
       
       try {
         console.log('🚀 Carregando períodos para:', { unitId, selectedDate });
-        const dataObj = new Date(selectedDate + 'T00:00:00');
+        
+        // Criar data de forma mais robusta
+        let dataObj;
+        if (selectedDate instanceof Date) {
+          dataObj = selectedDate;
+        } else if (typeof selectedDate === 'string') {
+          // Se é string no formato 'YYYY-MM-DD' ou similar
+          if (selectedDate.includes('-')) {
+            dataObj = new Date(selectedDate + 'T00:00:00');
+          } else {
+            dataObj = new Date(selectedDate);
+          }
+        } else {
+          console.error('❌ Formato de data inválido:', selectedDate);
+          return;
+        }
+        
+        // Verificar se a data é válida
+        if (isNaN(dataObj.getTime())) {
+          console.error('❌ Data inválida criada:', { selectedDate, dataObj });
+          return;
+        }
+        
+        console.log('📅 Data criada:', dataObj.toISOString());
         const periodos = await supabaseData.getPeriodosDisponiveis(unitId, dataObj);
         setPeriodosDisponiveis(periodos);
         
@@ -251,7 +274,10 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const isToday = day.toDateString() === today.toDateString();
                   const isPast = day < today;
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
-                  const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
+                  const isSelected = selectedDate && day && 
+                    (typeof selectedDate === 'object' ? 
+                      day.toDateString() === selectedDate.toDateString() : 
+                      day.toDateString() === new Date(selectedDate).toDateString());
                   const isDisabled = isPast || isClosed;
 
                   return (
