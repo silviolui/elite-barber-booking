@@ -5,12 +5,14 @@ import { supabase } from '../lib/supabase';
 const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, professionals }) => {
   const [selectedProfessional, setSelectedProfessional] = useState(currentSelection);
   const [realProfessionals, setRealProfessionals] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Carregar profissionais REAIS da tabela
   useEffect(() => {
     const loadRealProfessionals = async () => {
       if (!unitId) {
         setRealProfessionals([]);
+        setLoading(false);
         return;
       }
       
@@ -25,12 +27,14 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
           console.log(`Carregados ${data.length} profissionais da unidade ${unitId}`);
           setRealProfessionals(data);
         } else {
-          console.log('Usando dados mock para profissionais');
+          console.log('Nenhum profissional encontrado na tabela, usando mock');
           setRealProfessionals(professionals[unitId] || []);
         }
       } catch (error) {
-        console.error('Erro ao carregar profissionais:', error);
+        console.error('Erro ao carregar profissionais, usando mock:', error);
         setRealProfessionals(professionals[unitId] || []);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -63,7 +67,21 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
 
         {/* Professionals List */}
         <div className="space-y-4 pb-32">
-          {realProfessionals.map((professional) => (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-gray-500">Carregando profissionais...</p>
+            </div>
+          ) : realProfessionals.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span className="text-2xl">👨‍💼</span>
+              </div>
+              <h3 className="text-gray-900 font-semibold mb-2">Nenhum profissional encontrado</h3>
+              <p className="text-gray-600 text-sm">Esta unidade ainda não tem profissionais cadastrados.</p>
+            </div>
+          ) : (
+            realProfessionals.map((professional) => (
             <button
               key={professional.id}
               onClick={() => setSelectedProfessional(professional)}
@@ -107,12 +125,13 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
                         </svg>
                       ))}
                     </div>
-                    <span className="text-gray-900 font-semibold">{professional.rating}</span>
+                    <span className="text-gray-900 font-semibold">{professional.avaliacao || professional.rating}</span>
                   </div>
                 </div>
               </div>
             </button>
-          ))}
+          ))
+          )}
         </div>
       </div>
 
