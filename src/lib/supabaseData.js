@@ -191,6 +191,89 @@ export const supabaseData = {
       return false;
     }
     
-    return horarios && horarios.length > 0;
+    // Verificar se pelo menos um período está aberto
+    if (horarios && horarios.length > 0) {
+      const horario = horarios[0];
+      return horario.abre_manha || horario.abre_tarde || horario.abre_noite;
+    }
+    
+    return false;
+  },
+
+  // NOVA FUNÇÃO: Verificar períodos disponíveis para um dia
+  async getPeriodosDisponiveis(unidadeId, data) {
+    const dayOfWeek = data.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
+    
+    const { data: horarios, error } = await supabase
+      .from('horario_funcionamento')
+      .select('*')
+      .eq('unidade_id', unidadeId)
+      .eq('dia_semana', dayOfWeek)
+      .eq('ativo', true);
+    
+    if (error) {
+      console.error('Erro ao carregar períodos:', error);
+      return { manha: false, tarde: false, noite: false };
+    }
+    
+    if (horarios && horarios.length > 0) {
+      const horario = horarios[0];
+      return {
+        manha: horario.abre_manha || false,
+        tarde: horario.abre_tarde || false,
+        noite: horario.abre_noite || false,
+        horarios: {
+          manha: {
+            inicio: horario.horario_abertura_manha,
+            fim: horario.horario_fechamento_manha
+          },
+          tarde: {
+            inicio: horario.horario_abertura_tarde,
+            fim: horario.horario_fechamento_tarde
+          },
+          noite: {
+            inicio: horario.horario_abertura_noite,
+            fim: horario.horario_fechamento_noite
+          }
+        }
+      };
+    }
+    
+    return { manha: false, tarde: false, noite: false };
+  },
+
+  // NOVA FUNÇÃO: Gerar horários disponíveis baseado no período e horário de funcionamento
+  async gerarHorariosDisponiveis(unidadeId, data, periodo) {
+    const periodos = await this.getPeriodosDisponiveis(unidadeId, data);
+    
+    if (!periodos[periodo]) {
+      return []; // Período fechado, retorna array vazio
+    }
+    
+    const horarioInfo = periodos.horarios[periodo];
+    if (!horarioInfo.inicio || !horarioInfo.fim) {
+      return []; // Sem horários definidos
+    }
+    
+    // Gerar slots de 30 em 30 minutos
+    const horarios = [];
+    const [horaInicio, minutoInicio] = horarioInfo.inicio.split(':').map(Number);
+    const [horaFim, minutoFim] = horarioInfo.fim.split(':').map(Number);
+    
+    let horaAtual = horaInicio;
+    let minutoAtual = minutoInicio;
+    
+    while (horaAtual < horaFim || (horaAtual === horaFim && minutoAtual < minutoFim)) {
+      const horarioFormatado = `${horaAtual.toString().padStart(2, '0')}:${minutoAtual.toString().padStart(2, '0')}`;
+      horarios.push(horarioFormatado);
+      
+      minutoAtual += 30;
+      if (minutoAtual >= 60) {
+        minutoAtual = 0;
+        horaAtual++;
+      }
+    }
+    
+    return horarios;
   }
 };
