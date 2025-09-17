@@ -1,9 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Clock } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, services }) => {
   const [currentServices, setCurrentServices] = useState(selectedServices || []);
-  const availableServices = services[professionalId] || [];
+  const [realServices, setRealServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar serviços REAIS do profissional da tabela
+  useEffect(() => {
+    const loadRealServices = async () => {
+      if (!professionalId) {
+        setRealServices([]);
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const { data } = await supabase
+          .from('servicos')
+          .select('*')
+          .eq('profissional_id', professionalId)
+          .eq('ativo', true)
+          .order('nome');
+        
+        if (data && data.length > 0) {
+          console.log(`Carregados ${data.length} serviços do profissional ${professionalId}`);
+          setRealServices(data);
+        } else {
+          console.log('Nenhum serviço encontrado na tabela, usando mock');
+          setRealServices(services[professionalId] || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar serviços, usando mock:', error);
+        setRealServices(services[professionalId] || []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRealServices();
+  }, [professionalId, services]);
 
   const toggleService = (service) => {
     setCurrentServices(prev => {
@@ -45,7 +82,21 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
 
         {/* Services List */}
         <div className="space-y-3 pb-40">
-          {availableServices.map((service) => {
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-gray-500">Carregando serviços...</p>
+            </div>
+          ) : realServices.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span className="text-2xl">✂️</span>
+              </div>
+              <h3 className="text-gray-900 font-semibold mb-2">Nenhum serviço encontrado</h3>
+              <p className="text-gray-600 text-sm">Este profissional ainda não tem serviços cadastrados.</p>
+            </div>
+          ) : (
+            realServices.map((service) => {
             const isSelected = currentServices.find(s => s.id === service.id);
             
             return (
@@ -63,7 +114,7 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
                     <div className="flex items-center justify-between mb-3">
                       <h4 className={`text-base font-semibold ${
                         isSelected ? 'text-white' : 'text-gray-900'
-                      }`}>{service.name}</h4>
+                      }`}>{service.nome || service.name}</h4>
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         isSelected
                           ? 'border-white bg-white'
@@ -80,19 +131,20 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
                         isSelected ? 'text-white opacity-90' : 'text-gray-600'
                       }`}>
                         <Clock size={14} className="mr-2" />
-                        {service.duration}min
+                        {service.duracao_minutos || service.duration}min
                       </span>
                       <span className={`text-lg font-bold ${
                         isSelected ? 'text-white' : 'text-gray-900'
                       }`}>
-                        R$ {service.price.toFixed(2)}
+                        R$ {(service.preco || service.price).toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </div>
               </button>
             );
-          })}
+          })
+          )}
         </div>
       </div>
 

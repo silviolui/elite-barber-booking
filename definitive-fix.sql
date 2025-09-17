@@ -71,4 +71,38 @@ SELECT
 FROM unidades WHERE nome LIKE '%Centro%' AND ativo = true
 ON CONFLICT DO NOTHING;
 
--- RESULTADO FINAL: Cada unidade ativa terá profissionais associados corretamente
+-- 6. CONECTAR SERVIÇOS AOS PROFISSIONAIS DEFINITIVAMENTE
+-- Garantir que cada profissional tenha serviços específicos
+
+-- Carlos Silva (Especialista em Cortes) - Serviços masculinos
+UPDATE servicos 
+SET profissional_id = (SELECT id FROM profissionais WHERE nome = 'Carlos Silva' LIMIT 1)
+WHERE nome IN ('Corte Masculino', 'Corte + Barba', 'Barba Completa');
+
+-- Ana Santos (Coloração e Design) - Serviços femininos  
+UPDATE servicos 
+SET profissional_id = (SELECT id FROM profissionais WHERE nome = 'Ana Santos' LIMIT 1)
+WHERE nome IN ('Coloração', 'Corte Feminino');
+
+-- Garantir que todos os serviços estão ativos
+UPDATE servicos SET ativo = true WHERE ativo IS NULL OR ativo = false;
+
+-- 7. VERIFICAÇÃO FINAL COMPLETA - ESTRUTURA DEFINITIVA
+SELECT 
+  u.nome as unidade,
+  p.nome as profissional,
+  p.especialidade,
+  s.nome as servico,
+  s.duracao_minutos,
+  s.preco,
+  s.ativo as servico_ativo
+FROM unidades u
+JOIN profissionais p ON u.id = p.unidade_id
+JOIN servicos s ON p.id = s.profissional_id
+WHERE u.ativo = true AND p.ativo = true AND s.ativo = true
+ORDER BY u.nome, p.nome, s.nome;
+
+-- RESULTADO FINAL: Estrutura completa e funcional para produção
+-- • Unidades ativas com profissionais associados
+-- • Profissionais com serviços específicos e preços
+-- • Relacionamentos corretos em toda a hierarquia
