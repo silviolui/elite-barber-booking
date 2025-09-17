@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { auth } from './lib/supabase';
 import LoginScreen from './components/LoginScreen';
 import SignUpScreen from './components/SignUpScreen';
 import BookingHome from './components/BookingHome';
@@ -83,6 +84,8 @@ const PlaceholderScreen = ({ title }) => (
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState('agenda');
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -94,16 +97,73 @@ function App() {
     time: null
   });
 
+  // Verificar sessão existente ao carregar app
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await auth.getSession();
+        if (session?.user) {
+          setIsLoggedIn(true);
+          setCurrentUser(session.user);
+          console.log('Usuário já logado:', session.user.email);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // Escutar mudanças de autenticação
+    const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        setCurrentUser(session.user);
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Removido todo o useEffect e loadClientData que causava loop infinito
 
   const handleLogin = (user) => {
     setIsLoggedIn(true);
+    setCurrentUser(user);
     setShowSignUp(false);
   };
 
   const handleSignUp = (user) => {
     setIsLoggedIn(true);
+    setCurrentUser(user);
     setShowSignUp(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setActiveTab('agenda');
+      setCurrentScreen('home');
+      // Limpar seleções
+      setSelections({
+        unit: null,
+        professional: null,
+        services: [],
+        date: null,
+        time: null
+      });
+      console.log('Logout realizado com sucesso');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   const handleShowSignUp = () => {
@@ -210,7 +270,17 @@ function App() {
   //   }
   // };
 
-  // Removido loading state que causava loop infinito
+  // Loading state para verificação de sessão
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando sessão...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login/signup screen if not authenticated
   if (!isLoggedIn) {
@@ -242,14 +312,28 @@ function App() {
         case 'perfil':
           return <PlaceholderScreen title="Perfil" />;
         default:
-          return <BookingHome onNext={handleStepClick} selections={selections} />;
+          return (
+            <BookingHome 
+              onNext={handleStepClick} 
+              selections={selections}
+              currentUser={currentUser}
+              onLogout={handleLogout}
+            />
+          );
       }
     }
 
     // Telas do agendamento
     switch (currentScreen) {
       case 'home':
-        return <BookingHome onNext={handleStepClick} selections={selections} />;
+        return (
+          <BookingHome 
+            onNext={handleStepClick} 
+            selections={selections}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
+        );
       case 'unidade':
         return (
           <SelectUnit
