@@ -5,6 +5,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('morning');
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -199,9 +200,44 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
             <div>
               <h4 className="text-gray-900 font-semibold mb-4">Horários Disponíveis</h4>
               
-              {renderTimeSlots(timeSlots.morning, 'Manhã', '☀️')}
-              {renderTimeSlots(timeSlots.afternoon, 'Tarde', '🌤️')}
-              {renderTimeSlots(timeSlots.evening, 'Noite', '🌙')}
+              {/* Period Buttons */}
+              <div className="flex space-x-2 mb-6">
+                <button
+                  onClick={() => setSelectedPeriod('morning')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                    selectedPeriod === 'morning'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  ☀️ Manhã
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('afternoon')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                    selectedPeriod === 'afternoon'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🌤️ Tarde
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('evening')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                    selectedPeriod === 'evening'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🌙 Noite
+                </button>
+              </div>
+
+              {/* Show only selected period times */}
+              {selectedPeriod === 'morning' && renderTimeSlots(timeSlots.morning, 'Manhã', '☀️')}
+              {selectedPeriod === 'afternoon' && renderTimeSlots(timeSlots.afternoon, 'Tarde', '🌤️')}
+              {selectedPeriod === 'evening' && renderTimeSlots(timeSlots.evening, 'Noite', '🌙')}
             </div>
           )}
         </div>
