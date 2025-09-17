@@ -97,9 +97,13 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   // Carregar períodos e horários quando a data for selecionada
   useEffect(() => {
     const loadPeriodosDisponiveis = async () => {
-      if (!unitId || !selectedDate) return;
+      if (!unitId || !selectedDate) {
+        console.log('❌ Faltam dados:', { unitId, selectedDate });
+        return;
+      }
       
       try {
+        console.log('🚀 Carregando períodos para:', { unitId, selectedDate });
         const dataObj = new Date(selectedDate + 'T00:00:00');
         const periodos = await supabaseData.getPeriodosDisponiveis(unitId, dataObj);
         setPeriodosDisponiveis(periodos);
@@ -109,8 +113,10 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         
         for (const periodo of ['manha', 'tarde', 'noite']) {
           if (periodos[periodo]) {
+            console.log(`🕐 Carregando horários para período: ${periodo}`);
             const horarios = await supabaseData.gerarHorariosDisponiveis(unitId, dataObj, periodo);
             horariosMap[periodo] = horarios;
+            console.log(`✅ Horários para ${periodo}:`, horarios);
           }
         }
         
@@ -118,13 +124,17 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         
         // Se o período selecionado não está disponível, mudar para o primeiro disponível
         if (!periodos[selectedPeriod]) {
+          console.log(`🔄 Período ${selectedPeriod} não disponível, mudando...`);
           if (periodos.manha) setSelectedPeriod('manha');
           else if (periodos.tarde) setSelectedPeriod('tarde');
           else if (periodos.noite) setSelectedPeriod('noite');
         }
         
-        console.log('Períodos disponíveis:', periodos);
-        console.log('Horários disponíveis:', horariosMap);
+        console.log('📋 Resumo final:', {
+          periodos,
+          horariosMap,
+          selectedPeriod
+        });
       } catch (error) {
         console.error('Erro ao carregar períodos disponíveis:', error);
       }

@@ -204,12 +204,20 @@ export const supabaseData = {
   async getPeriodosDisponiveis(unidadeId, data) {
     const dayOfWeek = data.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
     
+    console.log('🔍 getPeriodosDisponiveis:', {
+      unidadeId,
+      data: data.toISOString(),
+      dayOfWeek
+    });
+    
     const { data: horarios, error } = await supabase
       .from('horario_funcionamento')
       .select('*')
       .eq('unidade_id', unidadeId)
       .eq('dia_semana', dayOfWeek)
       .eq('ativo', true);
+    
+    console.log('📊 Resultado da consulta:', { horarios, error });
     
     if (error) {
       console.error('Erro ao carregar períodos:', error);
@@ -218,7 +226,7 @@ export const supabaseData = {
     
     if (horarios && horarios.length > 0) {
       const horario = horarios[0];
-      return {
+      const resultado = {
         manha: horario.abre_manha || false,
         tarde: horario.abre_tarde || false,
         noite: horario.abre_noite || false,
@@ -237,8 +245,12 @@ export const supabaseData = {
           }
         }
       };
+      
+      console.log('✅ Períodos encontrados:', resultado);
+      return resultado;
     }
     
+    console.log('❌ Nenhum horário encontrado para esta data');
     return { manha: false, tarde: false, noite: false };
   },
 
