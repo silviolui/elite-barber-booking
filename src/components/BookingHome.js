@@ -73,7 +73,7 @@ const BookingHome = ({ onNext, selections }) => {
               <div className="text-left">
                 <div className="text-gray-900 text-base font-semibold">Unidade</div>
                 <div className="text-gray-500 text-sm">
-                  {selections?.unit ? selections.unit.name.split(' - ')[1] || 'Selecionado' : 'Escolher unidade'}
+                  {selections?.unit ? (selections.unit.nome || selections.unit.name)?.split(' - ')[1] || 'Selecionado' : 'Escolher unidade'}
                 </div>
               </div>
             </div>
@@ -97,7 +97,7 @@ const BookingHome = ({ onNext, selections }) => {
               <div className="text-left">
                 <div className="text-gray-900 text-base font-semibold">Profissional</div>
                 <div className="text-gray-500 text-sm">
-                  {selections?.professional ? selections.professional.name : 'Escolher profissional'}
+                  {selections?.professional ? (selections.professional.nome || selections.professional.name) : 'Escolher profissional'}
                 </div>
               </div>
             </div>
