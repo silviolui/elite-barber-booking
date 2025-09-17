@@ -158,5 +158,39 @@ export const supabaseData = {
       return [];
     }
     return horarios || [];
+  },
+
+  // Carregar horário de funcionamento de uma unidade
+  async getHorarioFuncionamento(unidadeId) {
+    const { data, error } = await supabase
+      .from('horario_funcionamento')
+      .select('*')
+      .eq('unidade_id', unidadeId)
+      .eq('ativo', true);
+    
+    if (error) {
+      console.error('Erro ao carregar horário de funcionamento:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  // Verificar se unidade está aberta em um dia específico
+  async isUnidadeAberta(unidadeId, data) {
+    const dayOfWeek = data.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
+    
+    const { data: horarios, error } = await supabase
+      .from('horario_funcionamento')
+      .select('*')
+      .eq('unidade_id', unidadeId)
+      .eq('dia_semana', dayOfWeek)
+      .eq('ativo', true);
+    
+    if (error) {
+      console.error('Erro ao verificar funcionamento:', error);
+      return false;
+    }
+    
+    return horarios && horarios.length > 0;
   }
 };

@@ -370,6 +370,7 @@ function App() {
             onClose={handleBackToHome}
             onSelect={handleSelectDateTime}
             professionalId={selections.professional?.id}
+            unitId={selections.unit?.id}
             currentDate={selections.date}
             currentTime={selections.time}
           />

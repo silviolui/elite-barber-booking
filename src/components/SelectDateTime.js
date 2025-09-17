@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
+import { supabaseData } from '../lib/supabaseData';
 
-const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime }) => {
+const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('morning');
+  const [closedDays, setClosedDays] = useState([]);
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -58,6 +60,35 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     }
   };
   
+  // Carregar horário de funcionamento da unidade
+  useEffect(() => {
+    const loadHorarioFuncionamento = async () => {
+      if (!unitId) return;
+      
+      try {
+        const horarios = await supabaseData.getHorarioFuncionamento(unitId);
+        
+        // Criar array com dias fechados (0-6, sendo 0=Domingo)
+        const diasAbertos = horarios.map(h => h.dia_semana);
+        const diasFechados = [];
+        
+        for (let dia = 0; dia <= 6; dia++) {
+          if (!diasAbertos.includes(dia)) {
+            diasFechados.push(dia);
+          }
+        }
+        
+        setClosedDays(diasFechados);
+        console.log(`Unidade ${unitId} - Dias fechados:`, diasFechados);
+      } catch (error) {
+        console.error('Erro ao carregar horários de funcionamento:', error);
+        setClosedDays([0]); // Fechar apenas domingo por padrão
+      }
+    };
+
+    loadHorarioFuncionamento();
+  }, [unitId]);
+
   // Set initial selections if provided
   useEffect(() => {
     if (currentDate && currentTime) {
@@ -170,22 +201,25 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const today = new Date();
                   const isToday = day.toDateString() === today.toDateString();
                   const isPast = day < today;
+                  const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
                   const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
+                  const isDisabled = isPast || isClosed;
 
                   return (
                     <button
                       key={index}
-                      onClick={() => !isPast && setSelectedDate(day)}
-                      disabled={isPast}
+                      onClick={() => !isDisabled && setSelectedDate(day)}
+                      disabled={isDisabled}
                       className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                        isPast 
-                          ? 'text-gray-300 cursor-not-allowed'
+                        isDisabled
+                          ? 'text-gray-200 cursor-not-allowed bg-gray-50'
                           : isSelected
                           ? 'bg-primary text-white'
                           : isToday
                           ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
+                      title={isClosed ? 'Fechado neste dia' : ''}
                     >
                       {day.getDate()}
                     </button>
