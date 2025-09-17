@@ -60,8 +60,8 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
     }
   };
 
-  const totalPrice = currentServices.reduce((total, service) => total + service.price, 0);
-  const totalDuration = currentServices.reduce((total, service) => total + service.duration, 0);
+  const totalPrice = currentServices.reduce((total, service) => total + (service.preco || service.price), 0);
+  const totalDuration = currentServices.reduce((total, service) => total + (service.duracao_minutos || service.duration), 0);
 
   return (
     <div className="fixed inset-0 bg-white z-50">
