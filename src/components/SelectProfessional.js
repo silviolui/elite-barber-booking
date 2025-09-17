@@ -1,9 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, professionals }) => {
   const [selectedProfessional, setSelectedProfessional] = useState(currentSelection);
-  const availableProfessionals = professionals[unitId] || [];
+  const [realProfessionals, setRealProfessionals] = useState([]);
+  
+  // Carregar profissionais REAIS da tabela
+  useEffect(() => {
+    const loadRealProfessionals = async () => {
+      if (!unitId) {
+        setRealProfessionals([]);
+        return;
+      }
+      
+      try {
+        const { data } = await supabase
+          .from('profissionais')
+          .select('*')
+          .eq('unidade_id', unitId)
+          .eq('ativo', true);
+        
+        if (data && data.length > 0) {
+          console.log(`Carregados ${data.length} profissionais da unidade ${unitId}`);
+          setRealProfessionals(data);
+        } else {
+          console.log('Usando dados mock para profissionais');
+          setRealProfessionals(professionals[unitId] || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar profissionais:', error);
+        setRealProfessionals(professionals[unitId] || []);
+      }
+    };
+
+    loadRealProfessionals();
+  }, [unitId, professionals]);
 
   const handleContinue = () => {
     if (selectedProfessional) {
@@ -31,7 +63,7 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
 
         {/* Professionals List */}
         <div className="space-y-4 pb-32">
-          {availableProfessionals.map((professional) => (
+          {realProfessionals.map((professional) => (
             <button
               key={professional.id}
               onClick={() => setSelectedProfessional(professional)}
@@ -45,8 +77,8 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
                 {/* Profile Image */}
                 <div className="relative flex-shrink-0">
                   <img
-                    src={professional.image}
-                    alt={professional.name}
+                    src={professional.foto_url || professional.image}
+                    alt={professional.nome || professional.name}
                     className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                   />
                   {selectedProfessional?.id === professional.id && (
@@ -58,8 +90,8 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
 
                 {/* Professional Info */}
                 <div className="flex-1 text-left">
-                  <h4 className="text-gray-900 font-semibold text-lg mb-1">{professional.name}</h4>
-                  <p className="text-gray-600 text-base mb-2">{professional.specialty}</p>
+                  <h4 className="text-gray-900 font-semibold text-lg mb-1">{professional.nome || professional.name}</h4>
+                  <p className="text-gray-600 text-base mb-2">{professional.especialidade || professional.specialty}</p>
                   
                   {/* Rating */}
                   <div className="flex items-center space-x-1">

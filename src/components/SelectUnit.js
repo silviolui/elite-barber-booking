@@ -72,23 +72,18 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${unit.imagem_url || unit.image})` }}
-              />
-              <div className={`absolute inset-0 transition-colors ${
-                selectedUnit?.id === unit.id 
-                  ? 'bg-primary bg-opacity-80' 
-                  : 'bg-black bg-opacity-40'
-              }`}>
-                <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-                <img
-                  src={unit.imagem_url || unit.image}
-                  alt={unit.nome || unit.name}
-                  className="w-full h-32 object-cover"
-                />
+              >
+                <div className={`absolute inset-0 transition-colors ${
+                  selectedUnit?.id === unit.id 
+                    ? 'bg-primary bg-opacity-80' 
+                    : 'bg-black bg-opacity-50'
+                }`}></div>
               </div>
               
-              <div className="p-4">
-                <h4 className="text-gray-900 font-semibold text-lg mb-1">{unit.nome || unit.name}</h4>
-                <p className="text-gray-600 text-sm">{unit.endereco || unit.address}</p>
+              {/* Text Content */}
+              <div className="relative z-10 p-4 flex flex-col justify-end h-32">
+                <h4 className="text-white font-semibold text-lg mb-1 drop-shadow-lg">{unit.nome || unit.name}</h4>
+                <p className="text-white text-sm opacity-90 drop-shadow-lg">{unit.endereco || unit.address}</p>
               </div>
               
               {selectedUnit?.id === unit.id && (
