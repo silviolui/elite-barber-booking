@@ -164,7 +164,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     };
 
     loadPeriodosDisponiveis();
-  }, [unitId, selectedDate, selectedPeriod]);
+  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados]);
 
   // Set initial selections if provided
   useEffect(() => {
