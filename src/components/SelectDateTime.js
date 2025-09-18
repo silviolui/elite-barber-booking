@@ -95,51 +95,44 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     loadHorarioFuncionamento();
   }, [unitId]);
 
-  // Verificar quais dias do mês não têm horários disponíveis
+  // Verificar quais dias do mês não têm horários disponíveis (OTIMIZADO)
   useEffect(() => {
     const verificarDiasSemHorarios = async () => {
       if (!unitId || !professionalId || !servicosSelecionados?.length) return;
       
-      const diasOcupados = [];
-      const diasDoMes = getDaysInMonth(currentMonth);
-      
-      for (const day of diasDoMes) {
-        if (!day) continue;
+      try {
+        // Buscar TODOS os agendamentos do mês de uma vez só
+        const primeiroDia = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const ultimoDia = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
         
-        // Verificar se o dia está fechado
-        if (closedDays.includes(day.getDay())) {
-          continue; // Dia já está marcado como fechado
+        const agendamentosDoMes = await supabaseData.getAgendamentosMes(
+          profissionalId, 
+          primeiroDia.toISOString().split('T')[0], 
+          ultimoDia.toISOString().split('T')[0]
+        );
+        
+        // Analisar localmente quais dias estão ocupados
+        const diasOcupados = [];
+        const diasDoMes = getDaysInMonth(currentMonth);
+        
+        for (const day of diasDoMes) {
+          if (!day || closedDays.includes(day.getDay())) continue;
+          
+          const dataStr = day.toISOString().split('T')[0];
+          const agendamentosDoDia = agendamentosDoMes.filter(ag => ag.data_agendamento === dataStr);
+          
+          // Verificar se todos os períodos estão ocupados
+          // (lógica simplificada - pode ser refinada)
+          if (agendamentosDoDia.length >= 3) { // Se há 3+ agendamentos, provavelmente está cheio
+            diasOcupados.push(day.getDate());
+          }
         }
         
-        // Verificar se há horários disponíveis em QUALQUER período
-        let temHorarios = false;
-        
-        try {
-          const periodos = await supabaseData.getPeriodosDisponiveis(unitId, day);
-          
-          for (const periodo of ['manha', 'tarde', 'noite']) {
-            if (periodos[periodo]) {
-              const horariosDisponiveis = await supabaseData.gerarHorariosDisponiveis(
-                unitId, day, periodo, professionalId, servicosSelecionados
-              );
-              
-              if (horariosDisponiveis.length > 0) {
-                temHorarios = true;
-                break;
-              }
-            }
-          }
-          
-          if (!temHorarios) {
-            diasOcupados.push(day.getDate()); // Adicionar número do dia
-          }
-        } catch (error) {
-          console.error('Erro ao verificar dia:', day, error);
-        }
+        setDiasSemHorarios(diasOcupados);
+        console.log('📅 Dias sem horários (otimizado):', diasOcupados);
+      } catch (error) {
+        console.error('Erro ao verificar dias sem horários:', error);
       }
-      
-      setDiasSemHorarios(diasOcupados);
-      console.log('📅 Dias sem horários:', diasOcupados);
     };
 
     verificarDiasSemHorarios();

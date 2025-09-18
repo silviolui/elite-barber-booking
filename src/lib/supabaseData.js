@@ -329,6 +329,24 @@ export const supabaseData = {
     return agendamentos || [];
   },
 
+  // Buscar agendamentos de um profissional em um mês (OTIMIZADO)
+  async getAgendamentosMes(profissionalId, dataInicio, dataFim) {
+    const { data: agendamentos, error } = await supabase
+      .from('agendamentos')
+      .select('data_agendamento, horario_inicio, horario_fim, status')
+      .eq('profissional_id', profissionalId)
+      .gte('data_agendamento', dataInicio)
+      .lte('data_agendamento', dataFim)
+      .in('status', ['pending', 'confirmed']);
+    
+    if (error) {
+      console.error('Erro ao buscar agendamentos do mês:', error);
+      return [];
+    }
+    
+    return agendamentos || [];
+  },
+
   // Buscar usuário atual da sessão
   async getCurrentUser() {
     return await supabase.auth.getUser();
