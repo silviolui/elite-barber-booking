@@ -310,6 +310,25 @@ export const supabaseData = {
     return horarios;
   },
 
+  // Buscar horários ocupados de um profissional em uma data
+  async getHorariosOcupados(profissionalId, data) {
+    const dataFormatada = data.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const { data: agendamentos, error } = await supabase
+      .from('agendamentos')
+      .select('horario_inicio, horario_fim')
+      .eq('profissional_id', profissionalId)
+      .eq('data_agendamento', dataFormatada)
+      .in('status', ['pending', 'confirmed']); // Apenas agendamentos ativos
+    
+    if (error) {
+      console.error('Erro ao buscar horários ocupados:', error);
+      return [];
+    }
+    
+    return agendamentos || [];
+  },
+
   // Buscar usuário atual da sessão
   async getCurrentUser() {
     return await supabase.auth.getUser();
