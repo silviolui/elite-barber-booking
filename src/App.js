@@ -96,7 +96,6 @@ function App() {
     date: null,
     time: null
   });
-  const [unidadesAtivas, setUnidadesAtivas] = useState([]);
   const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(false);
 
   // Verificar sessão existente ao carregar app
@@ -124,8 +123,6 @@ function App() {
         const { data } = await supabase.from('unidades').select('*').eq('ativo', true);
         
         if (data && data.length > 0) {
-          setUnidadesAtivas(data);
-          
           if (data.length === 1) {
             // Apenas 1 unidade ativa = auto-selecionar
             setSelections(prev => ({ ...prev, unit: data[0] }));
