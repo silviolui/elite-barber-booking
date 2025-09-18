@@ -106,7 +106,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         const ultimoDia = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
         
         const agendamentosDoMes = await supabaseData.getAgendamentosMes(
-          profissionalId, 
+          professionalId, 
           primeiroDia.toISOString().split('T')[0], 
           ultimoDia.toISOString().split('T')[0]
         );
