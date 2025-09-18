@@ -97,6 +97,7 @@ function App() {
     time: null
   });
   const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(false);
+  const [unidadesLoading, setUnidadesLoading] = useState(true);
 
   // Verificar sessão existente ao carregar app
   useEffect(() => {
@@ -134,8 +135,10 @@ function App() {
             console.log(`📍 ${data.length} unidades ativas - mostrar seleção`);
           }
         }
+        setUnidadesLoading(false); // Terminou de verificar
       } catch (error) {
         console.error('Erro ao verificar unidades:', error);
+        setUnidadesLoading(false); // Terminou mesmo com erro
       }
     };
 
@@ -402,7 +405,7 @@ function App() {
           />
         );
       default:
-        return <BookingHome onNext={handleStepClick} selections={selections} skipUnidadeSelection={skipUnidadeSelection} />;
+        return <BookingHome onNext={handleStepClick} selections={selections} skipUnidadeSelection={skipUnidadeSelection} unidadesLoading={unidadesLoading} />;
     }
   };
 

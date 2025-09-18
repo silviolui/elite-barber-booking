@@ -2,8 +2,8 @@ import React from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
-const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection }) => {
-  console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidade: selections?.unit?.nome });
+const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection, unidadesLoading }) => {
+  console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidadesLoading, unidade: selections?.unit?.nome });
   
   const isUnitSelected = selections?.unit !== null;
   const isProfessionalSelected = selections?.professional !== null;
@@ -143,8 +143,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
           {/* DEBUG: Mostrar estado da lógica */}
           {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
           
-          {/* Unidade - OCULTAR quando há apenas 1 unidade */}
-          {!skipUnidadeSelection && !isUnitSelected && (
+          {/* Unidade - Só mostrar depois de carregar E se houver 2+ unidades */}
+          {!unidadesLoading && !skipUnidadeSelection && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
