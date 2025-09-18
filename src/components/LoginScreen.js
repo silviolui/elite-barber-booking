@@ -153,6 +153,16 @@ const LoginScreen = ({ onLogin, onShowSignUp }) => {
             <div className="text-white text-base">
               Não possui conta? <button onClick={onShowSignUp} className="underline hover:text-gray-300 transition-colors">Faça seu cadastro</button>
             </div>
+            
+            {/* Link para Admin */}
+            <div className="pt-6 border-t border-gray-600">
+              <a
+                href="#admin"
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                🔧 Acesso para Estabelecimentos
+              </a>
+            </div>
           </div>
         </div>
       </div>

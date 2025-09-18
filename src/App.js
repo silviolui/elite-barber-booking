@@ -91,6 +91,7 @@ function App() {
   const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState('agenda');
   const [currentScreen, setCurrentScreen] = useState('home');
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [selections, setSelections] = useState({
     unit: null,
     professional: null,
@@ -98,6 +99,30 @@ function App() {
     date: null,
     time: null
   });
+
+  // Verificar se está no modo admin baseado na URL
+  useEffect(() => {
+    const checkAdminMode = () => {
+      const isAdmin = window.location.hash === '#admin' || window.location.pathname === '/admin';
+      setIsAdminMode(isAdmin);
+    };
+
+    // Verificar na inicialização
+    checkAdminMode();
+
+    // Escutar mudanças na URL
+    const handleHashChange = () => {
+      checkAdminMode();
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, []);
   const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(true); // INICIAR COMO TRUE para ocultar por padrão
   const [unidadesLoading, setUnidadesLoading] = useState(true);
 
@@ -300,6 +325,11 @@ function App() {
   //   }
   // };
 
+  // Se está no modo admin, renderizar AdminApp
+  if (isAdminMode) {
+    return <AdminApp />;
+  }
+
   // Loading state para verificação de sessão
   if (loading) {
     return (
@@ -312,13 +342,8 @@ function App() {
     );
   }
 
-  // Show login/signup screen if not authenticated
+  // Show login/signup screen if not authenticated (App Cliente)
   if (!isLoggedIn) {
-    // Verificar se está acessando o admin
-    if (window.location.hash === '#admin') {
-      return <AdminApp />;
-    }
-    
     if (showSignUp) {
       return (
         <SignUpScreen 
