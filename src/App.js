@@ -373,6 +373,7 @@ function App() {
             unitId={selections.unit?.id}
             currentDate={selections.date}
             currentTime={selections.time}
+            servicosSelecionados={selections.services}
           />
         );
       default:

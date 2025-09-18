@@ -255,7 +255,7 @@ export const supabaseData = {
   },
 
   // NOVA FUNÇÃO: Gerar horários disponíveis baseado no período e horário de funcionamento
-  async gerarHorariosDisponiveis(unidadeId, data, periodo) {
+  async gerarHorariosDisponiveis(unidadeId, data, periodo, profissionalId = null, servicosSelecionados = []) {
     const periodos = await this.getPeriodosDisponiveis(unidadeId, data);
     
     if (!periodos[periodo]) {
@@ -267,7 +267,14 @@ export const supabaseData = {
       return []; // Sem horários definidos
     }
     
-    // Gerar slots de 30 em 30 minutos
+    // Calcular duração total dos serviços selecionados
+    const duracaoTotal = servicosSelecionados.reduce((total, servico) => {
+      return total + (parseInt(servico.duracao) || 30);
+    }, 0) || 30; // Default 30 minutos se não houver serviços
+    
+    console.log('⏱️ Duração total dos serviços:', duracaoTotal, 'minutos');
+    
+    // Gerar slots baseado na duração dos serviços
     const horarios = [];
     const [horaInicio, minutoInicio] = horarioInfo.inicio.split(':').map(Number);
     const [horaFim, minutoFim] = horarioInfo.fim.split(':').map(Number);
@@ -279,11 +286,25 @@ export const supabaseData = {
       const horarioFormatado = `${horaAtual.toString().padStart(2, '0')}:${minutoAtual.toString().padStart(2, '0')}`;
       horarios.push(horarioFormatado);
       
-      minutoAtual += 30;
+      // Incrementar baseado na duração dos serviços
+      minutoAtual += duracaoTotal;
       if (minutoAtual >= 60) {
-        minutoAtual = 0;
-        horaAtual++;
+        horaAtual += Math.floor(minutoAtual / 60);
+        minutoAtual = minutoAtual % 60;
       }
+    }
+    
+    // Se profissionalId foi fornecido, filtrar horários ocupados
+    if (profissionalId) {
+      const horariosOcupados = await this.getHorariosOcupados(profissionalId, data);
+      const horariosDisponiveis = horarios.filter(horario => {
+        return !horariosOcupados.some(ocupado => {
+          const horarioOcupado = ocupado.horario_inicio.substring(0, 5);
+          return horarioOcupado === horario;
+        });
+      });
+      
+      return horariosDisponiveis;
     }
     
     return horarios;

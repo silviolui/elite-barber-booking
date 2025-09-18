@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
-const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId }) => {
+const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId, servicosSelecionados }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
@@ -137,7 +137,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         for (const periodo of ['manha', 'tarde', 'noite']) {
           if (periodos[periodo]) {
             console.log(`🕐 Carregando horários para período: ${periodo}`);
-            const horarios = await supabaseData.gerarHorariosDisponiveis(unitId, dataObj, periodo);
+            const horarios = await supabaseData.gerarHorariosDisponiveis(unitId, dataObj, periodo, professionalId, servicosSelecionados);
             horariosMap[periodo] = horarios;
             console.log(`✅ Horários para ${periodo}:`, horarios);
           }
