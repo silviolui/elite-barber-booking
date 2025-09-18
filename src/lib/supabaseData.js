@@ -78,6 +78,11 @@ export const supabaseData = {
 
   // Criar agendamento para o CLIENTE
   async criarAgendamento(clienteId, agendamentoData) {
+    // Pegar o ID do primeiro serviço selecionado
+    const servicoId = agendamentoData.servicos && agendamentoData.servicos.length > 0 
+      ? agendamentoData.servicos[0].id 
+      : null;
+
     const { data, error } = await supabase
       .from('agendamentos')
       .insert([
@@ -85,6 +90,7 @@ export const supabaseData = {
           usuario_id: clienteId,
           profissional_id: agendamentoData.profissionalId,
           unidade_id: agendamentoData.unidadeId,
+          servico_id: servicoId,
           data_agendamento: agendamentoData.data,
           horario_inicio: agendamentoData.horarioInicio,
           horario_fim: agendamentoData.horarioFim,

@@ -53,7 +53,7 @@ const Historico = ({ usuarioId }) => {
             supabase.from('unidades').select('nome').eq('id', agendamento.unidade_id).single(),
             agendamento.servico_id ? 
               supabase.from('servicos').select('nome, duracao').eq('id', agendamento.servico_id).single() :
-              Promise.resolve({ data: { nome: 'Serviço não especificado', duracao: 30 } })
+              Promise.resolve({ data: { nome: 'Corte de Cabelo', duracao: 30 } })
           ]);
           
           return {
