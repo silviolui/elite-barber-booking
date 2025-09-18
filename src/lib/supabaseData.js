@@ -365,5 +365,20 @@ export const supabaseData = {
     }
     
     return data || [];
+  },
+
+  // Buscar todas as unidades
+  async getUnidades() {
+    const { data, error } = await supabase
+      .from('unidades')
+      .select('*')
+      .order('criado_em', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao buscar unidades:', error);
+      return [];
+    }
+    
+    return data || [];
   }
 };

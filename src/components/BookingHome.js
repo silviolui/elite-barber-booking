@@ -1,9 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection, unidadesLoading }) => {
   console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidadesLoading, unidade: selections?.unit?.nome });
+  
+  // Estados locais para controle de renderização
+  const [mostrarCardUnidade, setMostrarCardUnidade] = useState(false);
+  
+  // Verificar se deve mostrar card de unidade
+  useEffect(() => {
+    const verificarExibicao = async () => {
+      try {
+        const { data } = await supabaseData.getUnidades();
+        const unidadesAtivas = data?.filter(u => u.ativo) || [];
+        
+        if (unidadesAtivas.length >= 2) {
+          setMostrarCardUnidade(true);
+          console.log('📍 Mostrar card - múltiplas unidades:', unidadesAtivas.length);
+        } else {
+          setMostrarCardUnidade(false);
+          console.log('🚫 Ocultar card - unidade única');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar unidades:', error);
+        setMostrarCardUnidade(false);
+      }
+    };
+    
+    verificarExibicao();
+  }, []);
   
   const isUnitSelected = selections?.unit !== null;
   const isProfessionalSelected = selections?.professional !== null;
@@ -143,8 +169,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
           {/* DEBUG: Mostrar estado da lógica */}
           {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
           
-          {/* Unidade - AGUARDAR verificação E só mostrar se necessário */}
-          {!unidadesLoading && !skipUnidadeSelection && !isUnitSelected && (
+          {/* Unidade - Controle direto e imediato */}
+          {mostrarCardUnidade && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
