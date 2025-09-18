@@ -138,7 +138,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
 
         {/* Booking Steps - Clean Cards */}
         <div className="space-y-4">
-          {/* Unidade - Só mostrar se houver mais de 1 unidade ativa */}
+          {/* Unidade - OCULTAR se houver apenas 1 unidade ativa */}
           {!skipUnidadeSelection && (
             <button
               onClick={() => handleStepClick('unidade')}
@@ -159,6 +159,21 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
               </div>
               <ChevronRight size={20} className="text-gray-400" />
             </button>
+          )}
+
+          {/* Indicador de unidade auto-selecionada (quando há apenas 1) */}
+          {skipUnidadeSelection && selections?.unit && (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+                  <Check size={16} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-green-800 font-medium text-sm">Estabelecimento</p>
+                  <p className="text-green-600 text-xs">{selections.unit.nome}</p>
+                </div>
+              </div>
+            </div>
           )}
           
           {/* Profissional */}
