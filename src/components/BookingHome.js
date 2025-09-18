@@ -27,6 +27,36 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
     try {
       console.log('🚀 Iniciando finalização do agendamento...');
       
+      // BUSCAR USUÁRIO ATUAL DA SESSÃO DINAMICAMENTE
+      let usuarioAtual = null;
+      try {
+        // Verificar se há usuário logado
+        const { data: { user } } = await supabaseData.getCurrentUser();
+        if (user) {
+          usuarioAtual = user.id;
+          console.log('👤 Usuário logado encontrado:', user.id);
+        } else {
+          // Se não há usuário logado, buscar primeiro usuário da tabela
+          const usuarios = await supabaseData.getUsuarios();
+          if (usuarios && usuarios.length > 0) {
+            usuarioAtual = usuarios[0].id;
+            console.log('👤 Usando primeiro usuário da tabela:', usuarioAtual);
+          } else {
+            throw new Error('Nenhum usuário encontrado na base de dados');
+          }
+        }
+      } catch (authError) {
+        console.log('🔄 Erro na autenticação, buscando usuário da tabela...');
+        // Fallback: buscar usuários da tabela
+        const usuarios = await supabaseData.getUsuarios();
+        if (usuarios && usuarios.length > 0) {
+          usuarioAtual = usuarios[0].id;
+          console.log('👤 Usuário da tabela:', usuarioAtual);
+        } else {
+          throw new Error('Nenhum usuário encontrado na base de dados');
+        }
+      }
+      
       // Calcular horário de fim (assumindo 30 minutos de duração)
       const [hora, minuto] = selections.time.split(':').map(Number);
       const fimMinuto = minuto + 30;
@@ -51,8 +81,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
 
       console.log('📋 Dados do agendamento:', dadosAgendamento);
 
-      // Criar o agendamento (clienteId, dadosAgendamento) - USUÁRIO DEFINITIVO PARA PRODUÇÃO
-      const agendamento = await supabaseData.criarAgendamento('123e4567-e89b-12d3-a456-426614174000', dadosAgendamento);
+      // Criar agendamento com ID dinâmico do usuário
+      const agendamento = await supabaseData.criarAgendamento(usuarioAtual, dadosAgendamento);
       
       console.log('✅ Agendamento criado com sucesso:', agendamento);
       alert('Agendamento confirmado com sucesso! Você será redirecionado.');

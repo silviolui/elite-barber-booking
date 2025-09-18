@@ -287,5 +287,25 @@ export const supabaseData = {
     }
     
     return horarios;
+  },
+
+  // Buscar usuário atual da sessão
+  async getCurrentUser() {
+    return await supabase.auth.getUser();
+  },
+
+  // Buscar todos os usuários da tabela (fallback)
+  async getUsuarios() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email, nome')
+      .order('criado_em', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao buscar usuários:', error);
+      return [];
+    }
+    
+    return data || [];
   }
 };
