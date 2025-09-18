@@ -34,7 +34,7 @@ const AgendamentoModal = ({ agendamento, onClose, onConfirmar, onDesmarcar }) =>
       <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto">
         {/* Header com botão fechar */}
         <div className="flex items-center justify-between p-6 pb-4">
-          <h2 className="text-xl font-bold text-gray-900">Avaliar atendimento</h2>
+          <h2 className="text-xl font-bold text-gray-900">Agendamento</h2>
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors"
