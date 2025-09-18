@@ -208,17 +208,17 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
         <h2 className="text-gray-900 text-xl font-semibold">Agendar Horário</h2>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <X size={24} />
         </button>
       </div>
 
-      {/* Content */}
-      <div className="px-6 py-6">
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mb-6">
           <h3 className="text-gray-900 text-lg font-semibold mb-2">Quando você prefere?</h3>
           <p className="text-gray-600">Escolha a melhor data e horário</p>
