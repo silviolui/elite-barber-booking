@@ -10,6 +10,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [closedDays, setClosedDays] = useState([]);
   const [periodosDisponiveis, setPeriodosDisponiveis] = useState({ manha: false, tarde: false, noite: false });
   const [horariosDisponiveis, setHorariosDisponiveis] = useState({ manha: [], tarde: [], noite: [] });
+  const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -93,6 +94,56 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
 
     loadHorarioFuncionamento();
   }, [unitId]);
+
+  // Verificar quais dias do mês não têm horários disponíveis
+  useEffect(() => {
+    const verificarDiasSemHorarios = async () => {
+      if (!unitId || !professionalId || !servicosSelecionados?.length) return;
+      
+      const diasOcupados = [];
+      const diasDoMes = getDaysInMonth(currentMonth);
+      
+      for (const day of diasDoMes) {
+        if (!day) continue;
+        
+        // Verificar se o dia está fechado
+        if (closedDays.includes(day.getDay())) {
+          continue; // Dia já está marcado como fechado
+        }
+        
+        // Verificar se há horários disponíveis em QUALQUER período
+        let temHorarios = false;
+        
+        try {
+          const periodos = await supabaseData.getPeriodosDisponiveis(unitId, day);
+          
+          for (const periodo of ['manha', 'tarde', 'noite']) {
+            if (periodos[periodo]) {
+              const horariosDisponiveis = await supabaseData.gerarHorariosDisponiveis(
+                unitId, day, periodo, professionalId, servicosSelecionados
+              );
+              
+              if (horariosDisponiveis.length > 0) {
+                temHorarios = true;
+                break;
+              }
+            }
+          }
+          
+          if (!temHorarios) {
+            diasOcupados.push(day.getDate()); // Adicionar número do dia
+          }
+        } catch (error) {
+          console.error('Erro ao verificar dia:', day, error);
+        }
+      }
+      
+      setDiasSemHorarios(diasOcupados);
+      console.log('📅 Dias sem horários:', diasOcupados);
+    };
+
+    verificarDiasSemHorarios();
+  }, [unitId, professionalId, servicosSelecionados, currentMonth, closedDays]);
 
   // Carregar períodos e horários quando a data for selecionada
   useEffect(() => {
@@ -274,6 +325,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const isToday = day.toDateString() === today.toDateString();
                   const isPast = day < today;
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
+                  const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis
                   const isSelected = selectedDate && day && 
                     (typeof selectedDate === 'object' ? 
                       day.toDateString() === selectedDate.toDateString() : 
@@ -285,16 +337,18 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                       key={index}
                       onClick={() => !isDisabled && setSelectedDate(day)}
                       disabled={isDisabled}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
                         isDisabled
                           ? 'text-gray-200 cursor-not-allowed bg-gray-50'
+                          : isSemHorarios && !isSelected
+                          ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
                           : isSelected
                           ? 'bg-primary text-white'
                           : isToday
                           ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
-                      title={isClosed ? 'Fechado neste dia' : ''}
+                      title={isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : ''}
                     >
                       {day.getDate()}
                     </button>
