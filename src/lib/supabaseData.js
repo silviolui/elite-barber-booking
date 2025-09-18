@@ -78,17 +78,10 @@ export const supabaseData = {
 
   // Criar agendamento para o CLIENTE
   async criarAgendamento(clienteId, agendamentoData) {
-    // Debug: verificar dados recebidos
-    console.log('DEBUG criarAgendamento - clienteId:', clienteId);
-    console.log('DEBUG criarAgendamento - agendamentoData:', agendamentoData);
-    console.log('DEBUG criarAgendamento - servicos:', agendamentoData.servicos);
-
     // Pegar o ID do primeiro serviço selecionado
     const servicoId = agendamentoData.servicos && agendamentoData.servicos.length > 0 
       ? agendamentoData.servicos[0].id 
       : null;
-
-    console.log('DEBUG criarAgendamento - servicoId:', servicoId);
 
     const { data, error } = await supabase
       .from('agendamentos')
