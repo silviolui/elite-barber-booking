@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
