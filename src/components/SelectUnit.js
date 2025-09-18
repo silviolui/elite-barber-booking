@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 
 const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
   const [selectedUnit, setSelectedUnit] = useState(currentSelection);
-  const [realUnits, setRealUnits] = useState(units || []);
+  const [realUnits, setRealUnits] = useState([]); // Começar vazio, não com mock
 
   // Carregar unidades REAIS da tabela
   useEffect(() => {
@@ -16,11 +16,11 @@ const SelectUnit = ({ onClose, onSelect, currentSelection, units }) => {
           .eq('ativo', true);
         
         if (data && data.length > 0) {
-          console.log(`Carregadas ${data.length} unidades da tabela`);
+          console.log(`Carregadas ${data.length} unidades ativas da tabela`);
           setRealUnits(data);
         } else {
-          console.log('Usando dados mock como fallback');
-          setRealUnits(units);
+          console.log('Nenhuma unidade ativa encontrada');
+          setRealUnits([]);
         }
       } catch (error) {
         console.error('Erro ao carregar unidades, usando mock:', error);
