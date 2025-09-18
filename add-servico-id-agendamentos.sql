@@ -12,7 +12,10 @@ BEGIN
         AND column_name = 'servico_id'
         AND table_schema = 'public'
     ) THEN
-        -- Adicionar a coluna
+        -- Verificar tipo da coluna id na tabela servicos
+        -- e adicionar servico_id com o tipo compatível
+        
+        -- Primeiro tentar UUID (padrão do sistema)
         ALTER TABLE public.agendamentos 
         ADD COLUMN servico_id UUID;
         
