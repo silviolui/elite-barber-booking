@@ -93,6 +93,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
       const dadosAgendamento = {
         profissionalId: selections.professional?.id,
         unidadeId: selections.unit?.id,
+        servicos: selections.services || [],
         data: selections.date.toISOString().split('T')[0], // YYYY-MM-DD
         horarioInicio: selections.time,
         horarioFim: horarioFim,
