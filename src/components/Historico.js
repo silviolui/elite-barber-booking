@@ -31,6 +31,7 @@ const Historico = ({ usuarioId }) => {
   };
 
   const carregarAgendamentosAbertos = async () => {
+    console.log('Carregando agendamentos para usuário:', usuarioId);
     const { data, error } = await supabase
       .from('agendamentos')
       .select(`
@@ -40,10 +41,11 @@ const Historico = ({ usuarioId }) => {
         servicos (nome, duracao)
       `)
       .eq('usuario_id', usuarioId)
-      .eq('status', 'agendado')
+      .in('status', ['agendado', 'pending'])
       .gte('data_agendamento', new Date().toISOString().split('T')[0])
       .order('data_agendamento', { ascending: true });
 
+    console.log('Agendamentos encontrados:', data, 'Erro:', error);
     if (!error && data) {
       setAgendamentosAbertos(data);
     }
