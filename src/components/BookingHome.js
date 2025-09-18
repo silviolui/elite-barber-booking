@@ -78,7 +78,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
       const agendamento = await supabaseData.criarAgendamento(usuarioAtual, dadosAgendamento);
       
       console.log('✅ Agendamento criado com sucesso:', agendamento);
-      alert('Agendamento confirmado com sucesso! Você será redirecionado.');
+      alert('✅ AGENDAMENTO CONFIRMADO! ID: ' + agendamento.id);
       
       // Aqui você pode redirecionar ou limpar o formulário
       
