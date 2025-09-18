@@ -36,7 +36,7 @@ const Historico = ({ usuarioId }) => {
       .from('agendamentos')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .in('status', ['agendado', 'pending'])
+      .eq('status', 'pending')
       .gte('data_agendamento', new Date().toISOString().split('T')[0])
       .order('data_agendamento', { ascending: true });
 
