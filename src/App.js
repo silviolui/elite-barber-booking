@@ -96,6 +96,8 @@ function App() {
     date: null,
     time: null
   });
+  const [unidadesAtivas, setUnidadesAtivas] = useState([]);
+  const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(false);
 
   // Verificar sessão existente ao carregar app
   useEffect(() => {
@@ -115,6 +117,32 @@ function App() {
     };
 
     checkSession();
+
+    // Verificar unidades ativas e auto-selecionar se houver apenas 1
+    const verificarUnidades = async () => {
+      try {
+        const { data } = await supabase.from('unidades').select('*').eq('ativo', true);
+        
+        if (data && data.length > 0) {
+          setUnidadesAtivas(data);
+          
+          if (data.length === 1) {
+            // Apenas 1 unidade ativa = auto-selecionar
+            setSelections(prev => ({ ...prev, unit: data[0] }));
+            setSkipUnidadeSelection(true);
+            console.log('✅ Auto-selecionado unidade única:', data[0].nome);
+          } else {
+            // 2+ unidades = mostrar seleção
+            setSkipUnidadeSelection(false);
+            console.log(`📍 ${data.length} unidades ativas - mostrar seleção`);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar unidades:', error);
+      }
+    };
+
+    verificarUnidades();
 
     // Escutar mudanças de autenticação
     const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
@@ -377,7 +405,7 @@ function App() {
           />
         );
       default:
-        return <BookingHome onNext={handleStepClick} selections={selections} />;
+        return <BookingHome onNext={handleStepClick} selections={selections} skipUnidadeSelection={skipUnidadeSelection} />;
     }
   };
 

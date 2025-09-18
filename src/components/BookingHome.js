@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
-const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
+const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection }) => {
   const isUnitSelected = selections?.unit !== null;
   const isProfessionalSelected = selections?.professional !== null;
   const isServiceSelected = selections?.services?.length > 0;
@@ -11,7 +11,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
   const handleStepClick = (step) => {
     if (step === 'unidade') {
       onNext(step);
-    } else if (step === 'barbeiro' && isUnitSelected) {
+    } else if (step === 'barbeiro' && isUnitReady) {
       onNext('profissional');
     } else if (step === 'servico' && isProfessionalSelected) {
       onNext(step);
@@ -92,7 +92,9 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
     }
   };
 
-  const canFinalize = isUnitSelected && isProfessionalSelected && isServiceSelected && isDateSelected;
+  // Se skipUnidadeSelection=true, considerar unidade sempre selecionada
+  const isUnitReady = skipUnidadeSelection || isUnitSelected;
+  const canFinalize = isUnitReady && isProfessionalSelected && isServiceSelected && isDateSelected;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -136,33 +138,35 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
 
         {/* Booking Steps - Clean Cards */}
         <div className="space-y-4">
-          {/* Unidade */}
-          <button
-            onClick={() => handleStepClick('unidade')}
-            className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
-          >
-            <div className="flex items-center space-x-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                isUnitSelected ? 'bg-green-500 text-white' : 'bg-pink-100 text-pink-600'
-              }`}>
-                {isUnitSelected ? <Check size={20} /> : <MapPin size={20} />}
-              </div>
-              <div className="text-left">
-                <div className="text-gray-900 text-base font-semibold">Unidade</div>
-                <div className="text-gray-500 text-sm">
-                  {selections?.unit ? (selections.unit.nome || selections.unit.name)?.split(' - ')[1] || 'Selecionado' : 'Escolher unidade'}
+          {/* Unidade - Só mostrar se houver mais de 1 unidade ativa */}
+          {!skipUnidadeSelection && (
+            <button
+              onClick={() => handleStepClick('unidade')}
+              className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
+            >
+              <div className="flex items-center space-x-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  isUnitSelected ? 'bg-green-500 text-white' : 'bg-pink-100 text-pink-600'
+                }`}>
+                  {isUnitSelected ? <Check size={20} /> : <MapPin size={20} />}
+                </div>
+                <div className="text-left">
+                  <div className="text-gray-900 text-base font-semibold">Unidade</div>
+                  <div className="text-gray-500 text-sm">
+                    {selections?.unit ? (selections.unit.nome || selections.unit.name)?.split(' - ')[1] || 'Selecionado' : 'Escolher unidade'}
+                  </div>
                 </div>
               </div>
-            </div>
-            <ChevronRight size={20} className="text-gray-400" />
-          </button>
+              <ChevronRight size={20} className="text-gray-400" />
+            </button>
+          )}
           
           {/* Profissional */}
           <button
             onClick={() => handleStepClick('barbeiro')}
-            disabled={!isUnitSelected}
+            disabled={!isUnitReady}
             className={`w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100 ${
-              !isUnitSelected ? 'opacity-50 cursor-not-allowed' : ''
+              !isUnitReady ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             <div className="flex items-center space-x-4">
