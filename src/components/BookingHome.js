@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
+import AgendamentoSucesso from './AgendamentoSucesso';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection, unidadesLoading }) => {
   console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidadesLoading, unidade: selections?.unit?.nome });
   
   const [quantidadeUnidades, setQuantidadeUnidades] = useState(0);
+  const [mostrarSucesso, setMostrarSucesso] = useState(false);
+  const [dadosAgendamentoSucesso, setDadosAgendamentoSucesso] = useState(null);
   
   // Verificar quantas unidades ativas existem
   useEffect(() => {
@@ -103,9 +106,20 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
       const agendamento = await supabaseData.criarAgendamento(usuarioAtual, dadosAgendamento);
       
       console.log('✅ Agendamento criado com sucesso:', agendamento);
-      alert('✅ AGENDAMENTO CONFIRMADO COM SUCESSO!');
       
-      // Aqui você pode redirecionar ou limpar o formulário
+      // Preparar dados para tela de sucesso
+      const dadosSucesso = {
+        nomeEmpresa: 'BookIA',
+        nomeUnidade: selections.unit?.nome || 'Unidade',
+        dataAgendamento: dadosAgendamento.data,
+        horarioInicio: dadosAgendamento.horarioInicio,
+        nomeProfissional: selections.professional?.nome || 'Profissional',
+        nomeServico: selections.services?.[0]?.nome || 'Serviço',
+        precoTotal: precoTotal
+      };
+      
+      setDadosAgendamentoSucesso(dadosSucesso);
+      setMostrarSucesso(true);
       
     } catch (error) {
       console.error('❌ Erro ao finalizar agendamento:', error);
@@ -116,6 +130,24 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
   // Se skipUnidadeSelection=true, considerar unidade sempre selecionada
   const isUnitReady = skipUnidadeSelection || isUnitSelected;
   const canFinalize = isUnitReady && isProfessionalSelected && isServiceSelected && isDateSelected;
+
+  // Função para voltar ao início
+  const handleVoltarInicio = () => {
+    setMostrarSucesso(false);
+    setDadosAgendamentoSucesso(null);
+    // Limpar seleções
+    window.location.reload(); // Recarregar página para limpar estado
+  };
+
+  // Se deve mostrar tela de sucesso
+  if (mostrarSucesso && dadosAgendamentoSucesso) {
+    return (
+      <AgendamentoSucesso 
+        dadosAgendamento={dadosAgendamentoSucesso}
+        onVoltar={handleVoltarInicio}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
