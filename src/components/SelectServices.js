@@ -3,7 +3,7 @@ import { X, Check, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, services }) => {
-  const [currentServices, setCurrentServices] = useState(selectedServices || []);
+  const [currentService, setCurrentService] = useState(selectedServices?.[0] || null); // APENAS UM SERVIÇO
   const [realServices, setRealServices] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,26 +42,20 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
     loadRealServices();
   }, [professionalId, services]);
 
-  const toggleService = (service) => {
-    setCurrentServices(prev => {
-      const exists = prev.find(s => s.id === service.id);
-      if (exists) {
-        return prev.filter(s => s.id !== service.id);
-      } else {
-        return [...prev, service];
-      }
-    });
+  // SELEÇÃO ÚNICA: Apenas um serviço por vez
+  const selectService = (service) => {
+    setCurrentService(service === currentService ? null : service);
   };
 
   const handleContinue = () => {
-    if (currentServices.length > 0) {
-      onSelect(currentServices);
+    if (currentService) {
+      onSelect([currentService]); // Enviar como array para compatibilidade
       onClose();
     }
   };
 
-  const totalPrice = currentServices.reduce((total, service) => total + (service.preco || service.price), 0);
-  const totalDuration = currentServices.reduce((total, service) => total + (service.duracao_minutos || service.duration), 0);
+  const totalPrice = currentService ? (currentService.preco || currentService.price) : 0;
+  const totalDuration = currentService ? (currentService.duracao_minutos || currentService.duration) : 0;
 
   return (
     <div className="fixed inset-0 bg-white z-50">
@@ -97,12 +91,12 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
             </div>
           ) : (
             realServices.map((service) => {
-            const isSelected = currentServices.find(s => s.id === service.id);
+            const isSelected = currentService?.id === service.id;
             
             return (
               <button
                 key={service.id}
-                onClick={() => toggleService(service)}
+                onClick={() => selectService(service)}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   isSelected 
                     ? 'border-primary bg-primary text-white' 
@@ -149,14 +143,14 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
       </div>
 
       {/* Cart Summary & Continue Button */}
-      {currentServices.length > 0 && (
+      {currentService && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
           {/* Summary */}
           <div className="px-6 pt-4 pb-2">
             <div className="bg-gray-50 rounded-2xl p-4">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold text-gray-900">
-                  {currentServices.length} serviço{currentServices.length > 1 ? 's' : ''}
+                  1 serviço
                 </span>
                 <span className="text-primary font-bold text-lg">
                   R$ {totalPrice.toFixed(2)}
@@ -174,7 +168,7 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
               onClick={handleContinue}
               className="w-full py-4 rounded-2xl font-semibold text-lg bg-primary text-white hover:bg-orange-600 transition-colors"
             >
-              Continuar ({currentServices.length} selecionado{currentServices.length > 1 ? 's' : ''})
+              Continuar (1 selecionado)
             </button>
           </div>
         </div>
