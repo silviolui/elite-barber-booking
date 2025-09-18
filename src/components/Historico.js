@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, Star, User, Scissors } from 'lucide-react';
-import { supabase } from '../services/supabase';
+import { supabase } from '../lib/supabase';
 
 const Historico = ({ usuarioId }) => {
   const [agendamentosAbertos, setAgendamentosAbertos] = useState([]);
