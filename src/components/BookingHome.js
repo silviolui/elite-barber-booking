@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection, unidadesLoading }) => {
   console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidadesLoading, unidade: selections?.unit?.nome });
   
-  // USAR APENAS A VERIFICAÇÃO DO APP.JS - SEM DUPLICATA
+  const [quantidadeUnidades, setQuantidadeUnidades] = useState(0);
+  
+  // Verificar quantas unidades ativas existem
+  useEffect(() => {
+    const contarUnidades = async () => {
+      try {
+        const unidades = await supabaseData.getUnidades();
+        const ativas = unidades.filter(u => u.ativo);
+        setQuantidadeUnidades(ativas.length);
+        console.log(`📊 ${ativas.length} unidades ativas encontradas`);
+      } catch (error) {
+        console.error('Erro ao contar unidades:', error);
+        setQuantidadeUnidades(0);
+      }
+    };
+    
+    contarUnidades();
+  }, []);
   
   const isUnitSelected = selections?.unit !== null;
   const isProfessionalSelected = selections?.professional !== null;
@@ -145,8 +162,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
           {/* DEBUG: Mostrar estado da lógica */}
           {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
           
-          {/* Unidade - FORÇAR OCULTO SEMPRE */}
-          {false && (
+          {/* Unidade - Mostrar APENAS se 2+ unidades ativas */}
+          {quantidadeUnidades >= 2 && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
