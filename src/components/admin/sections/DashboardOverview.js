@@ -1,0 +1,219 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Calendar,
+  Users,
+  Building2,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle
+} from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+
+const DashboardOverview = ({ currentUser }) => {
+  const [stats, setStats] = useState({
+    totalAgendamentos: 0,
+    agendamentosHoje: 0,
+    totalProfissionais: 0,
+    totalUnidades: 0,
+    receitaMes: 0,
+    agendamentosConfirmados: 0,
+    agendamentosCancelados: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const hoje = new Date().toISOString().split('T')[0];
+      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+      // Buscar estatísticas em paralelo
+      const [
+        agendamentosResult,
+        agendamentosHojeResult,
+        profissionaisResult,
+        unidadesResult,
+        historicoResult
+      ] = await Promise.all([
+        // Total de agendamentos
+        supabase.from('agendamentos').select('id', { count: 'exact' }),
+        // Agendamentos hoje
+        supabase.from('agendamentos').select('id', { count: 'exact' }).eq('data_agendamento', hoje),
+        // Total profissionais
+        supabase.from('profissionais').select('id', { count: 'exact' }).eq('ativo', true),
+        // Total unidades
+        supabase.from('unidades').select('id', { count: 'exact' }).eq('ativo', true),
+        // Histórico do mês
+        supabase.from('historico').select('status, valor_total').gte('data_agendamento', inicioMes)
+      ]);
+
+      // Calcular estatísticas
+      const historicoData = historicoResult.data || [];
+      const receitaMes = historicoData
+        .filter(h => h.status === 'concluido')
+        .reduce((total, h) => total + (parseFloat(h.valor_total) || 0), 0);
+
+      const confirmados = historicoData.filter(h => h.status === 'concluido').length;
+      const cancelados = historicoData.filter(h => h.status === 'cancelado').length;
+
+      setStats({
+        totalAgendamentos: agendamentosResult.count || 0,
+        agendamentosHoje: agendamentosHojeResult.count || 0,
+        totalProfissionais: profissionaisResult.count || 0,
+        totalUnidades: unidadesResult.count || 0,
+        receitaMes,
+        agendamentosConfirmados: confirmados,
+        agendamentosCancelados: cancelados,
+        loading: false
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+      setStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+          {subtitle && (
+            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+          )}
+        </div>
+        <div className={`p-3 rounded-lg ${color}`}>
+          <Icon size={24} className="text-white" />
+        </div>
+      </div>
+      {trend && (
+        <div className="mt-4 flex items-center text-sm text-green-600">
+          <TrendingUp size={16} className="mr-1" />
+          {trend}
+        </div>
+      )}
+    </div>
+  );
+
+  if (stats.loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white p-6">
+        <h2 className="text-2xl font-bold mb-2">
+          Bem-vindo ao Sistema de Gestão
+        </h2>
+        <p className="text-orange-100">
+          Gerencie seu estabelecimento de forma completa e eficiente
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Agendamentos Hoje"
+          value={stats.agendamentosHoje}
+          icon={Calendar}
+          color="bg-blue-500"
+          subtitle="Hoje"
+        />
+        
+        <StatCard
+          title="Total Agendamentos"
+          value={stats.totalAgendamentos}
+          icon={Clock}
+          color="bg-green-500"
+          subtitle="Em aberto"
+        />
+        
+        <StatCard
+          title="Profissionais Ativos"
+          value={stats.totalProfissionais}
+          icon={Users}
+          color="bg-purple-500"
+          subtitle="Trabalhando"
+        />
+        
+        <StatCard
+          title="Unidades Ativas"
+          value={stats.totalUnidades}
+          icon={Building2}
+          color="bg-indigo-500"
+          subtitle="Em funcionamento"
+        />
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="Receita do Mês"
+          value={`R$ ${stats.receitaMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          icon={DollarSign}
+          color="bg-green-600"
+          subtitle="Serviços concluídos"
+        />
+        
+        <StatCard
+          title="Serviços Concluídos"
+          value={stats.agendamentosConfirmados}
+          icon={CheckCircle}
+          color="bg-emerald-500"
+          subtitle="Este mês"
+        />
+        
+        <StatCard
+          title="Cancelamentos"
+          value={stats.agendamentosCancelados}
+          icon={XCircle}
+          color="bg-red-500"
+          subtitle="Este mês"
+        />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
+            <Calendar className="mr-3 text-orange-500" size={20} />
+            <span className="text-gray-700">Novo Agendamento</span>
+          </button>
+          
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
+            <Users className="mr-3 text-orange-500" size={20} />
+            <span className="text-gray-700">Adicionar Profissional</span>
+          </button>
+          
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
+            <Building2 className="mr-3 text-orange-500" size={20} />
+            <span className="text-gray-700">Nova Unidade</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardOverview;

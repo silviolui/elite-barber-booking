@@ -9,6 +9,7 @@ import SelectProfessional from './components/SelectProfessional';
 import SelectServices from './components/SelectServices';
 import SelectDateTime from './components/SelectDateTime';
 import Historico from './components/Historico';
+import AdminApp from './AdminApp';
 
 // Mock Data - dados para funcionar
 const mockData = {
@@ -313,6 +314,11 @@ function App() {
 
   // Show login/signup screen if not authenticated
   if (!isLoggedIn) {
+    // Verificar se está acessando o admin
+    if (window.location.hash === '#admin') {
+      return <AdminApp />;
+    }
+    
     if (showSignUp) {
       return (
         <SignUpScreen 
