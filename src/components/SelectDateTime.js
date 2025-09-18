@@ -11,6 +11,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [periodosDisponiveis, setPeriodosDisponiveis] = useState({ manha: false, tarde: false, noite: false });
   const [horariosDisponiveis, setHorariosDisponiveis] = useState({ manha: [], tarde: [], noite: [] });
   const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados
+  const [diasComHorarios, setDiasComHorarios] = useState([]); // Dias com horários disponíveis
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -111,8 +112,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
           ultimoDia.toISOString().split('T')[0]
         );
         
-        // Analisar localmente quais dias estão ocupados
+        // Analisar localmente quais dias estão ocupados e quais têm horários
         const diasOcupados = [];
+        const diasDisponiveis = [];
         const diasDoMes = getDaysInMonth(currentMonth);
         
         for (const day of diasDoMes) {
@@ -122,14 +124,19 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
           const agendamentosDoDia = agendamentosDoMes.filter(ag => ag.data_agendamento === dataStr);
           
           // Verificar se todos os períodos estão ocupados
-          // (lógica simplificada - pode ser refinada)
-          if (agendamentosDoDia.length >= 3) { // Se há 3+ agendamentos, provavelmente está cheio
+          if (agendamentosDoDia.length >= 3) { 
+            // Muitos agendamentos = sem horários
             diasOcupados.push(day.getDate());
+          } else {
+            // Poucos agendamentos = tem horários disponíveis
+            diasDisponiveis.push(day.getDate());
           }
         }
         
         setDiasSemHorarios(diasOcupados);
-        console.log('📅 Dias sem horários (otimizado):', diasOcupados);
+        setDiasComHorarios(diasDisponiveis);
+        console.log('📅 Dias sem horários:', diasOcupados);
+        console.log('📅 Dias com horários:', diasDisponiveis);
       } catch (error) {
         console.error('Erro ao verificar dias sem horários:', error);
       }
@@ -319,6 +326,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const isPast = day < today;
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
                   const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis
+                  const isComHorarios = diasComHorarios.includes(day.getDate()); // Dia com horários disponíveis
                   const isSelected = selectedDate && day && 
                     (typeof selectedDate === 'object' ? 
                       day.toDateString() === selectedDate.toDateString() : 
@@ -333,15 +341,17 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                       className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
                         isDisabled
                           ? 'text-gray-200 cursor-not-allowed bg-gray-50'
-                          : isSemHorarios && !isSelected
-                          ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
                           : isSelected
                           ? 'bg-primary text-white'
+                          : isSemHorarios && !isSelected
+                          ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
+                          : isComHorarios && !isSelected
+                          ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
                           : isToday
                           ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
-                      title={isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : ''}
+                      title={isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
                     >
                       {day.getDate()}
                     </button>
