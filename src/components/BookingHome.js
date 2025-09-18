@@ -30,20 +30,13 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
       // BUSCAR USUÁRIO ATUAL DA SESSÃO DINAMICAMENTE
       let usuarioAtual = null;
       try {
-        // Verificar se há usuário logado
-        const { data: { user } } = await supabaseData.getCurrentUser();
-        if (user) {
-          usuarioAtual = user.id;
-          console.log('👤 Usuário logado encontrado:', user.id);
+        // Buscar primeiro usuário da tabela users (produção)
+        const usuarios = await supabaseData.getUsuarios();
+        if (usuarios && usuarios.length > 0) {
+          usuarioAtual = usuarios[0].id;
+          console.log('👤 Usuário encontrado na tabela:', usuarioAtual, usuarios[0].nome);
         } else {
-          // Se não há usuário logado, buscar primeiro usuário da tabela
-          const usuarios = await supabaseData.getUsuarios();
-          if (usuarios && usuarios.length > 0) {
-            usuarioAtual = usuarios[0].id;
-            console.log('👤 Usando primeiro usuário da tabela:', usuarioAtual);
-          } else {
-            throw new Error('Nenhum usuário encontrado na base de dados');
-          }
+          throw new Error('Nenhum usuário encontrado na base de dados');
         }
       } catch (authError) {
         console.log('🔄 Erro na autenticação, buscando usuário da tabela...');
