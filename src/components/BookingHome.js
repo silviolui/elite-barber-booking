@@ -3,6 +3,8 @@ import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-re
 import { supabaseData } from '../lib/supabaseData';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection }) => {
+  console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidade: selections?.unit?.nome });
+  
   const isUnitSelected = selections?.unit !== null;
   const isProfessionalSelected = selections?.professional !== null;
   const isServiceSelected = selections?.services?.length > 0;
@@ -141,8 +143,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
           {/* DEBUG: Mostrar estado da lógica */}
           {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
           
-          {/* Unidade - Mostrar apenas se há 2+ unidades ativas */}
-          {!skipUnidadeSelection && (
+          {/* Unidade - OCULTAR quando há apenas 1 unidade */}
+          {!skipUnidadeSelection && !isUnitSelected && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
