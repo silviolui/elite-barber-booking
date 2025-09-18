@@ -182,23 +182,94 @@ const Historico = ({ usuarioId }) => {
 
   const desmarcarAgendamento = async (agendamentoId) => {
     try {
-      const { error } = await supabase
+      // Primeiro, buscar o agendamento completo
+      const { data: agendamento, error: fetchError } = await supabase
         .from('agendamentos')
-        .update({ status: 'cancelled' })
+        .select('*')
+        .eq('id', agendamentoId)
+        .single();
+
+      if (fetchError) {
+        console.error('Erro ao buscar agendamento:', fetchError);
+        return;
+      }
+
+      // Buscar os serviços do agendamento
+      const { data: servicosAgendamento, error: servicosError } = await supabase
+        .from('agendamento_servicos')
+        .select('servico_id')
+        .eq('agendamento_id', agendamentoId);
+
+      if (servicosError) {
+        console.error('Erro ao buscar serviços:', servicosError);
+      }
+
+      // Para cada serviço, inserir um registro no histórico
+      if (servicosAgendamento && servicosAgendamento.length > 0) {
+        for (const servico of servicosAgendamento) {
+          const { error: insertError } = await supabase
+            .from('historico')
+            .insert({
+              agendamento_id: agendamento.id,
+              usuario_id: agendamento.usuario_id,
+              profissional_id: agendamento.profissional_id,
+              unidade_id: agendamento.unidade_id,
+              servico_id: servico.servico_id,
+              data_agendamento: agendamento.data_agendamento,
+              horario_inicio: agendamento.horario_inicio,
+              horario_fim: agendamento.horario_fim,
+              status: 'cancelado',
+              valor_total: agendamento.preco_total,
+              data_conclusao: new Date().toISOString()
+            });
+
+          if (insertError) {
+            console.error('Erro ao inserir no histórico:', insertError);
+          }
+        }
+      } else {
+        // Se não há serviços na tabela de relacionamento, criar um registro geral
+        const { error: insertError } = await supabase
+          .from('historico')
+          .insert({
+            agendamento_id: agendamento.id,
+            usuario_id: agendamento.usuario_id,
+            profissional_id: agendamento.profissional_id,
+            unidade_id: agendamento.unidade_id,
+            servico_id: null,
+            data_agendamento: agendamento.data_agendamento,
+            horario_inicio: agendamento.horario_inicio,
+            horario_fim: agendamento.horario_fim,
+            status: 'cancelado',
+            valor_total: agendamento.preco_total,
+            data_conclusao: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Erro ao inserir no histórico:', insertError);
+        }
+      }
+
+      // Deletar registros relacionados da tabela agendamento_servicos
+      if (servicosAgendamento && servicosAgendamento.length > 0) {
+        await supabase
+          .from('agendamento_servicos')
+          .delete()
+          .eq('agendamento_id', agendamentoId);
+      }
+
+      // Deletar da tabela agendamentos
+      const { error: deleteError } = await supabase
+        .from('agendamentos')
+        .delete()
         .eq('id', agendamentoId);
 
-      if (!error) {
-        // Atualizar a lista local
-        setAgendamentosAbertos(prev => 
-          prev.map(ag => 
-            ag.id === agendamentoId 
-              ? { ...ag, status: 'cancelled' }
-              : ag
-          )
-        );
+      if (!deleteError) {
         fecharModal();
         // Recarregar dados para atualizar a tela
         carregarDados();
+      } else {
+        console.error('Erro ao deletar agendamento:', deleteError);
       }
     } catch (error) {
       console.error('Erro ao desmarcar agendamento:', error);
