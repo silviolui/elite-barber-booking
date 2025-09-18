@@ -96,7 +96,7 @@ function App() {
     date: null,
     time: null
   });
-  const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(false);
+  const [skipUnidadeSelection, setSkipUnidadeSelection] = useState(true); // INICIAR COMO TRUE para ocultar por padrão
   const [unidadesLoading, setUnidadesLoading] = useState(true);
 
   // Verificar sessão existente ao carregar app

@@ -143,8 +143,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
           {/* DEBUG: Mostrar estado da lógica */}
           {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
           
-          {/* Unidade - TESTE: Só mostrar se unidade NÃO está selecionada */}
-          {!isUnitSelected && (
+          {/* Unidade - AGUARDAR verificação E só mostrar se necessário */}
+          {!unidadesLoading && !skipUnidadeSelection && !isUnitSelected && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
