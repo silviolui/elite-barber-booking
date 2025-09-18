@@ -17,83 +17,92 @@ const AgendamentoSucesso = ({ dadosAgendamento, onVoltar }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-green-500 to-green-600 z-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-green-400 px-6 py-4 flex items-center justify-center">
-        <div className="flex items-center">
-          <div className="mr-2">📱</div>
-          <span className="text-white font-medium">Agendamento criado com sucesso</span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        {/* Success Icon */}
-        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-8">
-          <Check size={40} className="text-green-500" />
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      {/* Modal Card */}
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="bg-green-500 px-6 py-4 flex items-center justify-center rounded-t-3xl">
+          <div className="flex items-center">
+            <div className="mr-2">📱</div>
+            <span className="text-white font-medium">Agendamento criado com sucesso</span>
+          </div>
         </div>
 
-        {/* Title */}
-        <h1 className="text-white text-3xl font-bold mb-4">
-          Agendamento realizado<br />
-          Com sucesso!
-        </h1>
+        {/* Content */}
+        <div className="px-6 py-8">
+          {/* Success Icon */}
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-6 mx-auto">
+            <Check size={40} className="text-white" />
+          </div>
 
-        {/* Subtitle */}
-        <p className="text-white/90 text-lg mb-12 leading-relaxed">
-          Seu horário na {dadosAgendamento.nomeEmpresa} - {dadosAgendamento.nomeUnidade} está confirmado. 
-          Você deverá receber detalhes no seu email em breve.
-        </p>
+          {/* Title */}
+          <h1 className="text-gray-900 text-2xl font-bold mb-4 text-center">
+            Agendamento realizado<br />
+            <span className="text-orange-500">Com sucesso!</span>
+          </h1>
 
-        {/* Details */}
-        <div className="w-full max-w-sm space-y-6">
-          {/* Unidade */}
-          <div className="border-b border-white/20 pb-4">
-            <div className="flex justify-between items-center">
+          {/* Subtitle */}
+          <p className="text-gray-700 text-base mb-8 text-center leading-relaxed">
+            Seu horário na {dadosAgendamento.nomeEmpresa} - {dadosAgendamento.nomeUnidade} está confirmado. 
+            Você deverá receber detalhes no seu email em breve.
+          </p>
+
+          {/* Details */}
+          <div className="space-y-4">
+            {/* Unidade */}
+            <div className="border-b border-gray-200 pb-3">
               <div className="text-left">
-                <p className="text-white font-medium">Unidade</p>
-                <p className="text-white/80 text-sm">{dadosAgendamento.nomeEmpresa} - {dadosAgendamento.nomeUnidade}</p>
+                <p className="text-gray-900 font-medium mb-1">Unidade</p>
+                <p className="text-gray-700 text-sm">{dadosAgendamento.nomeEmpresa} - {dadosAgendamento.nomeUnidade}</p>
+                <button className="text-orange-500 text-sm hover:text-orange-600 mt-1">
+                  Ver localização
+                </button>
               </div>
-              <button className="text-white/60 text-sm hover:text-white">
-                Ver localização
-              </button>
+            </div>
+
+            {/* Data */}
+            <div className="border-b border-gray-200 pb-3">
+              <div className="text-left">
+                <p className="text-gray-900 font-medium mb-1">Data</p>
+                <p className="text-gray-700">{formatarData(dadosAgendamento.dataAgendamento)}</p>
+              </div>
+            </div>
+
+            {/* Horário */}
+            <div className="border-b border-gray-200 pb-3">
+              <div className="text-left">
+                <p className="text-gray-900 font-medium mb-1">Horário</p>
+                <p className="text-gray-700">{dadosAgendamento.horarioInicio}</p>
+              </div>
+            </div>
+
+            {/* Colaborador */}
+            <div className="border-b border-gray-200 pb-3">
+              <div className="text-left">
+                <p className="text-gray-900 font-medium mb-1">Colaborador</p>
+                <p className="text-gray-700">{dadosAgendamento.nomeProfissional}</p>
+              </div>
+            </div>
+
+            {/* Serviços */}
+            <div className="border-b border-gray-200 pb-3">
+              <div className="text-left">
+                <p className="text-gray-900 font-medium mb-1">Serviços</p>
+                <p className="text-gray-700">{dadosAgendamento.nomeServico}</p>
+              </div>
             </div>
           </div>
-
-          {/* Data */}
-          <div className="border-b border-white/20 pb-4">
-            <p className="text-white font-medium">Data</p>
-            <p className="text-white/80">{formatarData(dadosAgendamento.dataAgendamento)}</p>
-          </div>
-
-          {/* Horário */}
-          <div className="border-b border-white/20 pb-4">
-            <p className="text-white font-medium">Horário</p>
-            <p className="text-white/80">{dadosAgendamento.horarioInicio}</p>
-          </div>
-
-          {/* Colaborador */}
-          <div className="border-b border-white/20 pb-4">
-            <p className="text-white font-medium">Colaborador</p>
-            <p className="text-white/80">{dadosAgendamento.nomeProfissional}</p>
-          </div>
-
-          {/* Serviços */}
-          <div className="border-b border-white/20 pb-4">
-            <p className="text-white font-medium">Serviços</p>
-            <p className="text-white/80">{dadosAgendamento.nomeServico}</p>
-          </div>
         </div>
-      </div>
 
-      {/* Footer Button */}
-      <div className="px-6 pb-8">
-        <button
-          onClick={onVoltar}
-          className="w-full bg-white text-green-600 py-4 rounded-2xl font-semibold text-lg hover:bg-gray-50 transition-colors"
-        >
-          Voltar ao início
-        </button>
+        {/* Footer Button */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={onVoltar}
+            className="w-full bg-orange-500 text-white py-3 rounded-2xl font-semibold text-lg hover:bg-orange-600 transition-colors"
+          >
+            Voltar ao início
+          </button>
+        </div>
       </div>
     </div>
   );
