@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, Star, User, Scissors } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import AgendamentoModal from './AgendamentoModal';
 
 const Historico = ({ usuarioId }) => {
   const [agendamentosAbertos, setAgendamentosAbertos] = useState([]);
   const [historicoPassado, setHistoricoPassado] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (usuarioId) {
@@ -142,10 +145,65 @@ const Historico = ({ usuarioId }) => {
     );
   };
 
-  // Função para avaliação futura
-  // const avaliarServico = (historicoId, nota) => {
-  //   console.log('Avaliar:', historicoId, nota);
-  // };
+  const abrirModal = (agendamento) => {
+    setAgendamentoSelecionado(agendamento);
+    setShowModal(true);
+  };
+
+  const fecharModal = () => {
+    setAgendamentoSelecionado(null);
+    setShowModal(false);
+  };
+
+  const confirmarAgendamento = async (agendamentoId) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'confirmed' })
+        .eq('id', agendamentoId);
+
+      if (!error) {
+        // Atualizar a lista local
+        setAgendamentosAbertos(prev => 
+          prev.map(ag => 
+            ag.id === agendamentoId 
+              ? { ...ag, status: 'confirmed' }
+              : ag
+          )
+        );
+        fecharModal();
+        // Recarregar dados para atualizar a tela
+        carregarDados();
+      }
+    } catch (error) {
+      console.error('Erro ao confirmar agendamento:', error);
+    }
+  };
+
+  const desmarcarAgendamento = async (agendamentoId) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'cancelled' })
+        .eq('id', agendamentoId);
+
+      if (!error) {
+        // Atualizar a lista local
+        setAgendamentosAbertos(prev => 
+          prev.map(ag => 
+            ag.id === agendamentoId 
+              ? { ...ag, status: 'cancelled' }
+              : ag
+          )
+        );
+        fecharModal();
+        // Recarregar dados para atualizar a tela
+        carregarDados();
+      }
+    } catch (error) {
+      console.error('Erro ao desmarcar agendamento:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -172,7 +230,11 @@ const Historico = ({ usuarioId }) => {
           <h2 className="text-lg font-semibold mb-4 text-gray-700">Agendamento em aberto</h2>
           
           {agendamentosAbertos.map((agendamento) => (
-            <div key={agendamento.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-200 shadow-sm">
+            <div 
+              key={agendamento.id} 
+              className="bg-white rounded-2xl p-4 mb-4 border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => abrirModal(agendamento)}
+            >
               {/* Cabeçalho do Card */}
               <div className="mb-4">
                 <h3 className="text-gray-900 font-medium text-lg mb-2">
@@ -293,6 +355,16 @@ const Historico = ({ usuarioId }) => {
           <Scissors size={48} className="mx-auto mb-4 opacity-50" />
           <p>Nenhum agendamento encontrado</p>
         </div>
+      )}
+
+      {/* Modal de Agendamento */}
+      {showModal && (
+        <AgendamentoModal 
+          agendamento={agendamentoSelecionado}
+          onClose={fecharModal}
+          onConfirmar={confirmarAgendamento}
+          onDesmarcar={desmarcarAgendamento}
+        />
       )}
     </div>
   );
