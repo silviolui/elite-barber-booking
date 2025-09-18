@@ -8,6 +8,7 @@ import SelectUnit from './components/SelectUnit';
 import SelectProfessional from './components/SelectProfessional';
 import SelectServices from './components/SelectServices';
 import SelectDateTime from './components/SelectDateTime';
+import Historico from './components/Historico';
 
 // Mock Data - dados para funcionar
 const mockData = {
@@ -332,7 +333,7 @@ function App() {
     if (activeTab !== 'agenda') {
       switch (activeTab) {
         case 'historico':
-          return <PlaceholderScreen title="Histórico" />;
+          return <Historico usuarioId={currentUser?.id} />;
         case 'assinatura':
           return <PlaceholderScreen title="Assinatura" />;
         case 'feed':
