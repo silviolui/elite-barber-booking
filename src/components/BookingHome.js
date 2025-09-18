@@ -50,10 +50,14 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
         }
       }
       
-      // Calcular horário de fim (assumindo 30 minutos de duração)
+      // Calcular horário de fim baseado na duração real dos serviços
+      const duracaoTotal = selections.services?.reduce((total, service) => {
+        return total + (parseInt(service.duracao_minutos || service.duracao || service.duration) || 30);
+      }, 0) || 30;
+      
       const [hora, minuto] = selections.time.split(':').map(Number);
-      const fimMinuto = minuto + 30;
-      const fimHora = fimMinuto >= 60 ? hora + 1 : hora;
+      const fimMinuto = minuto + duracaoTotal;
+      const fimHora = hora + Math.floor(fimMinuto / 60);
       const horarioFim = `${fimHora.toString().padStart(2, '0')}:${(fimMinuto % 60).toString().padStart(2, '0')}`;
       
       // Calcular preço total dos serviços

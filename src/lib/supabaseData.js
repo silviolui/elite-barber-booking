@@ -269,7 +269,7 @@ export const supabaseData = {
     
     // Calcular duração total dos serviços selecionados
     const duracaoTotal = servicosSelecionados.reduce((total, servico) => {
-      return total + (parseInt(servico.duracao) || 30);
+      return total + (parseInt(servico.duracao_minutos || servico.duracao || servico.duration) || 30);
     }, 0) || 30; // Default 30 minutos se não houver serviços
     
     console.log('⏱️ Duração total dos serviços:', duracaoTotal, 'minutos');
