@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
+import { supabaseData } from '../lib/supabaseData';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
   const isUnitSelected = selections?.unit !== null;
@@ -16,6 +17,51 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
       onNext(step);
     } else if (step === 'data' && isServiceSelected) {
       onNext(step);
+    }
+  };
+
+  // Função para finalizar agendamento
+  const handleFinalizarAgendamento = async () => {
+    if (!canFinalize) return;
+
+    try {
+      console.log('🚀 Iniciando finalização do agendamento...');
+      
+      // Calcular horário de fim (assumindo 30 minutos de duração)
+      const [hora, minuto] = selections.time.split(':').map(Number);
+      const fimMinuto = minuto + 30;
+      const fimHora = fimMinuto >= 60 ? hora + 1 : hora;
+      const horarioFim = `${fimHora.toString().padStart(2, '0')}:${(fimMinuto % 60).toString().padStart(2, '0')}`;
+      
+      // Calcular preço total dos serviços
+      const precoTotal = selections.services?.reduce((total, service) => {
+        return total + (parseFloat(service.price || service.preco || 0));
+      }, 0) || 50.00;
+      
+      // Dados do agendamento (formato correto para a função)
+      const dadosAgendamento = {
+        profissionalId: selections.professional?.id,
+        unidadeId: selections.unit?.id,
+        data: selections.date.toISOString().split('T')[0], // YYYY-MM-DD
+        horarioInicio: selections.time,
+        horarioFim: horarioFim,
+        precoTotal: precoTotal,
+        observacoes: null
+      };
+
+      console.log('📋 Dados do agendamento:', dadosAgendamento);
+
+      // Criar o agendamento (clienteId, dadosAgendamento)
+      const agendamento = await supabaseData.criarAgendamento('user-temp-id', dadosAgendamento);
+      
+      console.log('✅ Agendamento criado com sucesso:', agendamento);
+      alert('Agendamento confirmado com sucesso! Você será redirecionado.');
+      
+      // Aqui você pode redirecionar ou limpar o formulário
+      
+    } catch (error) {
+      console.error('❌ Erro ao finalizar agendamento:', error);
+      alert('Erro ao finalizar agendamento. Tente novamente.');
     }
   };
 
@@ -165,6 +211,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
         
         {/* CTA Button */}
         <button 
+          onClick={handleFinalizarAgendamento}
           className={`w-full rounded-2xl py-4 mt-8 font-semibold transition-all ${
             canFinalize 
               ? 'bg-primary text-white hover:bg-orange-600 shadow-lg' 
