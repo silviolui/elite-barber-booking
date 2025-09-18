@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, TrendingUp, FileText } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 
 const RelatoriosView = ({ currentUser }) => {
   return (

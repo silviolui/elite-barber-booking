@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Calendar, Settings } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 const HorariosConfig = ({ currentUser }) => {
   return (
