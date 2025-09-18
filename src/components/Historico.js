@@ -48,16 +48,19 @@ const Historico = ({ usuarioId }) => {
       // Carregar dados relacionados separadamente
       const agendamentosComDetalhes = await Promise.all(
         data.map(async (agendamento) => {
-          const [profissional, unidade] = await Promise.all([
+          const [profissional, unidade, servico] = await Promise.all([
             supabase.from('profissionais').select('nome, foto_url').eq('id', agendamento.profissional_id).single(),
-            supabase.from('unidades').select('nome').eq('id', agendamento.unidade_id).single()
+            supabase.from('unidades').select('nome').eq('id', agendamento.unidade_id).single(),
+            agendamento.servico_id ? 
+              supabase.from('servicos').select('nome, duracao').eq('id', agendamento.servico_id).single() :
+              Promise.resolve({ data: { nome: 'Serviço não especificado', duracao: 30 } })
           ]);
           
           return {
             ...agendamento,
             profissionais: profissional.data,
             unidades: unidade.data,
-            servicos: { nome: 'Corte de Cabelo' } // Temporário até configurar relacionamento
+            servicos: servico.data
           };
         })
       );
@@ -194,68 +197,26 @@ const Historico = ({ usuarioId }) => {
         return;
       }
 
-      // Buscar os serviços do agendamento
-      const { data: servicosAgendamento, error: servicosError } = await supabase
-        .from('agendamento_servicos')
-        .select('servico_id')
-        .eq('agendamento_id', agendamentoId);
+      // Inserir no histórico com status cancelado
+      const { error: insertError } = await supabase
+        .from('historico')
+        .insert({
+          agendamento_id: agendamento.id,
+          usuario_id: agendamento.usuario_id,
+          profissional_id: agendamento.profissional_id,
+          unidade_id: agendamento.unidade_id,
+          servico_id: agendamento.servico_id,
+          data_agendamento: agendamento.data_agendamento,
+          horario_inicio: agendamento.horario_inicio,
+          horario_fim: agendamento.horario_fim,
+          status: 'cancelado',
+          valor_total: agendamento.preco_total,
+          data_conclusao: new Date().toISOString()
+        });
 
-      if (servicosError) {
-        console.error('Erro ao buscar serviços:', servicosError);
-      }
-
-      // Para cada serviço, inserir um registro no histórico
-      if (servicosAgendamento && servicosAgendamento.length > 0) {
-        for (const servico of servicosAgendamento) {
-          const { error: insertError } = await supabase
-            .from('historico')
-            .insert({
-              agendamento_id: agendamento.id,
-              usuario_id: agendamento.usuario_id,
-              profissional_id: agendamento.profissional_id,
-              unidade_id: agendamento.unidade_id,
-              servico_id: servico.servico_id,
-              data_agendamento: agendamento.data_agendamento,
-              horario_inicio: agendamento.horario_inicio,
-              horario_fim: agendamento.horario_fim,
-              status: 'cancelado',
-              valor_total: agendamento.preco_total,
-              data_conclusao: new Date().toISOString()
-            });
-
-          if (insertError) {
-            console.error('Erro ao inserir no histórico:', insertError);
-          }
-        }
-      } else {
-        // Se não há serviços na tabela de relacionamento, criar um registro geral
-        const { error: insertError } = await supabase
-          .from('historico')
-          .insert({
-            agendamento_id: agendamento.id,
-            usuario_id: agendamento.usuario_id,
-            profissional_id: agendamento.profissional_id,
-            unidade_id: agendamento.unidade_id,
-            servico_id: null,
-            data_agendamento: agendamento.data_agendamento,
-            horario_inicio: agendamento.horario_inicio,
-            horario_fim: agendamento.horario_fim,
-            status: 'cancelado',
-            valor_total: agendamento.preco_total,
-            data_conclusao: new Date().toISOString()
-          });
-
-        if (insertError) {
-          console.error('Erro ao inserir no histórico:', insertError);
-        }
-      }
-
-      // Deletar registros relacionados da tabela agendamento_servicos
-      if (servicosAgendamento && servicosAgendamento.length > 0) {
-        await supabase
-          .from('agendamento_servicos')
-          .delete()
-          .eq('agendamento_id', agendamentoId);
+      if (insertError) {
+        console.error('Erro ao inserir no histórico:', insertError);
+        return;
       }
 
       // Deletar da tabela agendamentos
