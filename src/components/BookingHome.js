@@ -138,8 +138,11 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
 
         {/* Booking Steps - Clean Cards */}
         <div className="space-y-4">
-          {/* Unidade - OCULTAR se houver apenas 1 unidade ativa */}
-          {!skipUnidadeSelection && (
+          {/* DEBUG: Mostrar estado da lógica */}
+          {console.log('🔍 DEBUG:', { skipUnidadeSelection, isUnitSelected, unidade: selections?.unit?.nome })}
+          
+          {/* Unidade - TOTALMENTE OCULTO se unidade já selecionada */}
+          {false && (
             <button
               onClick={() => handleStepClick('unidade')}
               className="w-full bg-white rounded-2xl p-5 flex items-center justify-between hover:shadow-md transition-all shadow-sm border border-gray-100"
