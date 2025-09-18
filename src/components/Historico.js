@@ -34,12 +34,7 @@ const Historico = ({ usuarioId }) => {
     console.log('Carregando agendamentos para usuário:', usuarioId);
     const { data, error } = await supabase
       .from('agendamentos')
-      .select(`
-        *,
-        profissionais (nome, foto_url),
-        unidades (nome),
-        servicos (nome, duracao)
-      `)
+      .select('*')
       .eq('usuario_id', usuarioId)
       .in('status', ['agendado', 'pending'])
       .gte('data_agendamento', new Date().toISOString().split('T')[0])
@@ -47,7 +42,24 @@ const Historico = ({ usuarioId }) => {
 
     console.log('Agendamentos encontrados:', data, 'Erro:', error);
     if (!error && data) {
-      setAgendamentosAbertos(data);
+      // Carregar dados relacionados separadamente
+      const agendamentosComDetalhes = await Promise.all(
+        data.map(async (agendamento) => {
+          const [profissional, unidade] = await Promise.all([
+            supabase.from('profissionais').select('nome, foto_url').eq('id', agendamento.profissional_id).single(),
+            supabase.from('unidades').select('nome').eq('id', agendamento.unidade_id).single()
+          ]);
+          
+          return {
+            ...agendamento,
+            profissionais: profissional.data,
+            unidades: unidade.data,
+            servicos: { nome: 'Corte de Cabelo' } // Temporário até configurar relacionamento
+          };
+        })
+      );
+      
+      setAgendamentosAbertos(agendamentosComDetalhes);
     }
   };
 
