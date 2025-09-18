@@ -1,4 +1,4 @@
-# BookIA - Cliente (Scroll Corrigido)
+# BookIA - Cliente (Intervalos Dinâmicos)
 
 Aplicativo de agendamento para clientes das barberias integradas ao sistema BookIA.
 
