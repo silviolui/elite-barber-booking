@@ -51,8 +51,8 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout }) => {
 
       console.log('📋 Dados do agendamento:', dadosAgendamento);
 
-      // Criar o agendamento (clienteId, dadosAgendamento) - Sem usuário por enquanto
-      const agendamento = await supabaseData.criarAgendamento(null, dadosAgendamento);
+      // Criar o agendamento (clienteId, dadosAgendamento) - USUÁRIO DEFINITIVO PARA PRODUÇÃO
+      const agendamento = await supabaseData.criarAgendamento('123e4567-e89b-12d3-a456-426614174000', dadosAgendamento);
       
       console.log('✅ Agendamento criado com sucesso:', agendamento);
       alert('Agendamento confirmado com sucesso! Você será redirecionado.');
