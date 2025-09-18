@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from './lib/supabase';
+import { auth, supabase } from './lib/supabase';
 import LoginScreen from './components/LoginScreen';
 import SignUpScreen from './components/SignUpScreen';
 import BookingHome from './components/BookingHome';
