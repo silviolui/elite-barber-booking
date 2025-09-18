@@ -11,7 +11,7 @@ const Historico = ({ usuarioId }) => {
     if (usuarioId) {
       carregarDados();
     }
-  }, [usuarioId]);
+  }, [usuarioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const carregarDados = async () => {
     try {
@@ -128,10 +128,10 @@ const Historico = ({ usuarioId }) => {
     );
   };
 
-  const avaliarServico = (historicoId, nota) => {
-    // Implementar funcionalidade de avaliação
-    console.log('Avaliar:', historicoId, nota);
-  };
+  // Função para avaliação futura
+  // const avaliarServico = (historicoId, nota) => {
+  //   console.log('Avaliar:', historicoId, nota);
+  // };
 
   if (loading) {
     return (
