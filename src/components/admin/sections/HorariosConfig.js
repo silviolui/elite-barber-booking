@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Save, Plus, Edit2, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Clock, Save, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { supabaseData } from '../../../lib/supabaseData';
 
@@ -31,14 +31,14 @@ const HorariosConfig = ({ currentUser }) => {
     if (unidadeSelecionada) {
       carregarHorarios();
     }
-  }, [unidadeSelecionada]);
+  }, [unidadeSelecionada, carregarHorarios]);
 
   const carregarUnidades = async () => {
     const unidadesList = await supabaseData.getUnidades();
     setUnidades(unidadesList);
   };
 
-  const carregarHorarios = async () => {
+  const carregarHorarios = useCallback(async () => {
     setLoading(true);
     try {
       const horariosData = await supabaseData.getHorarioFuncionamento(unidadeSelecionada);
@@ -78,7 +78,7 @@ const HorariosConfig = ({ currentUser }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [unidadeSelecionada]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
