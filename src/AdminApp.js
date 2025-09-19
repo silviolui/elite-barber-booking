@@ -21,7 +21,11 @@ const AdminApp = () => {
       if (isLoggedIn && storedAdminData) {
         try {
           const adminData = JSON.parse(storedAdminData);
-          setCurrentUser({ email: adminData.email });
+          setCurrentUser({ 
+            email: adminData.email,
+            unidade_id: adminData.unidade_id,
+            nome: adminData.nome 
+          });
           setIsValidAdmin(true);
           setAdminData(adminData);
         } catch (error) {

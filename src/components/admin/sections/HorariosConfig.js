@@ -21,6 +21,10 @@ const HorariosConfig = ({ currentUser }) => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Debug: verificar currentUser
+  console.log('🔍 HorariosConfig - currentUser:', currentUser);
+  console.log('🔍 HorariosConfig - currentUser.unidade_id:', currentUser?.unidade_id);
+
   const carregarUnidades = async () => {
     const unidadesList = await supabaseData.getUnidades();
     setUnidades(unidadesList);
