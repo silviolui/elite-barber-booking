@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, Plus } from 'lucide-react';
 
 const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
-  const [tipoFolga, setTipoFolga] = useState('dia_semana_recorrente');
+  // const [tipoFolga, setTipoFolga] = useState('dia_semana_recorrente');
   const [diaSemana, setDiaSemana] = useState('');
   const [folgaManha, setFolgaManha] = useState(false);
   const [folgaTarde, setFolgaTarde] = useState(false);
@@ -17,7 +17,7 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
 
   const salvarFolga = () => {
     alert(`Folga configurada para ${profissional?.nome}:
-- Dia: ${diasSemana.find(d => d.id == diaSemana)?.nome}
+- Dia: ${diasSemana.find(d => d.id === parseInt(diaSemana))?.nome}
 - Períodos: ${folgaManha ? 'Manhã ' : ''}${folgaTarde ? 'Tarde ' : ''}${folgaNoite ? 'Noite' : ''}
 
 Execute SQL no Supabase para ativar a funcionalidade completa.`);
