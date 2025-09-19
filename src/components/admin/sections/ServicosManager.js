@@ -24,7 +24,7 @@ const ServicosManager = ({ currentUser }) => {
   const loadServicos = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('servicos').select('*').order('nome');
+      let query = supabase.from('servicos').select('*').is('profissional_id', null).order('nome');
 
       // Se não for super admin, filtrar por unidade (ou serviços globais)
       if (unidadeId) {
@@ -151,9 +151,12 @@ const ServicosManager = ({ currentUser }) => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Gerenciar Serviços</h2>
-          {unidadeId && (
-            <p className="text-sm text-gray-600">Serviços específicos da sua unidade</p>
-          )}
+          <p className="text-sm text-gray-600">
+            {unidadeId 
+              ? 'Serviços base da sua unidade (templates para profissionais)'
+              : 'Serviços base globais (templates para todas as unidades)'
+            }
+          </p>
         </div>
         <button
           onClick={openModal}
