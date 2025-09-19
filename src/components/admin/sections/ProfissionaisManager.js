@@ -23,10 +23,13 @@ const ProfissionaisManager = ({ currentUser }) => {
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
-    email: '',
+    especialidade: '',
+    descricao: '',
+    foto_url: '',
+    avaliacao: 5.0,
+    anos_experiencia: 1,
     unidade_id: '',
-    ativo: true,
-    observacoes: ''
+    ativo: true
   });
 
   useEffect(() => {
@@ -133,10 +136,13 @@ const ProfissionaisManager = ({ currentUser }) => {
     setFormData({
       nome: profissional.nome || '',
       telefone: profissional.telefone || '',
-      email: profissional.email || '',
+      especialidade: profissional.especialidade || '',
+      descricao: profissional.descricao || '',
+      foto_url: profissional.foto_url || '',
+      avaliacao: profissional.avaliacao || 5.0,
+      anos_experiencia: profissional.anos_experiencia || 1,
       unidade_id: profissional.unidade_id || '',
-      ativo: profissional.ativo,
-      observacoes: profissional.observacoes || ''
+      ativo: profissional.ativo
     });
 
     // Carregar serviços do profissional
@@ -178,10 +184,13 @@ const ProfissionaisManager = ({ currentUser }) => {
     setFormData({
       nome: '',
       telefone: '',
-      email: '',
+      especialidade: '',
+      descricao: '',
+      foto_url: '',
+      avaliacao: 5.0,
+      anos_experiencia: 1,
       unidade_id: '',
-      ativo: true,
-      observacoes: ''
+      ativo: true
     });
     setServicosSelecionados([]);
   };
@@ -274,10 +283,9 @@ const ProfissionaisManager = ({ currentUser }) => {
                 </div>
               )}
               
-              {profissional.email && (
+              {profissional.especialidade && (
                 <div className="flex items-center text-gray-600">
-                  <Mail size={16} className="mr-2" />
-                  <span>{profissional.email}</span>
+                  <span className="font-medium">{profissional.especialidade}</span>
                 </div>
               )}
               
@@ -338,15 +346,58 @@ const ProfissionaisManager = ({ currentUser }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
+                  Especialidade
                 </label>
                 <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  type="text"
+                  value={formData.especialidade}
+                  onChange={(e) => setFormData({...formData, especialidade: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="email@exemplo.com"
+                  placeholder="Ex: Coloração e Design"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  URL da Foto
+                </label>
+                <input
+                  type="url"
+                  value={formData.foto_url}
+                  onChange={(e) => setFormData({...formData, foto_url: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="https://exemplo.com/foto.jpg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Avaliação (1-5)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
+                    value={formData.avaliacao}
+                    onChange={(e) => setFormData({...formData, avaliacao: parseFloat(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Anos de Experiência
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.anos_experiencia}
+                    onChange={(e) => setFormData({...formData, anos_experiencia: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div>
@@ -398,13 +449,13 @@ const ProfissionaisManager = ({ currentUser }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Observações
+                  Descrição
                 </label>
                 <textarea
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({...formData, descricao: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Observações adicionais"
+                  placeholder="Descrição do profissional"
                   rows={3}
                 />
               </div>
