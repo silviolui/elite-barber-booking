@@ -42,8 +42,12 @@ const ServicosManager = ({ currentUser }) => {
     
     const dataToSave = {
       ...formData,
-      preco: parseFloat(formData.preco)
+      preco: parseFloat(formData.preco),
+      duracao_minutos: formData.duracao // Usar nome correto da coluna
     };
+    
+    // Remover campo 'duracao' do objeto para evitar erro
+    delete dataToSave.duracao;
 
     try {
       if (editingServico) {
@@ -73,7 +77,7 @@ const ServicosManager = ({ currentUser }) => {
     setFormData({
       nome: servico.nome || '',
       preco: servico.preco?.toString() || '',
-      duracao: servico.duracao || 30,
+      duracao: servico.duracao_minutos || servico.duracao || 30,
       ativo: servico.ativo,
       descricao: servico.descricao || ''
     });
@@ -203,7 +207,7 @@ const ServicosManager = ({ currentUser }) => {
                   <Clock size={16} className="mr-2" />
                   <span>Duração:</span>
                 </div>
-                <span className="font-semibold text-gray-900">{servico.duracao}min</span>
+                <span className="font-semibold text-gray-900">{servico.duracao_minutos || servico.duracao}min</span>
               </div>
             </div>
 
