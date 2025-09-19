@@ -388,8 +388,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   }
 
                   const today = new Date();
+                  today.setHours(0, 0, 0, 0); // Zerar horas para comparação correta
                   const isToday = day.toDateString() === today.toDateString();
-                  const isPast = day < today;
+                  const isPast = day < today; // Apenas dias anteriores ao hoje são considerados passados
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
                   const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis
                   const isComHorarios = diasComHorarios.includes(day.getDate()); // Dia com horários disponíveis  

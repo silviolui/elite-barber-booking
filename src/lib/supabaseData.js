@@ -280,6 +280,30 @@ export const supabaseData = {
     
     console.log('⏱️ Duração total dos serviços:', duracaoTotal, 'minutos');
     
+    // Verificar se é o dia de hoje e aplicar regra de 20 minutos de antecedência
+    const hoje = new Date();
+    const dataVerificacao = typeof data === 'string' ? new Date(data) : data;
+    const isHoje = dataVerificacao.toDateString() === hoje.toDateString();
+    
+    let horarioMinimoInicio = null;
+    if (isHoje) {
+      // Adicionar 20 minutos à hora atual e arredondar para horário arredondado
+      const agora = new Date();
+      agora.setMinutes(agora.getMinutes() + 20);
+      
+      // Arredondar para o próximo horário "redondo" (00 ou 30)
+      let minutosArredondados = agora.getMinutes();
+      if (minutosArredondados > 0 && minutosArredondados <= 30) {
+        minutosArredondados = 30;
+      } else if (minutosArredondados > 30) {
+        minutosArredondados = 0;
+        agora.setHours(agora.getHours() + 1);
+      }
+      
+      horarioMinimoInicio = `${agora.getHours().toString().padStart(2, '0')}:${minutosArredondados.toString().padStart(2, '0')}`;
+      console.log('🕐 Horário mínimo para hoje (20min + arredondamento):', horarioMinimoInicio);
+    }
+    
     // Gerar slots baseado na duração dos serviços
     const horarios = [];
     const [horaInicio, minutoInicio] = horarioInfo.inicio.split(':').map(Number);
@@ -290,7 +314,19 @@ export const supabaseData = {
     
     while (horaAtual < horaFim || (horaAtual === horaFim && minutoAtual < minutoFim)) {
       const horarioFormatado = `${horaAtual.toString().padStart(2, '0')}:${minutoAtual.toString().padStart(2, '0')}`;
-      horarios.push(horarioFormatado);
+      
+      // Se é hoje, verificar se o horário atende à regra de antecedência
+      let podeAgendar = true;
+      if (isHoje && horarioMinimoInicio) {
+        const [horaMinimaInicio, minutoMinimoInicio] = horarioMinimoInicio.split(':').map(Number);
+        if (horaAtual < horaMinimaInicio || (horaAtual === horaMinimaInicio && minutoAtual < minutoMinimoInicio)) {
+          podeAgendar = false;
+        }
+      }
+      
+      if (podeAgendar) {
+        horarios.push(horarioFormatado);
+      }
       
       // Incrementar baseado na duração dos serviços
       minutoAtual += duracaoTotal;
