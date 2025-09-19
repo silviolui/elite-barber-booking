@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Camera, X, Check } from 'lucide-react';
+import { Camera, X, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
@@ -31,7 +31,7 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
       const filePath = `profissionais/${fileName}`;
 
       // Upload para Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('profissionais-fotos')
         .upload(filePath, file);
 
