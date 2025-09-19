@@ -19,7 +19,7 @@ const ServicosManager = ({ currentUser }) => {
 
   useEffect(() => {
     loadServicos();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadServicos = async () => {
     setLoading(true);

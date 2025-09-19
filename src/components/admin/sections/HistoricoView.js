@@ -11,7 +11,7 @@ const HistoricoView = ({ currentUser }) => {
 
   useEffect(() => {
     loadHistorico();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadHistorico = async () => {
     setLoading(true);

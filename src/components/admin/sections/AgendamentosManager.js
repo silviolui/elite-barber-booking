@@ -25,7 +25,7 @@ const AgendamentosManager = ({ currentUser }) => {
 
   useEffect(() => {
     loadAgendamentos();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAgendamentos = async () => {
     setLoading(true);
