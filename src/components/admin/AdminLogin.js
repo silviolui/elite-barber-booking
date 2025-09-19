@@ -5,10 +5,6 @@ import AdminSignUp from './AdminSignUp';
 
 const AdminLogin = () => {
   const [showSignUp, setShowSignUp] = useState(false);
-
-  if (showSignUp) {
-    return <AdminSignUp onBackToLogin={() => setShowSignUp(false)} />;
-  }
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -16,6 +12,10 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  if (showSignUp) {
+    return <AdminSignUp onBackToLogin={() => setShowSignUp(false)} />;
+  }
 
   const handleChange = (e) => {
     setFormData({
