@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
 import { auth, supabase } from '../../lib/supabase';
-import AdminSignUp from './AdminSignUp';
-
 const AdminLogin = () => {
-  const [showSignUp, setShowSignUp] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -12,10 +9,6 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  if (showSignUp) {
-    return <AdminSignUp onBackToLogin={() => setShowSignUp(false)} />;
-  }
 
   const handleChange = (e) => {
     setFormData({
@@ -192,15 +185,7 @@ const AdminLogin = () => {
               </button>
             </div>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setShowSignUp(true)}
-                className="text-orange-600 hover:text-orange-700 font-medium text-sm"
-              >
-                Criar conta administrativa
-              </button>
-            </div>
+
 
             <div className="text-center pt-4 border-t border-gray-200">
               <a
