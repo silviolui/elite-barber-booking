@@ -450,10 +450,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
               })()}
               
               {/* Period Buttons - Apenas períodos disponíveis */}
-              {!diasDeFolga.includes(
-                selectedDate instanceof Date ? selectedDate.getDate() : new Date(selectedDate).getDate()
-              ) && (
-                <div className="flex space-x-2 mb-6">
+              <div className="flex space-x-2 mb-6">
                 {periodosDisponiveis.manha && (
                   <button
                     onClick={() => setSelectedPeriod('manha')}
@@ -492,17 +489,16 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                 )}
               </div>
 
-                {/* Show only selected period times */}
-                {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
-                {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
-                {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
+              {/* Show only selected period times */}
+              {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
+              {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
+              {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
 
-                {/* Mensagem se não houver horários disponíveis */}
-                {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">Nenhum horário disponível para este período.</p>
-                  </div>
-                )}
+              {/* Mensagem se não houver horários disponíveis */}
+              {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Nenhum horário disponível para este período.</p>
+                </div>
               )}
             </div>
           )}
