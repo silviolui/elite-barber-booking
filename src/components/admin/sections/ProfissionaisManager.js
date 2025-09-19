@@ -41,7 +41,7 @@ const ProfissionaisManager = ({ currentUser }) => {
       // Construir queries baseadas na unidade do admin
       let profissionaisQuery = supabase.from('profissionais').select(`*, unidades (nome)`).order('nome');
       let unidadesQuery = supabase.from('unidades').select('id, nome').eq('ativo', true).order('nome');
-      let servicosQuery = supabase.from('servicos').select('id, nome').eq('ativo', true).order('nome');
+      let servicosQuery = supabase.from('servicos').select('id, nome').eq('ativo', true).is('profissional_id', null).order('nome');
 
       // Se não for super admin, filtrar por unidade
       if (unidadeId) {
@@ -107,39 +107,54 @@ const ProfissionaisManager = ({ currentUser }) => {
     console.log('🔄 Atualizando serviços do profissional:', profissionalId, servicosIds);
     
     try {
-      // 1. Remover todos os serviços atuais do profissional
-      console.log('🗑️ Removendo serviços atuais...');
+      // 1. Remover serviços atuais do profissional (da tabela servicos)
+      console.log('🗑️ Removendo serviços atuais do profissional...');
       const { error: deleteError } = await supabase
-        .from('profissional_servicos')
+        .from('servicos')
         .delete()
         .eq('profissional_id', profissionalId);
 
       if (deleteError) {
         console.error('❌ Erro ao deletar serviços:', deleteError);
       } else {
-        console.log('✅ Serviços antigos removidos');
+        console.log('✅ Serviços antigos do profissional removidos');
       }
 
-      // 2. Inserir novos serviços selecionados
+      // 2. Para cada serviço selecionado, criar nova linha na tabela servicos
       if (servicosIds.length > 0) {
-        console.log('➕ Inserindo novos serviços:', servicosIds);
+        console.log('➕ Criando serviços específicos para o profissional...');
         
-        const relacionamentos = servicosIds.map(servicoId => ({
-          profissional_id: profissionalId,
-          servico_id: servicoId,
-          ativo: true
-        }));
+        for (const servicoId of servicosIds) {
+          // Buscar dados do serviço modelo (sem profissional_id)
+          const { data: servicoModelo } = await supabase
+            .from('servicos')
+            .select('nome, preco, duracao_minutos, unidade_id')
+            .eq('id', servicoId)
+            .single();
 
-        console.log('📋 Dados a inserir:', relacionamentos);
+          if (servicoModelo) {
+            // Criar novo serviço específico para este profissional
+            const novoServico = {
+              nome: servicoModelo.nome,
+              preco: servicoModelo.preco,
+              duracao_minutos: servicoModelo.duracao_minutos,
+              unidade_id: servicoModelo.unidade_id || unidadeId, // Usar unidade do admin se o modelo for global
+              profissional_id: profissionalId, // Associar ao profissional
+              ativo: true
+            };
 
-        const { error: insertError } = await supabase
-          .from('profissional_servicos')
-          .insert(relacionamentos);
+            console.log('📋 Criando serviço:', novoServico);
 
-        if (insertError) {
-          console.error('❌ Erro ao inserir serviços:', insertError);
-        } else {
-          console.log('✅ Serviços inseridos com sucesso');
+            const { error: insertError } = await supabase
+              .from('servicos')
+              .insert(novoServico);
+
+            if (insertError) {
+              console.error('❌ Erro ao inserir serviço:', insertError);
+            } else {
+              console.log('✅ Serviço criado:', servicoModelo.nome);
+            }
+          }
         }
       }
     } catch (error) {
@@ -160,15 +175,15 @@ const ProfissionaisManager = ({ currentUser }) => {
       ativo: profissional.ativo
     });
 
-    // Carregar serviços do profissional
+    // Carregar serviços do profissional (buscar na tabela servicos)
     try {
       const { data: servicosProfissional } = await supabase
-        .from('profissional_servicos')
-        .select('servico_id')
+        .from('servicos')
+        .select('id')
         .eq('profissional_id', profissional.id)
         .eq('ativo', true);
 
-      const servicosIds = servicosProfissional?.map(ps => ps.servico_id) || [];
+      const servicosIds = servicosProfissional?.map(s => s.id) || [];
       setServicosSelecionados(servicosIds);
     } catch (error) {
       console.error('Erro ao carregar serviços do profissional:', error);
