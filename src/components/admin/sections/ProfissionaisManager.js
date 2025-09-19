@@ -272,8 +272,23 @@ const ProfissionaisManager = ({ currentUser }) => {
           <div key={profissional.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center">
-                <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                  <User size={24} className="text-orange-500" />
+                <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center mr-3 overflow-hidden">
+                  {profissional.foto_url ? (
+                    <img 
+                      src={profissional.foto_url} 
+                      alt={profissional.nome}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <User 
+                    size={24} 
+                    className="text-orange-500" 
+                    style={{display: profissional.foto_url ? 'none' : 'block'}}
+                  />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">{profissional.nome}</h3>
