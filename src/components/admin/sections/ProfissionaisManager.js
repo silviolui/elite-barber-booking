@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User,
-  Phone,
   MapPin,
   Plus,
   Edit,
@@ -23,7 +22,6 @@ const ProfissionaisManager = ({ currentUser }) => {
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
   const [formData, setFormData] = useState({
     nome: '',
-    telefone: '',
     especialidade: '',
     descricao: '',
     foto_url: '',
@@ -134,7 +132,6 @@ const ProfissionaisManager = ({ currentUser }) => {
     setEditingProfissional(profissional);
     setFormData({
       nome: profissional.nome || '',
-      telefone: profissional.telefone || '',
       especialidade: profissional.especialidade || '',
       descricao: profissional.descricao || '',
       foto_url: profissional.foto_url || '',
@@ -182,7 +179,6 @@ const ProfissionaisManager = ({ currentUser }) => {
   const resetForm = () => {
     setFormData({
       nome: '',
-      telefone: '',
       especialidade: '',
       descricao: '',
       foto_url: '',
@@ -275,12 +271,11 @@ const ProfissionaisManager = ({ currentUser }) => {
             </div>
 
             <div className="space-y-3 text-sm">
-              {profissional.telefone && (
-                <div className="flex items-center text-gray-600">
-                  <Phone size={16} className="mr-2" />
-                  <span>{profissional.telefone}</span>
-                </div>
-              )}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                <span className="text-xs text-gray-500">
+                  {profissional.anos_experiencia || 0} anos exp. | ⭐ {profissional.avaliacao || 5.0}
+                </span>
+              </div>
               
               {profissional.especialidade && (
                 <div className="flex items-center text-gray-600">
@@ -330,18 +325,7 @@ const ProfissionaisManager = ({ currentUser }) => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
