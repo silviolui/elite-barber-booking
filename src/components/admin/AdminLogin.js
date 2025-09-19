@@ -24,6 +24,8 @@ const AdminLogin = () => {
     setError('');
 
     try {
+      console.log('Tentando login com:', formData.email);
+      
       // Verificar credenciais na tabela admin_usuarios
       const { data: adminData, error: adminError } = await supabase
         .from('admin_usuarios')
@@ -33,8 +35,10 @@ const AdminLogin = () => {
         .eq('ativo', true)
         .single();
 
+      console.log('Resultado admin login:', adminData, adminError);
+
       if (adminError || !adminData) {
-        setError('Email ou senha incorretos, ou acesso não autorizado.');
+        setError(`Email ou senha incorretos, ou acesso não autorizado. (${adminError?.message || 'Usuário não encontrado'})`);
         setLoading(false);
         return;
       }
