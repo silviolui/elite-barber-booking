@@ -470,7 +470,7 @@ export const supabaseData = {
   async getDatasfolga(profissionalId, mesAno = null) {
     const { data, error } = await supabase
       .from('folgas_profissionais')
-      .select('tipo_folga, data_folga, dia_semana')
+      .select('tipo_folga, data_folga, dia_semana, folga_manha, folga_tarde, folga_noite')
       .eq('profissional_id', profissionalId)
       .eq('ativo', true);
 
