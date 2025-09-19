@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Calendar, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -18,7 +18,7 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
     { id: 5, nome: 'Sexta-feira' },
   ];
 
-  const carregarFolgas = async () => {
+  const carregarFolgas = useCallback(async () => {
     if (!profissional?.id) return;
     
     setLoading(true);
@@ -37,7 +37,7 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profissional]);
 
   const removerFolga = async (id) => {
     if (!window.confirm('Tem certeza que deseja remover esta folga?')) return;
@@ -61,7 +61,7 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
     if (isOpen && profissional) {
       carregarFolgas();
     }
-  }, [isOpen, profissional]);
+  }, [isOpen, profissional, carregarFolgas]);
 
   const salvarFolga = async () => {
     try {
