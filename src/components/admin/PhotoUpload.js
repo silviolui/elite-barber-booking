@@ -75,58 +75,58 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
         Foto do Profissional
       </label>
       
-      {/* Preview da foto */}
-      {preview && (
-        <div className="relative inline-block">
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-24 h-24 rounded-lg object-cover border border-gray-200"
-          />
-          <button
-            type="button"
-            onClick={removePhoto}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Área de upload */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          disabled={uploading}
-          className="hidden"
-          id={`photo-upload-${profissionalNome}`}
-        />
-        
-        <label
-          htmlFor={`photo-upload-${profissionalNome}`}
-          className={`cursor-pointer flex flex-col items-center ${uploading ? 'opacity-50' : ''}`}
-        >
-          {uploading ? (
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-3"></div>
-          ) : (
-            <Camera size={32} className="text-gray-400 mb-3" />
-          )}
+      {preview ? (
+        // Mostrar apenas a foto quando há preview
+        <div className="space-y-3">
+          <div className="relative inline-block">
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-24 h-24 rounded-lg object-cover border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={removePhoto}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+            >
+              <X size={14} />
+            </button>
+          </div>
           
-          <p className="text-sm font-medium text-gray-700 mb-1">
-            {uploading ? 'Fazendo upload...' : 'Clique para escolher foto'}
-          </p>
-          <p className="text-xs text-gray-500">
-            PNG, JPG até 5MB
-          </p>
-        </label>
-      </div>
-
-      {preview && (
-        <div className="flex items-center text-sm text-green-600">
-          <Check size={16} className="mr-1" />
-          Foto carregada com sucesso
+          <div className="flex items-center text-sm text-green-600">
+            <Check size={16} className="mr-1" />
+            Foto carregada com sucesso
+          </div>
+        </div>
+      ) : (
+        // Mostrar área de upload apenas quando não há foto
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            disabled={uploading}
+            className="hidden"
+            id={`photo-upload-${profissionalNome}`}
+          />
+          
+          <label
+            htmlFor={`photo-upload-${profissionalNome}`}
+            className={`cursor-pointer flex flex-col items-center ${uploading ? 'opacity-50' : ''}`}
+          >
+            {uploading ? (
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mb-3"></div>
+            ) : (
+              <Camera size={32} className="text-gray-400 mb-3" />
+            )}
+            
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              {uploading ? 'Fazendo upload...' : 'Clique para escolher foto'}
+            </p>
+            <p className="text-xs text-gray-500">
+              PNG, JPG até 5MB
+            </p>
+          </label>
         </div>
       )}
     </div>
