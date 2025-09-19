@@ -68,10 +68,19 @@ const HorariosConfig = ({ currentUser }) => {
     }
   }, [unidadeSelecionada]);
 
-  // Carregar unidades
+  // Carregar unidades e definir unidade padrão baseado no usuário logado
   useEffect(() => {
-    carregarUnidades();
-  }, []);
+    const initializeData = async () => {
+      await carregarUnidades();
+      
+      // Se o usuário tem unidade_id, selecionar automaticamente
+      if (currentUser && currentUser.unidade_id) {
+        setUnidadeSelecionada(currentUser.unidade_id);
+      }
+    };
+    
+    initializeData();
+  }, [currentUser]);
 
   // Carregar horários quando uma unidade é selecionada
   useEffect(() => {
@@ -207,24 +216,43 @@ const HorariosConfig = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Seletor de Unidade */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Selecionar Unidade
-        </label>
-        <select
-          value={unidadeSelecionada}
-          onChange={(e) => setUnidadeSelecionada(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">Escolha uma unidade...</option>
-          {unidades.map(unidade => (
-            <option key={unidade.id} value={unidade.id}>
-              {unidade.nome} - {unidade.endereco}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Seletor de Unidade - Só aparece para Super Admin */}
+      {!currentUser?.unidade_id ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Selecionar Unidade
+          </label>
+          <select
+            value={unidadeSelecionada}
+            onChange={(e) => setUnidadeSelecionada(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Escolha uma unidade...</option>
+            {unidades.map(unidade => (
+              <option key={unidade.id} value={unidade.id}>
+                {unidade.nome} - {unidade.endereco}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        // Para Admin de Unidade - Mostrar qual unidade está configurando
+        <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock size={16} className="text-blue-600" />
+              </div>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-900">Configurando Horários</h3>
+              <p className="text-sm text-blue-700">
+                {unidades.find(u => u.id === unidadeSelecionada)?.nome || 'Carregando...'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Configuração de Horários */}
       {unidadeSelecionada && (
@@ -367,7 +395,7 @@ const HorariosConfig = ({ currentUser }) => {
         </div>
       )}
 
-      {!unidadeSelecionada && (
+      {!unidadeSelecionada && !currentUser?.unidade_id && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
           <Clock size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Configuração de Horários</h3>
