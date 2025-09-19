@@ -82,35 +82,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. Inserir primeiro super admin (ALTERE O EMAIL)
--- IMPORTANTE: Altere o email abaixo para o seu email de admin
-INSERT INTO auth.users (email, encrypted_password, email_confirmed_at, created_at, updated_at)
-VALUES (
-    'admin@estabelecimento.com', 
-    crypt('admin123', gen_salt('bf')), 
-    NOW(), 
-    NOW(), 
-    NOW()
-) ON CONFLICT (email) DO NOTHING;
-
--- Criar registro de administrador para o usuário criado
-DO $$
-DECLARE
-    admin_user_id UUID;
-BEGIN
-    -- Buscar o ID do usuário admin
-    SELECT id INTO admin_user_id 
-    FROM auth.users 
-    WHERE email = 'admin@estabelecimento.com';
-    
-    IF admin_user_id IS NOT NULL THEN
-        INSERT INTO administradores (user_id, nome, email, nivel_acesso, ativo)
-        VALUES (admin_user_id, 'Administrador Principal', 'admin@estabelecimento.com', 'super_admin', true)
-        ON CONFLICT (user_id) DO NOTHING;
-        
-        RAISE NOTICE 'Usuário admin criado com sucesso!';
-    END IF;
-END $$;
+-- 7. INSTRUÇÃO PARA CRIAR PRIMEIRO ADMIN
+-- Execute este processo MANUALMENTE:
+-- 
+-- 1. Acesse o app admin em seusite.com/#admin
+-- 2. Clique em "Criar conta administrativa" 
+-- 3. Cadastre-se com email e senha de sua escolha
+-- 4. O sistema criará automaticamente o registro na tabela administradores
+-- 
+-- OU execute o comando abaixo após criar o usuário manualmente no Supabase:
+-- 
+-- INSERT INTO administradores (user_id, nome, email, nivel_acesso, ativo)
+-- VALUES (
+--     'SEU_USER_ID_AQUI', 
+--     'Administrador Principal', 
+--     'seu@email.com', 
+--     'super_admin', 
+--     true
+-- );
 
 -- Comentários
 COMMENT ON TABLE administradores IS 'Tabela de administradores do sistema com controle de acesso';
