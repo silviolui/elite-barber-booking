@@ -176,16 +176,42 @@ const ProfissionaisManager = ({ currentUser }) => {
       ativo: profissional.ativo
     });
 
-    // Carregar serviços do profissional (buscar na tabela servicos)
+    // Carregar serviços do profissional 
+    // Precisamos encontrar quais serviços-modelo foram usados para criar serviços específicos deste profissional
     try {
-      const { data: servicosProfissional } = await supabase
+      // Buscar serviços específicos do profissional
+      const { data: servicosEspecificos } = await supabase
         .from('servicos')
-        .select('id')
+        .select('nome, preco, duracao_minutos')
         .eq('profissional_id', profissional.id)
         .eq('ativo', true);
 
-      const servicosIds = servicosProfissional?.map(s => s.id) || [];
-      setServicosSelecionados(servicosIds);
+      console.log('🔍 Serviços específicos do profissional:', servicosEspecificos);
+
+      // Para cada serviço específico, encontrar o serviço-modelo correspondente
+      const servicosModeloIds = [];
+      
+      if (servicosEspecificos && servicosEspecificos.length > 0) {
+        for (const servicoEspecifico of servicosEspecificos) {
+          // Buscar serviço-modelo com mesmo nome/preço/duração e sem profissional_id
+          const { data: servicoModelo } = await supabase
+            .from('servicos')
+            .select('id')
+            .eq('nome', servicoEspecifico.nome)
+            .eq('preco', servicoEspecifico.preco)
+            .eq('duracao_minutos', servicoEspecifico.duracao_minutos)
+            .is('profissional_id', null)
+            .eq('ativo', true)
+            .single();
+
+          if (servicoModelo) {
+            servicosModeloIds.push(servicoModelo.id);
+          }
+        }
+      }
+
+      console.log('📋 Serviços-modelo correspondentes:', servicosModeloIds);
+      setServicosSelecionados(servicosModeloIds);
     } catch (error) {
       console.error('Erro ao carregar serviços do profissional:', error);
       setServicosSelecionados([]);
