@@ -12,6 +12,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [horariosDisponiveis, setHorariosDisponiveis] = useState({ manha: [], tarde: [], noite: [] });
   const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados
   const [diasComHorarios, setDiasComHorarios] = useState([]); // Dias com horários disponíveis
+  const [diasDeFolga, setDiasDeFolga] = useState([]); // Dias de folga do profissional
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -145,11 +146,69 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     verificarDiasSemHorarios();
   }, [unitId, professionalId, servicosSelecionados, currentMonth, closedDays]);
 
+  // Carregar folgas do profissional para o mês atual
+  useEffect(() => {
+    const carregarFolgasProfissional = async () => {
+      if (!professionalId) return;
+      
+      try {
+        const mesAno = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, '0')}`;
+        const datasComFolga = await supabaseData.getDatasfolga(professionalId, mesAno);
+        
+        // Processar folgas para obter array de dias do mês que são folga
+        const diasFolga = [];
+        const diasDoMes = getDaysInMonth(currentMonth);
+        
+        for (const day of diasDoMes) {
+          if (!day) continue;
+          
+          const diaSemana = day.getDay(); // 0=Domingo, 1=Segunda, etc.
+          const dataFormatada = day.toISOString().split('T')[0];
+          
+          // Verificar se há folga neste dia
+          const temFolga = datasComFolga.some(folga => {
+            // Folga por data específica
+            if (folga.tipo_folga === 'data_especifica' && folga.data_folga === dataFormatada) {
+              return true;
+            }
+            // Folga recorrente por dia da semana
+            if (folga.tipo_folga === 'dia_semana_recorrente' && folga.dia_semana === diaSemana) {
+              return true;
+            }
+            return false;
+          });
+          
+          if (temFolga) {
+            diasFolga.push(day.getDate());
+          }
+        }
+        
+        setDiasDeFolga(diasFolga);
+        console.log('📅 Dias de folga do profissional:', diasFolga);
+      } catch (error) {
+        console.error('Erro ao carregar folgas do profissional:', error);
+      }
+    };
+
+    carregarFolgasProfissional();
+  }, [professionalId, currentMonth]);
+
   // Carregar períodos e horários quando a data for selecionada
   useEffect(() => {
     const loadPeriodosDisponiveis = async () => {
       if (!unitId || !selectedDate) {
         console.log('❌ Faltam dados:', { unitId, selectedDate });
+        return;
+      }
+
+      // Verificar se a data selecionada é dia de folga
+      const dataSelecionadaObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+      const diaDoMes = dataSelecionadaObj.getDate();
+      
+      if (diasDeFolga.includes(diaDoMes)) {
+        console.log('❌ Data selecionada é dia de folga, não carregando períodos');
+        setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+        setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
         return;
       }
       
@@ -215,7 +274,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     };
 
     loadPeriodosDisponiveis();
-  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados]);
+  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados, diasDeFolga]);
 
   // Set initial selections if provided
   useEffect(() => {
@@ -325,13 +384,14 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const isToday = day.toDateString() === today.toDateString();
                   const isPast = day < today;
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
+                  const isDeFolga = diasDeFolga.includes(day.getDate()); // Dia de folga do profissional
                   const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis
                   const isComHorarios = diasComHorarios.includes(day.getDate()); // Dia com horários disponíveis
                   const isSelected = selectedDate && day && 
                     (typeof selectedDate === 'object' ? 
                       day.toDateString() === selectedDate.toDateString() : 
                       day.toDateString() === new Date(selectedDate).toDateString());
-                  const isDisabled = isPast || isClosed;
+                  const isDisabled = isPast || isClosed || isDeFolga;
 
                   return (
                     <button
@@ -339,7 +399,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                       onClick={() => !isDisabled && setSelectedDate(day)}
                       disabled={isDisabled}
                       className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
-                        isDisabled
+                        isDeFolga
+                          ? 'bg-red-500 text-white cursor-not-allowed border-2 border-red-600'
+                          : isDisabled
                           ? 'text-gray-200 cursor-not-allowed bg-gray-50'
                           : isSelected
                           ? 'bg-primary text-white'
@@ -351,7 +413,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                           ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
-                      title={isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
+                      title={isDeFolga ? 'Profissional de folga neste dia' : isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
                     >
                       {day.getDate()}
                     </button>
@@ -366,8 +428,32 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
             <div>
               <h4 className="text-gray-900 font-semibold mb-4">Horários Disponíveis</h4>
               
+              {/* Verificar se é dia de folga */}
+              {(() => {
+                const dataSelecionadaObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+                const diaDoMes = dataSelecionadaObj.getDate();
+                
+                if (diasDeFolga.includes(diaDoMes)) {
+                  return (
+                    <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
+                      <div className="text-red-500 text-4xl mb-3">😴</div>
+                      <h3 className="text-red-800 font-semibold text-lg mb-2">Profissional de Folga</h3>
+                      <p className="text-red-600">
+                        O profissional não estará disponível neste dia.
+                        <br />
+                        Por favor, selecione outro dia.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
               {/* Period Buttons - Apenas períodos disponíveis */}
-              <div className="flex space-x-2 mb-6">
+              {!diasDeFolga.includes(
+                selectedDate instanceof Date ? selectedDate.getDate() : new Date(selectedDate).getDate()
+              ) && (
+                <div className="flex space-x-2 mb-6">
                 {periodosDisponiveis.manha && (
                   <button
                     onClick={() => setSelectedPeriod('manha')}
@@ -406,16 +492,17 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                 )}
               </div>
 
-              {/* Show only selected period times */}
-              {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
-              {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
-              {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
+                {/* Show only selected period times */}
+                {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
+                {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
+                {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
 
-              {/* Mensagem se não houver horários disponíveis */}
-              {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Nenhum horário disponível para este período.</p>
-                </div>
+                {/* Mensagem se não houver horários disponíveis */}
+                {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Nenhum horário disponível para este período.</p>
+                  </div>
+                )}
               )}
             </div>
           )}
