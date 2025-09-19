@@ -24,36 +24,28 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      // 1. Fazer login
-      const { data: authData, error: authError } = await auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
-
-      if (authError) {
-        setError(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Verificar se é administrador
+      // Verificar credenciais na tabela admin_usuarios
       const { data: adminData, error: adminError } = await supabase
-        .from('administradores')
+        .from('admin_usuarios')
         .select('*')
-        .eq('user_id', authData.user.id)
+        .eq('email', formData.email)
+        .eq('senha', formData.password)
         .eq('ativo', true)
         .single();
 
       if (adminError || !adminData) {
-        // Não é admin - fazer logout e mostrar erro
-        await auth.signOut();
-        setError('Este email não possui acesso administrativo.');
+        setError('Email ou senha incorretos, ou acesso não autorizado.');
         setLoading(false);
         return;
       }
 
-      // Sucesso - usuário é admin válido
-      // O AdminApp vai detectar automaticamente via auth state
+      // Sucesso - login administrativo válido
+      // Armazenar dados do admin no localStorage para manter sessão
+      localStorage.setItem('adminLoggedIn', 'true');
+      localStorage.setItem('adminData', JSON.stringify(adminData));
+      
+      // Forçar recarregamento do AdminApp
+      window.location.reload();
       
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.');

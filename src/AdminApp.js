@@ -13,26 +13,22 @@ const AdminApp = () => {
   const [adminData, setAdminData] = useState(null);
 
   useEffect(() => {
-    // Verificar usuário logado e se é admin
-    const getUser = async () => {
-      const { data: { session } } = await auth.getSession();
+    // Verificar se há sessão admin no localStorage
+    const checkAdminSession = () => {
+      const isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+      const storedAdminData = localStorage.getItem('adminData');
       
-      if (session?.user) {
-        // Verificar se é administrador válido
-        const { data: admin, error } = await supabase
-          .from('administradores')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .eq('ativo', true)
-          .single();
-
-        if (admin && !error) {
-          setCurrentUser(session.user);
+      if (isLoggedIn && storedAdminData) {
+        try {
+          const adminData = JSON.parse(storedAdminData);
+          setCurrentUser({ email: adminData.email });
           setIsValidAdmin(true);
-          setAdminData(admin);
-        } else {
-          // NÃO é admin - manter usuário mas marcar como inválido
-          setCurrentUser(session.user);
+          setAdminData(adminData);
+        } catch (error) {
+          // Dados corrompidos - limpar
+          localStorage.removeItem('adminLoggedIn');
+          localStorage.removeItem('adminData');
+          setCurrentUser(null);
           setIsValidAdmin(false);
           setAdminData(null);
         }
@@ -45,42 +41,16 @@ const AdminApp = () => {
       setLoading(false);
     };
 
-    getUser();
-
-    // Escutar mudanças de autenticação
-    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Verificar se é admin a cada mudança
-        const { data: admin, error } = await supabase
-          .from('administradores')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .eq('ativo', true)
-          .single();
-
-        if (admin && !error) {
-          setCurrentUser(session.user);
-          setIsValidAdmin(true);
-          setAdminData(admin);
-        } else {
-          // NÃO é admin - manter usuário mas marcar como inválido
-          setCurrentUser(session.user);
-          setIsValidAdmin(false);
-          setAdminData(null);
-        }
-      } else {
-        setCurrentUser(null);
-        setIsValidAdmin(false);
-        setAdminData(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    checkAdminSession();
   }, []);
 
-  const handleLogout = async () => {
-    await auth.signOut();
+  const handleLogout = () => {
+    // Limpar sessão admin
+    localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('adminData');
     setCurrentUser(null);
+    setIsValidAdmin(false);
+    setAdminData(null);
     setActiveSection('dashboard');
   };
 
