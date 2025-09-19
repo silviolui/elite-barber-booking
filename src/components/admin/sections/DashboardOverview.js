@@ -27,7 +27,7 @@ const DashboardOverview = ({ currentUser }) => {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadStats = async () => {
     try {
