@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
-import { auth, supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
     email: '',

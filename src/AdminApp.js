@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth, supabase } from './lib/supabase';
+// Sistema admin independente - não usa auth do Supabase
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminSidebar from './components/admin/AdminSidebar';
