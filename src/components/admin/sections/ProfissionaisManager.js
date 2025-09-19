@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import PhotoUpload from '../PhotoUpload';
-import FolgasModal from '../FolgasModal';
+// import FolgasModal from '../FolgasModal'; // Temporariamente desabilitado
 
 const ProfissionaisManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -571,12 +571,14 @@ const ProfissionaisManager = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Modal de Folgas */}
+      {/* Modal de Folgas - Temporariamente desabilitado */}
+      {/*
       <FolgasModal 
         isOpen={showFolgasModal}
         onClose={() => setShowFolgasModal(false)}
         profissional={profissionalFolgasSelected}
       />
+      */}
     </div>
   );
 };

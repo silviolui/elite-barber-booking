@@ -60,7 +60,6 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
 
   const adicionarFolga = async () => {
     try {
-      // Verificar se pelo menos um período foi selecionado
       if (!novaFolga.folga_manha && !novaFolga.folga_tarde && !novaFolga.folga_noite) {
         showMessage('error', 'Selecione pelo menos um período (manhã, tarde ou noite)');
         return;
@@ -152,24 +151,16 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
           <div className="flex items-center">
             <Calendar size={24} className="text-blue-600 mr-3" />
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Configurar Folgas
-              </h2>
-              <p className="text-sm text-gray-600">
-                {profissional?.nome}
-              </p>
+              <h2 className="text-xl font-bold text-gray-900">Configurar Folgas</h2>
+              <p className="text-sm text-gray-600">{profissional?.nome}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
           </button>
         </div>
 
         <div className="p-6">
-          {/* Mensagem de feedback */}
           {message.text && (
             <div className={`mb-4 p-4 rounded-lg flex items-center ${
               message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
@@ -183,7 +174,6 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
             </div>
           )}
 
-          {/* Adicionar Nova Folga */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <Plus size={20} className="mr-2" />
@@ -193,9 +183,7 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Folga
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Folga</label>
                   <select
                     value={tipoFolga}
                     onChange={(e) => setTipoFolga(e.target.value)}
@@ -206,44 +194,35 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
                   </select>
                 </div>
 
-              {tipoFolga === 'data_especifica' ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data da Folga
-                  </label>
-                  <input
-                    type="date"
-                    value={novaFolga.data_folga}
-                    onChange={(e) => setNovaFolga({...novaFolga, data_folga: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dia da Semana
-                  </label>
-                  <select
-                    value={novaFolga.dia_semana}
-                    onChange={(e) => setNovaFolga({...novaFolga, dia_semana: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Selecione um dia...</option>
-                    {diasSemana.map(dia => (
-                      <option key={dia.id} value={dia.id}>
-                        {dia.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                {tipoFolga === 'data_especifica' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data da Folga</label>
+                    <input
+                      type="date"
+                      value={novaFolga.data_folga}
+                      onChange={(e) => setNovaFolga({...novaFolga, data_folga: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Dia da Semana</label>
+                    <select
+                      value={novaFolga.dia_semana}
+                      onChange={(e) => setNovaFolga({...novaFolga, dia_semana: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Selecione um dia...</option>
+                      {diasSemana.map(dia => (
+                        <option key={dia.id} value={dia.id}>{dia.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Seleção de Períodos */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Períodos de Folga
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Períodos de Folga</label>
                 <div className="grid grid-cols-3 gap-4">
                   <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
                     <input
@@ -287,47 +266,41 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Motivo
-                </label>
-                <input
-                  type="text"
-                  value={novaFolga.motivo}
-                  onChange={(e) => setNovaFolga({...novaFolga, motivo: e.target.value})}
-                  placeholder="Ex: Férias, Consulta médica..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
+                  <input
+                    type="text"
+                    value={novaFolga.motivo}
+                    onChange={(e) => setNovaFolga({...novaFolga, motivo: e.target.value})}
+                    placeholder="Ex: Férias, Consulta médica..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Observações (opcional)</label>
+                  <input
+                    type="text"
+                    value={novaFolga.observacoes}
+                    onChange={(e) => setNovaFolga({...novaFolga, observacoes: e.target.value})}
+                    placeholder="Informações adicionais..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Observações (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={novaFolga.observacoes}
-                  onChange={(e) => setNovaFolga({...novaFolga, observacoes: e.target.value})}
-                  placeholder="Informações adicionais..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <button
+                onClick={adicionarFolga}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <Plus size={20} className="mr-2" />
+                Adicionar Folga
+              </button>
             </div>
-
-            <button
-              onClick={adicionarFolga}
-              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <Plus size={20} className="mr-2" />
-              Adicionar Folga
-            </button>
           </div>
 
-          {/* Lista de Folgas Existentes */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Folgas Configuradas
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Folgas Configuradas</h3>
 
             {loading ? (
               <div className="text-center py-8">
@@ -362,7 +335,6 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
                           }
                         </div>
 
-                        {/* Exibir períodos da folga */}
                         <div className="flex items-center mt-2 space-x-2">
                           {folga.folga_manha && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
