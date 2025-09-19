@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, Plus } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
   // const [tipoFolga, setTipoFolga] = useState('dia_semana_recorrente');
@@ -15,13 +16,43 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
     { id: 5, nome: 'Sexta-feira' },
   ];
 
-  const salvarFolga = () => {
-    alert(`Folga configurada para ${profissional?.nome}:
+  const salvarFolga = async () => {
+    try {
+      const folgaData = {
+        profissional_id: profissional.id,
+        tipo_folga: 'dia_semana_recorrente',
+        dia_semana: parseInt(diaSemana),
+        data_folga: null,
+        folga_manha: folgaManha,
+        folga_tarde: folgaTarde,
+        folga_noite: folgaNoite,
+        motivo: 'Folga configurada pelo admin',
+        ativo: true
+      };
+
+      const { error } = await supabase
+        .from('folgas_profissionais')
+        .insert(folgaData);
+
+      if (error) throw error;
+
+      alert(`✅ Folga salva com sucesso para ${profissional?.nome}!
 - Dia: ${diasSemana.find(d => d.id === parseInt(diaSemana))?.nome}
 - Períodos: ${folgaManha ? 'Manhã ' : ''}${folgaTarde ? 'Tarde ' : ''}${folgaNoite ? 'Noite' : ''}
 
-Execute SQL no Supabase para ativar a funcionalidade completa.`);
-    onClose();
+Agora teste no app de agendamento!`);
+      
+      // Resetar formulário
+      setDiaSemana('');
+      setFolgaManha(false);
+      setFolgaTarde(false);
+      setFolgaNoite(false);
+      
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar folga:', error);
+      alert('❌ Erro ao salvar folga: ' + error.message);
+    }
   };
 
   if (!isOpen) return null;
