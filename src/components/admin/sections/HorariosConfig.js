@@ -21,18 +21,6 @@ const HorariosConfig = ({ currentUser }) => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Carregar unidades
-  useEffect(() => {
-    carregarUnidades();
-  }, []);
-
-  // Carregar horários quando uma unidade é selecionada
-  useEffect(() => {
-    if (unidadeSelecionada) {
-      carregarHorarios();
-    }
-  }, [unidadeSelecionada, carregarHorarios]);
-
   const carregarUnidades = async () => {
     const unidadesList = await supabaseData.getUnidades();
     setUnidades(unidadesList);
@@ -79,6 +67,18 @@ const HorariosConfig = ({ currentUser }) => {
       setLoading(false);
     }
   }, [unidadeSelecionada]);
+
+  // Carregar unidades
+  useEffect(() => {
+    carregarUnidades();
+  }, []);
+
+  // Carregar horários quando uma unidade é selecionada
+  useEffect(() => {
+    if (unidadeSelecionada) {
+      carregarHorarios();
+    }
+  }, [unidadeSelecionada, carregarHorarios]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
