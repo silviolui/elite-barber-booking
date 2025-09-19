@@ -33,8 +33,11 @@ CREATE INDEX idx_folgas_profissionais_tipo ON folgas_profissionais(tipo_folga);
 -- 3. ENABLE RLS
 ALTER TABLE folgas_profissionais ENABLE ROW LEVEL SECURITY;
 
--- 4. POLÍTICA RLS - Acesso público para leitura (para o app de agendamento)
+-- 4. POLÍTICAS RLS - Acesso público para operações CRUD
 CREATE POLICY "Acesso publico leitura folgas" ON folgas_profissionais FOR SELECT USING (true);
+CREATE POLICY "Acesso publico insercao folgas" ON folgas_profissionais FOR INSERT WITH CHECK (true);
+CREATE POLICY "Acesso publico atualizacao folgas" ON folgas_profissionais FOR UPDATE USING (true);
+CREATE POLICY "Acesso publico exclusao folgas" ON folgas_profissionais FOR DELETE USING (true);
 
 -- 5. FUNÇÕES AUXILIARES
 
