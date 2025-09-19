@@ -406,14 +406,12 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                       onClick={() => !isDisabled && setSelectedDate(day)}
                       disabled={isDisabled}
                       className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
-                        isFolgaTotal && !isSelected
-                          ? 'bg-red-600 text-white border-2 border-red-700 hover:bg-red-700'
+                        (isFolgaTotal || isSemHorarios) && !isSelected
+                          ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
                           : isDisabled
                           ? 'text-gray-200 cursor-not-allowed bg-gray-50'
                           : isSelected
                           ? 'bg-primary text-white'
-                          : isSemHorarios && !isSelected
-                          ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
                           : isComHorarios && !isSelected
                           ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
                           : isToday
