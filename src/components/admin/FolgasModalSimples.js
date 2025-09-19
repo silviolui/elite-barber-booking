@@ -144,7 +144,7 @@ Agora teste no app de agendamento!`);
                   onChange={(e) => setFolgaManha(e.target.checked)}
                   className="mr-3"
                 />
-                ☀️ Manhã (8h às 12h)
+                ☀️ Manhã
               </label>
               
               <label className="flex items-center">
@@ -154,7 +154,7 @@ Agora teste no app de agendamento!`);
                   onChange={(e) => setFolgaTarde(e.target.checked)}
                   className="mr-3"
                 />
-                🌤️ Tarde (14h às 18h)
+                🌤️ Tarde
               </label>
               
               <label className="flex items-center">
@@ -164,7 +164,7 @@ Agora teste no app de agendamento!`);
                   onChange={(e) => setFolgaNoite(e.target.checked)}
                   className="mr-3"
                 />
-                🌙 Noite (19h às 22h)
+                🌙 Noite
               </label>
             </div>
           </div>
