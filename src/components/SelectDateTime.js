@@ -180,7 +180,16 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         return;
       }
 
-
+      // VERIFICAR SE O DIA SELECIONADO ESTÁ SEM HORÁRIOS (inclui folgas)
+      const dataSelecionadaObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+      const diaDoMes = dataSelecionadaObj.getDate();
+      
+      if (diasSemHorarios.includes(diaDoMes)) {
+        console.log('❌ Dia selecionado sem horários (ocupado ou folga), não carregando períodos');
+        setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+        setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+        return;
+      }
       
       try {
         console.log('🚀 Carregando períodos para:', { unitId, selectedDate });
@@ -244,7 +253,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     };
 
     loadPeriodosDisponiveis();
-  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados]);
+  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados, diasSemHorarios]);
 
   // Set initial selections if provided
   useEffect(() => {
