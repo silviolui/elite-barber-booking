@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Save, Plus, AlertCircle, CheckCircle } from 'lucide-react';
+import { Clock, Save, Plus, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { supabaseData } from '../../../lib/supabaseData';
 
@@ -20,10 +20,6 @@ const HorariosConfig = ({ currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
-  // Debug: verificar currentUser
-  console.log('🔍 HorariosConfig - currentUser:', currentUser);
-  console.log('🔍 HorariosConfig - currentUser.unidade_id:', currentUser?.unidade_id);
 
   const carregarUnidades = async () => {
     const unidadesList = await supabaseData.getUnidades();
@@ -115,39 +111,33 @@ const HorariosConfig = ({ currentUser }) => {
 
     setSaving(true);
     try {
-      for (const horario of horarios) {
-        const horarioData = {
-          unidade_id: unidadeSelecionada,
-          dia_semana: horario.dia_semana,
-          abre_manha: horario.abre_manha,
-          horario_abertura_manha: horario.abre_manha && horario.horario_abertura_manha ? horario.horario_abertura_manha : null,
-          horario_fechamento_manha: horario.abre_manha && horario.horario_fechamento_manha ? horario.horario_fechamento_manha : null,
-          abre_tarde: horario.abre_tarde,
-          horario_abertura_tarde: horario.abre_tarde && horario.horario_abertura_tarde ? horario.horario_abertura_tarde : null,
-          horario_fechamento_tarde: horario.abre_tarde && horario.horario_fechamento_tarde ? horario.horario_fechamento_tarde : null,
-          abre_noite: horario.abre_noite,
-          horario_abertura_noite: horario.abre_noite && horario.horario_abertura_noite ? horario.horario_abertura_noite : null,
-          horario_fechamento_noite: horario.abre_noite && horario.horario_fechamento_noite ? horario.horario_fechamento_noite : null,
-          ativo: horario.ativo
-        };
+      // 1. Primeiro, excluir todos os horários existentes desta unidade
+      await supabase
+        .from('horario_funcionamento')
+        .delete()
+        .eq('unidade_id', unidadeSelecionada);
 
-        if (horario.isNew || !horario.id) {
-          // Inserir novo horário
-          const { error } = await supabase
-            .from('horario_funcionamento')
-            .insert(horarioData);
-          
-          if (error) throw error;
-        } else {
-          // Atualizar horário existente
-          const { error } = await supabase
-            .from('horario_funcionamento')
-            .update(horarioData)
-            .eq('id', horario.id);
-          
-          if (error) throw error;
-        }
-      }
+      // 2. Inserir os novos horários
+      const horariosParaInserir = horarios.map(horario => ({
+        unidade_id: unidadeSelecionada,
+        dia_semana: horario.dia_semana,
+        abre_manha: horario.abre_manha,
+        horario_abertura_manha: horario.abre_manha && horario.horario_abertura_manha ? horario.horario_abertura_manha : null,
+        horario_fechamento_manha: horario.abre_manha && horario.horario_fechamento_manha ? horario.horario_fechamento_manha : null,
+        abre_tarde: horario.abre_tarde,
+        horario_abertura_tarde: horario.abre_tarde && horario.horario_abertura_tarde ? horario.horario_abertura_tarde : null,
+        horario_fechamento_tarde: horario.abre_tarde && horario.horario_fechamento_tarde ? horario.horario_fechamento_tarde : null,
+        abre_noite: horario.abre_noite,
+        horario_abertura_noite: horario.abre_noite && horario.horario_abertura_noite ? horario.horario_abertura_noite : null,
+        horario_fechamento_noite: horario.abre_noite && horario.horario_fechamento_noite ? horario.horario_fechamento_noite : null,
+        ativo: horario.ativo
+      }));
+
+      const { error } = await supabase
+        .from('horario_funcionamento')
+        .insert(horariosParaInserir);
+      
+      if (error) throw error;
 
       showMessage('success', 'Horários salvos com sucesso!');
       await carregarHorarios(); // Recarregar para atualizar IDs
@@ -163,6 +153,16 @@ const HorariosConfig = ({ currentUser }) => {
     if (!unidadeSelecionada) {
       showMessage('error', 'Selecione uma unidade primeiro');
       return;
+    }
+
+    // Verificar se já existem horários para esta unidade
+    if (horarios && horarios.length > 0) {
+      const confirmar = window.confirm(
+        'Já existem horários configurados para esta unidade.\n\n' +
+        'Ao criar horários padrão, os horários atuais serão substituídos.\n\n' +
+        'Deseja continuar?'
+      );
+      if (!confirmar) return;
     }
 
     const horariosDefault = diasSemana.map(dia => ({
@@ -191,18 +191,62 @@ const HorariosConfig = ({ currentUser }) => {
     showMessage('success', 'Horários padrão carregados. Clique em "Salvar" para aplicar.');
   };
 
+  const excluirTodosHorarios = async () => {
+    if (!unidadeSelecionada) {
+      showMessage('error', 'Selecione uma unidade primeiro');
+      return;
+    }
+
+    const confirmar = window.confirm(
+      'ATENÇÃO: Esta ação irá EXCLUIR TODOS os horários de funcionamento desta unidade.\n\n' +
+      'Esta ação não pode ser desfeita!\n\n' +
+      'Deseja realmente excluir todos os horários?'
+    );
+
+    if (!confirmar) return;
+
+    setSaving(true);
+    try {
+      // Excluir todos os horários da unidade no banco
+      const { error } = await supabase
+        .from('horario_funcionamento')
+        .delete()
+        .eq('unidade_id', unidadeSelecionada);
+
+      if (error) throw error;
+
+      // Limpar horários da interface
+      setHorarios([]);
+      showMessage('success', 'Todos os horários foram excluídos com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir horários:', error);
+      showMessage('error', 'Erro ao excluir horários: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Configurar Horários de Funcionamento</h2>
         {unidadeSelecionada && (
-          <button
-            onClick={criarHorariosDefault}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} className="mr-2" />
-            Horários Padrão
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={criarHorariosDefault}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={20} className="mr-2" />
+              Horários Padrão
+            </button>
+            <button
+              onClick={excluirTodosHorarios}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 size={20} className="mr-2" />
+              Excluir Todos
+            </button>
+          </div>
         )}
       </div>
 
