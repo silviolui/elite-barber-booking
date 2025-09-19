@@ -37,7 +37,13 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
 
       if (error) {
         console.error('Erro no upload:', error);
-        alert('Erro ao fazer upload da foto. Tente novamente.');
+        
+        // Se bucket não existe, mostrar instruções
+        if (error.message.includes('Bucket not found')) {
+          alert('Bucket não encontrado. Crie o bucket "profissionais-fotos" no Supabase Dashboard > Storage > Buckets');
+        } else {
+          alert(`Erro ao fazer upload: ${error.message}`);
+        }
         return;
       }
 
