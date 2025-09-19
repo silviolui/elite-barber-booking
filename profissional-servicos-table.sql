@@ -22,6 +22,12 @@ CREATE INDEX IF NOT EXISTS idx_profissional_servicos_ativo ON profissional_servi
 -- 3. Desabilitar RLS (para simplicidade)
 ALTER TABLE profissional_servicos DISABLE ROW LEVEL SECURITY;
 
+-- 3.1. Remover políticas RLS se existirem
+DROP POLICY IF EXISTS "Enable read access for all users" ON profissional_servicos;
+DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON profissional_servicos;
+DROP POLICY IF EXISTS "Enable update access for authenticated users" ON profissional_servicos;
+DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON profissional_servicos;
+
 -- 4. Comentários
 COMMENT ON TABLE profissional_servicos IS 'Relacionamento many-to-many entre profissionais e serviços que eles oferecem';
 COMMENT ON COLUMN profissional_servicos.ativo IS 'Se o profissional ainda oferece este serviço';

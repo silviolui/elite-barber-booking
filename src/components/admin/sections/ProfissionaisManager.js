@@ -104,27 +104,46 @@ const ProfissionaisManager = ({ currentUser }) => {
   };
 
   const atualizarServicosProfissional = async (profissionalId, servicosIds) => {
+    console.log('🔄 Atualizando serviços do profissional:', profissionalId, servicosIds);
+    
     try {
       // 1. Remover todos os serviços atuais do profissional
-      await supabase
+      console.log('🗑️ Removendo serviços atuais...');
+      const { error: deleteError } = await supabase
         .from('profissional_servicos')
         .delete()
         .eq('profissional_id', profissionalId);
 
+      if (deleteError) {
+        console.error('❌ Erro ao deletar serviços:', deleteError);
+      } else {
+        console.log('✅ Serviços antigos removidos');
+      }
+
       // 2. Inserir novos serviços selecionados
       if (servicosIds.length > 0) {
+        console.log('➕ Inserindo novos serviços:', servicosIds);
+        
         const relacionamentos = servicosIds.map(servicoId => ({
           profissional_id: profissionalId,
           servico_id: servicoId,
           ativo: true
         }));
 
-        await supabase
+        console.log('📋 Dados a inserir:', relacionamentos);
+
+        const { error: insertError } = await supabase
           .from('profissional_servicos')
           .insert(relacionamentos);
+
+        if (insertError) {
+          console.error('❌ Erro ao inserir serviços:', insertError);
+        } else {
+          console.log('✅ Serviços inseridos com sucesso');
+        }
       }
     } catch (error) {
-      console.error('Erro ao atualizar serviços do profissional:', error);
+      console.error('💥 Erro geral ao atualizar serviços:', error);
     }
   };
 
