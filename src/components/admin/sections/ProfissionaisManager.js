@@ -15,9 +15,11 @@ import { supabase } from '../../../lib/supabase';
 const ProfissionaisManager = ({ currentUser }) => {
   const [profissionais, setProfissionais] = useState([]);
   const [unidades, setUnidades] = useState([]);
+  const [servicos, setServicos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProfissional, setEditingProfissional] = useState(null);
+  const [servicosSelecionados, setServicosSelecionados] = useState([]);
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
@@ -34,7 +36,7 @@ const ProfissionaisManager = ({ currentUser }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profissionaisResult, unidadesResult] = await Promise.all([
+      const [profissionaisResult, unidadesResult, servicosResult] = await Promise.all([
         supabase
           .from('profissionais')
           .select(`
@@ -46,11 +48,17 @@ const ProfissionaisManager = ({ currentUser }) => {
           .from('unidades')
           .select('id, nome')
           .eq('ativo', true)
+          .order('nome'),
+        supabase
+          .from('servicos')
+          .select('id, nome')
+          .eq('ativo', true)
           .order('nome')
       ]);
 
       setProfissionais(profissionaisResult.data || []);
       setUnidades(unidadesResult.data || []);
+      setServicos(servicosResult.data || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -62,20 +70,31 @@ const ProfissionaisManager = ({ currentUser }) => {
     e.preventDefault();
     
     try {
+      let profissionalId;
+
       if (editingProfissional) {
+        // Atualizar profissional existente
         const { error } = await supabase
           .from('profissionais')
           .update(formData)
           .eq('id', editingProfissional.id);
 
         if (error) throw error;
+        profissionalId = editingProfissional.id;
       } else {
-        const { error } = await supabase
+        // Criar novo profissional
+        const { data, error } = await supabase
           .from('profissionais')
-          .insert([formData]);
+          .insert([formData])
+          .select('id')
+          .single();
 
         if (error) throw error;
+        profissionalId = data.id;
       }
+
+      // Atualizar serviços do profissional
+      await atualizarServicosProfissional(profissionalId, servicosSelecionados);
 
       closeModal();
       await loadData();
@@ -84,7 +103,32 @@ const ProfissionaisManager = ({ currentUser }) => {
     }
   };
 
-  const handleEdit = (profissional) => {
+  const atualizarServicosProfissional = async (profissionalId, servicosIds) => {
+    try {
+      // 1. Remover todos os serviços atuais do profissional
+      await supabase
+        .from('profissional_servicos')
+        .delete()
+        .eq('profissional_id', profissionalId);
+
+      // 2. Inserir novos serviços selecionados
+      if (servicosIds.length > 0) {
+        const relacionamentos = servicosIds.map(servicoId => ({
+          profissional_id: profissionalId,
+          servico_id: servicoId,
+          ativo: true
+        }));
+
+        await supabase
+          .from('profissional_servicos')
+          .insert(relacionamentos);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar serviços do profissional:', error);
+    }
+  };
+
+  const handleEdit = async (profissional) => {
     setEditingProfissional(profissional);
     setFormData({
       nome: profissional.nome || '',
@@ -94,6 +138,22 @@ const ProfissionaisManager = ({ currentUser }) => {
       ativo: profissional.ativo,
       observacoes: profissional.observacoes || ''
     });
+
+    // Carregar serviços do profissional
+    try {
+      const { data: servicosProfissional } = await supabase
+        .from('profissional_servicos')
+        .select('servico_id')
+        .eq('profissional_id', profissional.id)
+        .eq('ativo', true);
+
+      const servicosIds = servicosProfissional?.map(ps => ps.servico_id) || [];
+      setServicosSelecionados(servicosIds);
+    } catch (error) {
+      console.error('Erro ao carregar serviços do profissional:', error);
+      setServicosSelecionados([]);
+    }
+
     setShowModal(true);
   };
 
@@ -123,6 +183,7 @@ const ProfissionaisManager = ({ currentUser }) => {
       ativo: true,
       observacoes: ''
     });
+    setServicosSelecionados([]);
   };
 
   const openModal = () => {
@@ -304,6 +365,35 @@ const ProfissionaisManager = ({ currentUser }) => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Seleção de Serviços */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Serviços que oferece
+                </label>
+                <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                  {servicos.map(servico => (
+                    <label key={servico.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={servicosSelecionados.includes(servico.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setServicosSelecionados([...servicosSelecionados, servico.id]);
+                          } else {
+                            setServicosSelecionados(servicosSelecionados.filter(id => id !== servico.id));
+                          }
+                        }}
+                        className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded mr-2"
+                      />
+                      <span className="text-sm text-gray-700">{servico.nome}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Selecione todos os serviços que este profissional oferece
+                </p>
               </div>
 
               <div>
