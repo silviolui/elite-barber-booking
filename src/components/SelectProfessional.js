@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, professionals }) => {
@@ -94,11 +94,26 @@ const SelectProfessional = ({ onClose, onSelect, unitId, currentSelection, profe
               <div className="flex items-center space-x-4">
                 {/* Profile Image */}
                 <div className="relative flex-shrink-0">
-                  <img
-                    src={professional.foto_url || professional.image}
-                    alt={professional.nome || professional.name}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                  />
+                  {(professional.foto_url || professional.image) ? (
+                    <img
+                      src={professional.foto_url || professional.image}
+                      alt={professional.nome || professional.name}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  
+                  {/* Ícone fallback quando não há foto */}
+                  <div 
+                    className="w-16 h-16 rounded-full bg-orange-100 border-2 border-gray-200 flex items-center justify-center"
+                    style={{display: (professional.foto_url || professional.image) ? 'none' : 'flex'}}
+                  >
+                    <User size={32} className="text-orange-500" />
+                  </div>
+
                   {selectedProfessional?.id === professional.id && (
                     <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                       <Check size={14} className="text-white" />
