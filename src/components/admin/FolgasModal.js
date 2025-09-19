@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Calendar, Plus, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -24,13 +24,7 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
     observacoes: ''
   });
 
-  useEffect(() => {
-    if (isOpen && profissional) {
-      carregarFolgas();
-    }
-  }, [isOpen, profissional]);
-
-  const carregarFolgas = async () => {
+  const carregarFolgas = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -48,7 +42,13 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profissional]);
+
+  useEffect(() => {
+    if (isOpen && profissional) {
+      carregarFolgas();
+    }
+  }, [isOpen, profissional, carregarFolgas]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
