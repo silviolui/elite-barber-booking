@@ -446,26 +446,36 @@ export const supabaseData = {
 
   // Obter datas de folga específicas do profissional (para marcar no calendário)
   async getDatasfolga(profissionalId, mesAno = null) {
-    let query = supabase
+    const { data, error } = await supabase
       .from('folgas_profissionais')
       .select('tipo_folga, data_folga, dia_semana')
       .eq('profissional_id', profissionalId)
       .eq('ativo', true);
 
-    // Se especificou mês/ano, filtrar folgas específicas para o período
-    if (mesAno) {
-      const [ano, mes] = mesAno.split('-');
-      const inicioMes = `${ano}-${mes}-01`;
-      const fimMes = `${ano}-${mes}-31`;
-      
-      query = query.or(`tipo_folga.eq.dia_semana_recorrente,and(tipo_folga.eq.data_especifica,data_folga.gte.${inicioMes},data_folga.lte.${fimMes})`);
-    }
-
-    const { data, error } = await query;
-
     if (error) {
       console.error('Erro ao carregar datas de folga:', error);
       return [];
+    }
+
+    // Filtrar folgas específicas por mês apenas se necessário
+    if (mesAno) {
+      const [ano, mes] = mesAno.split('-');
+      const inicioMes = `${ano}-${mes.padStart(2, '0')}-01`;
+      const fimMes = `${ano}-${mes.padStart(2, '0')}-31`;
+      
+      return (data || []).filter(folga => {
+        // TODAS as folgas recorrentes são sempre válidas (independente do mês)
+        if (folga.tipo_folga === 'dia_semana_recorrente') {
+          return true;
+        }
+        
+        // Folgas específicas: filtrar pelo mês
+        if (folga.tipo_folga === 'data_especifica' && folga.data_folga) {
+          return folga.data_folga >= inicioMes && folga.data_folga <= fimMes;
+        }
+        
+        return false;
+      });
     }
 
     return data || [];
