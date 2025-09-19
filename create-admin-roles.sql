@@ -34,9 +34,13 @@ FOR SELECT USING (
     )
 );
 
--- Apenas super_admins podem criar novos admins
-CREATE POLICY "Super admins podem criar admins" ON administradores 
+-- Permitir criação de admins se não existir nenhum, ou se for super_admin
+CREATE POLICY "Permitir criacao de admins" ON administradores 
 FOR INSERT WITH CHECK (
+    -- Permitir se não existe nenhum admin (primeiro admin)
+    NOT EXISTS (SELECT 1 FROM administradores WHERE ativo = true)
+    OR
+    -- Ou se o usuário atual é super_admin
     EXISTS (
         SELECT 1 FROM administradores 
         WHERE user_id = auth.uid() 

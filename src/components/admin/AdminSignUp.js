@@ -45,13 +45,7 @@ const AdminSignUp = ({ onBackToLogin }) => {
       // 1. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await auth.signUp({
         email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            nome: formData.nome,
-            tipo: 'admin'
-          }
-        }
+        password: formData.password
       });
 
       if (authError) {
@@ -60,8 +54,16 @@ const AdminSignUp = ({ onBackToLogin }) => {
         return;
       }
 
-      // 2. Criar registro na tabela administradores
+      // 2. Verificar se é o primeiro admin e criar registro
       if (authData.user) {
+        // Verificar se já existe algum admin
+        const { data: existingAdmins } = await supabase
+          .from('administradores')
+          .select('id')
+          .eq('ativo', true);
+
+        const isFirstAdmin = !existingAdmins || existingAdmins.length === 0;
+
         const { error: adminError } = await supabase
           .from('administradores')
           .insert({
@@ -69,7 +71,7 @@ const AdminSignUp = ({ onBackToLogin }) => {
             nome: formData.nome,
             email: formData.email,
             telefone: formData.telefone,
-            nivel_acesso: 'admin',
+            nivel_acesso: isFirstAdmin ? 'super_admin' : 'admin', // Primeiro é super_admin
             ativo: true
           });
 
