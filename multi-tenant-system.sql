@@ -78,9 +78,9 @@ COMMENT ON COLUMN admin_usuarios.unidade_id IS 'ID da unidade que este admin ger
 -- 5. Verificar configuração
 SELECT 
     'CREDENCIAIS POR UNIDADE:' as tipo,
-    email as login,
-    senha,
-    nome,
+    au.email as login,
+    au.senha,
+    au.nome,
     COALESCE(u.nome, 'TODAS AS UNIDADES') as unidade_acesso,
     CASE WHEN au.ativo THEN 'ATIVO' ELSE 'INATIVO' END as status
 FROM admin_usuarios au
