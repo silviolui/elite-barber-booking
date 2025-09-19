@@ -1,27 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from './lib/supabase';
+import { auth, supabase } from './lib/supabase';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminSidebar from './components/admin/AdminSidebar';
+import AccessDenied from './components/admin/AccessDenied';
 
 const AdminApp = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [isValidAdmin, setIsValidAdmin] = useState(false);
+  const [adminData, setAdminData] = useState(null);
 
   useEffect(() => {
-    // Verificar usuário logado
+    // Verificar usuário logado e se é admin
     const getUser = async () => {
       const { data: { session } } = await auth.getSession();
-      setCurrentUser(session?.user || null);
+      
+      if (session?.user) {
+        // Verificar se é administrador válido
+        const { data: admin, error } = await supabase
+          .from('administradores')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('ativo', true)
+          .single();
+
+        if (admin && !error) {
+          setCurrentUser(session.user);
+          setIsValidAdmin(true);
+          setAdminData(admin);
+        } else {
+          // NÃO é admin - manter usuário mas marcar como inválido
+          setCurrentUser(session.user);
+          setIsValidAdmin(false);
+          setAdminData(null);
+        }
+      } else {
+        setCurrentUser(null);
+        setIsValidAdmin(false);
+        setAdminData(null);
+      }
+      
       setLoading(false);
     };
 
     getUser();
 
     // Escutar mudanças de autenticação
-    const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
-      setCurrentUser(session?.user || null);
+    const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Verificar se é admin a cada mudança
+        const { data: admin, error } = await supabase
+          .from('administradores')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .eq('ativo', true)
+          .single();
+
+        if (admin && !error) {
+          setCurrentUser(session.user);
+          setIsValidAdmin(true);
+          setAdminData(admin);
+        } else {
+          // NÃO é admin - manter usuário mas marcar como inválido
+          setCurrentUser(session.user);
+          setIsValidAdmin(false);
+          setAdminData(null);
+        }
+      } else {
+        setCurrentUser(null);
+        setIsValidAdmin(false);
+        setAdminData(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -44,8 +95,14 @@ const AdminApp = () => {
     );
   }
 
+  // Se não há usuário logado, mostrar login
   if (!currentUser) {
     return <AdminLogin />;
+  }
+
+  // Se usuário logado MAS não é admin válido, mostrar acesso negado
+  if (!isValidAdmin) {
+    return <AccessDenied />;
   }
 
   return (
@@ -68,7 +125,7 @@ const AdminApp = () => {
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Bem-vindo, {currentUser.email}
+                Bem-vindo, {adminData?.nome || currentUser.email}
               </span>
               <button
                 onClick={handleLogout}
