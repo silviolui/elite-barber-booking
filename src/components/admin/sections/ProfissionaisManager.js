@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   User,
   Phone,
-  Mail,
   MapPin,
   Plus,
   Edit,
