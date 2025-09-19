@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import AdminCadastro from './AdminCadastro';
 
 const AdminLogin = () => {
+  const [showCadastro, setShowCadastro] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -10,6 +12,10 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  if (showCadastro) {
+    return <AdminCadastro onBackToLogin={() => setShowCadastro(false)} />;
+  }
 
   const handleChange = (e) => {
     setFormData({
@@ -111,7 +117,7 @@ const AdminLogin = () => {
             Acesse sua conta
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Entre com suas credenciais para gerenciar o estabelecimento
+            Entre com suas credenciais da sua unidade específica
           </p>
         </div>
 
@@ -183,6 +189,16 @@ const AdminLogin = () => {
             </div>
 
 
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowCadastro(true)}
+                className="text-orange-600 hover:text-orange-700 font-medium text-sm"
+              >
+                Cadastrar nova unidade
+              </button>
+            </div>
 
             <div className="text-center pt-4 border-t border-gray-200">
               <a

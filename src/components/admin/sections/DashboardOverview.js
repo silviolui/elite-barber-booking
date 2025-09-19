@@ -12,6 +12,8 @@ import {
 import { supabase } from '../../../lib/supabase';
 
 const DashboardOverview = ({ currentUser }) => {
+  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const unidadeId = adminData.unidade_id; // NULL se for super admin
   const [stats, setStats] = useState({
     totalAgendamentos: 0,
     agendamentosHoje: 0,
@@ -32,6 +34,22 @@ const DashboardOverview = ({ currentUser }) => {
       const hoje = new Date().toISOString().split('T')[0];
       const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
+      // Construir queries baseadas na unidade do admin
+      let agendamentosQuery = supabase.from('agendamentos').select('id', { count: 'exact' });
+      let agendamentosHojeQuery = supabase.from('agendamentos').select('id', { count: 'exact' }).eq('data_agendamento', hoje);
+      let profissionaisQuery = supabase.from('profissionais').select('id', { count: 'exact' }).eq('ativo', true);
+      let unidadesQuery = supabase.from('unidades').select('id', { count: 'exact' }).eq('ativo', true);
+      let historicoQuery = supabase.from('historico').select('status, valor_total').gte('data_agendamento', inicioMes);
+
+      // Se não for super admin, filtrar por unidade
+      if (unidadeId) {
+        agendamentosQuery = agendamentosQuery.eq('unidade_id', unidadeId);
+        agendamentosHojeQuery = agendamentosHojeQuery.eq('unidade_id', unidadeId);
+        profissionaisQuery = profissionaisQuery.eq('unidade_id', unidadeId);
+        unidadesQuery = unidadesQuery.eq('id', unidadeId);
+        historicoQuery = historicoQuery.eq('unidade_id', unidadeId);
+      }
+
       // Buscar estatísticas em paralelo
       const [
         agendamentosResult,
@@ -40,16 +58,11 @@ const DashboardOverview = ({ currentUser }) => {
         unidadesResult,
         historicoResult
       ] = await Promise.all([
-        // Total de agendamentos
-        supabase.from('agendamentos').select('id', { count: 'exact' }),
-        // Agendamentos hoje
-        supabase.from('agendamentos').select('id', { count: 'exact' }).eq('data_agendamento', hoje),
-        // Total profissionais
-        supabase.from('profissionais').select('id', { count: 'exact' }).eq('ativo', true),
-        // Total unidades
-        supabase.from('unidades').select('id', { count: 'exact' }).eq('ativo', true),
-        // Histórico do mês
-        supabase.from('historico').select('status, valor_total').gte('data_agendamento', inicioMes)
+        agendamentosQuery,
+        agendamentosHojeQuery,
+        profissionaisQuery,
+        unidadesQuery,
+        historicoQuery
       ]);
 
       // Calcular estatísticas
@@ -123,10 +136,13 @@ const DashboardOverview = ({ currentUser }) => {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white p-6">
         <h2 className="text-2xl font-bold mb-2">
-          Bem-vindo ao Sistema de Gestão
+          {unidadeId ? `Gestão - ${adminData.nome}` : 'Gestão Multi-Unidades'}
         </h2>
         <p className="text-orange-100">
-          Gerencie seu estabelecimento de forma completa e eficiente
+          {unidadeId 
+            ? 'Gerencie sua unidade de forma completa e eficiente'
+            : 'Acesso total a todas as unidades da rede'
+          }
         </p>
       </div>
 

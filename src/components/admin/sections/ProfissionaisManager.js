@@ -12,6 +12,8 @@ import {
 import { supabase } from '../../../lib/supabase';
 
 const ProfissionaisManager = ({ currentUser }) => {
+  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const unidadeId = adminData.unidade_id; // NULL se for super admin
   const [profissionais, setProfissionais] = useState([]);
   const [unidades, setUnidades] = useState([]);
   const [servicos, setServicos] = useState([]);
@@ -38,24 +40,22 @@ const ProfissionaisManager = ({ currentUser }) => {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Construir queries baseadas na unidade do admin
+      let profissionaisQuery = supabase.from('profissionais').select(`*, unidades (nome)`).order('nome');
+      let unidadesQuery = supabase.from('unidades').select('id, nome').eq('ativo', true).order('nome');
+      let servicosQuery = supabase.from('servicos').select('id, nome').eq('ativo', true).order('nome');
+
+      // Se não for super admin, filtrar por unidade
+      if (unidadeId) {
+        profissionaisQuery = profissionaisQuery.eq('unidade_id', unidadeId);
+        unidadesQuery = unidadesQuery.eq('id', unidadeId);
+        // Serviços podem ser da unidade específica ou globais (se implementarmos isso depois)
+      }
+
       const [profissionaisResult, unidadesResult, servicosResult] = await Promise.all([
-        supabase
-          .from('profissionais')
-          .select(`
-            *,
-            unidades (nome)
-          `)
-          .order('nome'),
-        supabase
-          .from('unidades')
-          .select('id, nome')
-          .eq('ativo', true)
-          .order('nome'),
-        supabase
-          .from('servicos')
-          .select('id, nome')
-          .eq('ativo', true)
-          .order('nome')
+        profissionaisQuery,
+        unidadesQuery,
+        servicosQuery
       ]);
 
       setProfissionais(profissionaisResult.data || []);
