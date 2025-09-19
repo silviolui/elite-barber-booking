@@ -144,10 +144,13 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
 
             // Verificar se todos os períodos (manhã E tarde E noite) estão de folga
             if (folgasNoDia.length > 0) {
+              console.log('🔍 Folgas encontradas para', dataStr, ':', folgasNoDia);
               // Verificar se existe alguma folga que cobre TODOS os períodos
-              todosPeriodosDeFolga = folgasNoDia.some(folga => 
-                folga.folga_manha && folga.folga_tarde && folga.folga_noite
-              );
+              todosPeriodosDeFolga = folgasNoDia.some(folga => {
+                const todosPeriodos = folga.folga_manha && folga.folga_tarde && folga.folga_noite;
+                console.log('🔍 Folga completa?', todosPeriodos, folga);
+                return todosPeriodos;
+              });
             }
           }
 

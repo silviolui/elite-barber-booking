@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Calendar, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
@@ -8,6 +8,8 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
   const [folgaManha, setFolgaManha] = useState(false);
   const [folgaTarde, setFolgaTarde] = useState(false);
   const [folgaNoite, setFolgaNoite] = useState(false);
+  const [folgas, setFolgas] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const diasSemana = [
     { id: 2, nome: 'Terça-feira' },
@@ -15,6 +17,51 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
     { id: 4, nome: 'Quinta-feira' },
     { id: 5, nome: 'Sexta-feira' },
   ];
+
+  const carregarFolgas = async () => {
+    if (!profissional?.id) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('folgas_profissionais')
+        .select('*')
+        .eq('profissional_id', profissional.id)
+        .eq('ativo', true)
+        .order('dia_semana');
+
+      if (error) throw error;
+      setFolgas(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar folgas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removerFolga = async (id) => {
+    if (!window.confirm('Tem certeza que deseja remover esta folga?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('folgas_profissionais')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await carregarFolgas(); // Recarregar lista
+      alert('✅ Folga removida com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover folga:', error);
+      alert('❌ Erro ao remover folga: ' + error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && profissional) {
+      carregarFolgas();
+    }
+  }, [isOpen, profissional]);
 
   const salvarFolga = async () => {
     try {
@@ -48,7 +95,7 @@ Agora teste no app de agendamento!`);
       setFolgaTarde(false);
       setFolgaNoite(false);
       
-      onClose();
+      await carregarFolgas(); // Recarregar lista (modal permanece aberto)
     } catch (error) {
       console.error('Erro ao salvar folga:', error);
       alert('❌ Erro ao salvar folga: ' + error.message);
@@ -120,6 +167,43 @@ Agora teste no app de agendamento!`);
                 🌙 Noite (19h às 22h)
               </label>
             </div>
+          </div>
+
+          {/* Lista de Folgas Existentes */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Folgas Configuradas</h3>
+            
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+            ) : folgas.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">Nenhuma folga configurada</p>
+            ) : (
+              <div className="space-y-2">
+                {folgas.map((folga) => (
+                  <div key={folga.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium">
+                        {diasSemana.find(d => d.id === folga.dia_semana)?.nome || `Dia ${folga.dia_semana}`}
+                      </div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        {folga.folga_manha && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">☀️ Manhã</span>}
+                        {folga.folga_tarde && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">🌤️ Tarde</span>}
+                        {folga.folga_noite && <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">🌙 Noite</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removerFolga(folga.id)}
+                      className="text-red-600 hover:bg-red-50 p-2 rounded"
+                      title="Remover folga"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
