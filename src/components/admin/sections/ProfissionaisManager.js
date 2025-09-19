@@ -218,7 +218,7 @@ const ProfissionaisManager = ({ currentUser }) => {
       foto_url: '',
       avaliacao: 5.0,
       anos_experiencia: 1,
-      unidade_id: '',
+      unidade_id: unidadeId || '', // Se admin de unidade específica, já preencher
       ativo: true
     });
     setServicosSelecionados([]);
@@ -419,20 +419,28 @@ const ProfissionaisManager = ({ currentUser }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unidade
+                  Unidade {unidadeId && <span className="text-xs text-gray-500">(fixo para sua unidade)</span>}
                 </label>
-                <select
-                  value={formData.unidade_id}
-                  onChange={(e) => setFormData({...formData, unidade_id: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Selecione uma unidade</option>
-                  {unidades.map(unidade => (
-                    <option key={unidade.id} value={unidade.id}>
-                      {unidade.nome}
-                    </option>
-                  ))}
-                </select>
+                {unidadeId ? (
+                  // Admin de unidade específica - campo readonly
+                  <div className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-700">
+                    {unidades.find(u => u.id === unidadeId)?.nome || 'Sua unidade'}
+                  </div>
+                ) : (
+                  // Super admin - pode escolher unidade
+                  <select
+                    value={formData.unidade_id}
+                    onChange={(e) => setFormData({...formData, unidade_id: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="">Selecione uma unidade</option>
+                    {unidades.map(unidade => (
+                      <option key={unidade.id} value={unidade.id}>
+                        {unidade.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Seleção de Serviços */}
