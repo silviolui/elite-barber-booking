@@ -6,10 +6,12 @@ import {
   Edit,
   Trash2,
   Save,
-  X
+  X,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import PhotoUpload from '../PhotoUpload';
+import FolgasModal from '../FolgasModal';
 
 const ProfissionaisManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -21,6 +23,8 @@ const ProfissionaisManager = ({ currentUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProfissional, setEditingProfissional] = useState(null);
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
+  const [showFolgasModal, setShowFolgasModal] = useState(false);
+  const [profissionalFolgasSelected, setProfissionalFolgasSelected] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     especialidade: '',
@@ -237,6 +241,11 @@ const ProfissionaisManager = ({ currentUser }) => {
     }
   };
 
+  const handleFolgas = (profissional) => {
+    setProfissionalFolgasSelected(profissional);
+    setShowFolgasModal(true);
+  };
+
   const resetForm = () => {
     setFormData({
       nome: '',
@@ -329,6 +338,13 @@ const ProfissionaisManager = ({ currentUser }) => {
               </div>
               
               <div className="flex space-x-1">
+                <button
+                  onClick={() => handleFolgas(profissional)}
+                  className="text-blue-600 hover:bg-blue-50 p-2 rounded"
+                  title="Configurar Folgas"
+                >
+                  <Calendar size={16} />
+                </button>
                 <button
                   onClick={() => handleEdit(profissional)}
                   className="text-gray-600 hover:bg-gray-50 p-2 rounded"
@@ -554,6 +570,13 @@ const ProfissionaisManager = ({ currentUser }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Folgas */}
+      <FolgasModal 
+        isOpen={showFolgasModal}
+        onClose={() => setShowFolgasModal(false)}
+        profissional={profissionalFolgasSelected}
+      />
     </div>
   );
 };

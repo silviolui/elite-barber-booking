@@ -371,5 +371,103 @@ export const supabaseData = {
     }
     
     return data || [];
+  },
+
+  // ===== FUNÇÕES DE FOLGAS PARA PROFISSIONAIS =====
+
+  // Verificar se profissional está de folga numa data específica
+  async profissionalEstaDefolga(profissionalId, data) {
+    try {
+      const { data: result, error } = await supabase
+        .rpc('profissional_esta_de_folga', {
+          profissional_uuid: profissionalId,
+          data_verificar: data
+        });
+
+      if (error) {
+        console.error('Erro ao verificar folga do profissional:', error);
+        return false;
+      }
+
+      return result || false;
+    } catch (error) {
+      console.error('Erro ao verificar folga:', error);
+      return false;
+    }
+  },
+
+  // Obter todas as folgas de um profissional
+  async getFolgasProfissional(profissionalId) {
+    const { data, error } = await supabase
+      .from('folgas_profissionais')
+      .select('*')
+      .eq('profissional_id', profissionalId)
+      .eq('ativo', true)
+      .order('tipo_folga', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao carregar folgas do profissional:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Adicionar nova folga
+  async adicionarFolga(folgaData) {
+    const { data, error } = await supabase
+      .from('folgas_profissionais')
+      .insert(folgaData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao adicionar folga:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  // Remover folga
+  async removerFolga(folgaId) {
+    const { error } = await supabase
+      .from('folgas_profissionais')
+      .delete()
+      .eq('id', folgaId);
+
+    if (error) {
+      console.error('Erro ao remover folga:', error);
+      throw error;
+    }
+
+    return true;
+  },
+
+  // Obter datas de folga específicas do profissional (para marcar no calendário)
+  async getDatasfolga(profissionalId, mesAno = null) {
+    let query = supabase
+      .from('folgas_profissionais')
+      .select('tipo_folga, data_folga, dia_semana')
+      .eq('profissional_id', profissionalId)
+      .eq('ativo', true);
+
+    // Se especificou mês/ano, filtrar folgas específicas para o período
+    if (mesAno) {
+      const [ano, mes] = mesAno.split('-');
+      const inicioMes = `${ano}-${mes}-01`;
+      const fimMes = `${ano}-${mes}-31`;
+      
+      query = query.or(`tipo_folga.eq.dia_semana_recorrente,and(tipo_folga.eq.data_especifica,data_folga.gte.${inicioMes},data_folga.lte.${fimMes})`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Erro ao carregar datas de folga:', error);
+      return [];
+    }
+
+    return data || [];
   }
 };
