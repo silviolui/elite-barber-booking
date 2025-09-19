@@ -395,27 +395,6 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
             <div>
               <h4 className="text-gray-900 font-semibold mb-4">Horários Disponíveis</h4>
               
-              {/* Verificar se é dia de folga */}
-              {(() => {
-                const dataSelecionadaObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
-                const diaDoMes = dataSelecionadaObj.getDate();
-                
-                if (diasDeFolga.includes(diaDoMes)) {
-                  return (
-                    <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200">
-                      <div className="text-red-500 text-4xl mb-3">😴</div>
-                      <h3 className="text-red-800 font-semibold text-lg mb-2">Profissional de Folga</h3>
-                      <p className="text-red-600">
-                        O profissional não estará disponível neste dia.
-                        <br />
-                        Por favor, selecione outro dia.
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-              
               {/* Period Buttons - Apenas períodos disponíveis */}
               <div className="flex space-x-2 mb-6">
                 {periodosDisponiveis.manha && (
