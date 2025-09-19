@@ -3,6 +3,8 @@ import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle } from 
 import { supabase } from '../../../lib/supabase';
 
 const HistoricoView = ({ currentUser }) => {
+  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const unidadeId = adminData.unidade_id; // NULL se for super admin
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -14,7 +16,7 @@ const HistoricoView = ({ currentUser }) => {
   const loadHistorico = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('historico')
         .select(`
           *,
@@ -24,6 +26,13 @@ const HistoricoView = ({ currentUser }) => {
           servicos (nome)
         `)
         .order('data_conclusao', { ascending: false });
+
+      // Se não for super admin, filtrar por unidade
+      if (unidadeId) {
+        query = query.eq('unidade_id', unidadeId);
+      }
+
+      const { data, error } = await query;
 
       if (!error) {
         setHistorico(data || []);

@@ -15,6 +15,8 @@ import {
 import { supabase } from '../../../lib/supabase';
 
 const AgendamentosManager = ({ currentUser }) => {
+  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const unidadeId = adminData.unidade_id; // NULL se for super admin
   const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,17 +30,24 @@ const AgendamentosManager = ({ currentUser }) => {
   const loadAgendamentos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('agendamentos')
         .select(`
           *,
           users (email, raw_user_meta_data),
-          profissionais (nome, telefone, email),
+          profissionais (nome, telefone),
           unidades (nome, endereco),
-          servicos (nome, preco, duracao)
+          servicos (nome, preco, duracao_minutos)
         `)
         .order('data_agendamento', { ascending: true })
         .order('horario_inicio', { ascending: true });
+
+      // Se não for super admin, filtrar por unidade
+      if (unidadeId) {
+        query = query.eq('unidade_id', unidadeId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Erro ao carregar agendamentos:', error);

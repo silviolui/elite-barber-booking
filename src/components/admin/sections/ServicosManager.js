@@ -3,6 +3,8 @@ import { Scissors, DollarSign, Clock, Plus, Edit, Trash2, Save, X } from 'lucide
 import { supabase } from '../../../lib/supabase';
 
 const ServicosManager = ({ currentUser }) => {
+  const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+  const unidadeId = adminData.unidade_id; // NULL se for super admin
   const [servicos, setServicos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -22,10 +24,14 @@ const ServicosManager = ({ currentUser }) => {
   const loadServicos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .order('nome');
+      let query = supabase.from('servicos').select('*').order('nome');
+
+      // Se não for super admin, filtrar por unidade (ou serviços globais)
+      if (unidadeId) {
+        query = query.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (!error) {
         setServicos(data || []);
@@ -43,7 +49,8 @@ const ServicosManager = ({ currentUser }) => {
     const dataToSave = {
       ...formData,
       preco: parseFloat(formData.preco),
-      duracao_minutos: formData.duracao // Usar nome correto da coluna
+      duracao_minutos: formData.duracao, // Usar nome correto da coluna
+      unidade_id: unidadeId // Associar à unidade do admin (NULL se super admin)
     };
     
     // Remover campo 'duracao' do objeto para evitar erro
@@ -142,7 +149,12 @@ const ServicosManager = ({ currentUser }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Gerenciar Serviços</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Gerenciar Serviços</h2>
+          {unidadeId && (
+            <p className="text-sm text-gray-600">Serviços específicos da sua unidade</p>
+          )}
+        </div>
         <button
           onClick={openModal}
           className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center"
