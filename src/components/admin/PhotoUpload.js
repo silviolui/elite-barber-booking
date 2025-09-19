@@ -38,9 +38,9 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
       if (error) {
         console.error('Erro no upload:', error);
         
-        // Se bucket não existe, mostrar instruções
-        if (error.message.includes('Bucket not found')) {
-          alert('Bucket não encontrado. Crie o bucket "profissionais-fotos" no Supabase Dashboard > Storage > Buckets');
+        // Se bucket não existe ou políticas RLS, mostrar instruções
+        if (error.message.includes('Bucket not found') || error.message.includes('StorageApiError')) {
+          alert('Configure o Storage: Execute o SQL "fix-storage-policies.sql" ou crie o bucket "profissionais-fotos" manualmente no Supabase Dashboard');
         } else {
           alert(`Erro ao fazer upload: ${error.message}`);
         }
