@@ -9,6 +9,7 @@ import {
   X
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import PhotoUpload from '../PhotoUpload';
 
 const ProfissionaisManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -374,18 +375,12 @@ const ProfissionaisManager = ({ currentUser }) => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL da Foto
-                </label>
-                <input
-                  type="url"
-                  value={formData.foto_url}
-                  onChange={(e) => setFormData({...formData, foto_url: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="https://exemplo.com/foto.jpg"
-                />
-              </div>
+              {/* Upload de Foto */}
+              <PhotoUpload
+                currentPhotoUrl={formData.foto_url}
+                onPhotoChange={(url) => setFormData({...formData, foto_url: url})}
+                profissionalNome={formData.nome || 'profissional'}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
