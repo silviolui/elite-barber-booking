@@ -77,13 +77,15 @@ const AdminSignUp = ({ onBackToLogin }) => {
 
         if (adminError) {
           console.error('Erro ao criar registro de admin:', adminError);
-          setError('Conta criada, mas houve erro ao configurar permissões. Entre em contato com o suporte.');
+          setError(`Erro ao configurar permissões administrativas: ${adminError.message}`);
+          setLoading(false);
+          return;
         }
-      }
 
-      // Sucesso - voltar para login
-      alert('Conta administrativa criada com sucesso! Verifique seu email para confirmação.');
-      onBackToLogin();
+        // Sucesso - voltar para login
+        alert(`Conta administrativa criada com sucesso! ${isFirstAdmin ? 'Você é o Super Administrador.' : ''} Faça login para acessar o sistema.`);
+        onBackToLogin();
+      }
 
     } catch (err) {
       setError('Erro ao criar conta. Tente novamente.');
