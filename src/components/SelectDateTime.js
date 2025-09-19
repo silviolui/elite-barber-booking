@@ -10,8 +10,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [closedDays, setClosedDays] = useState([]);
   const [periodosDisponiveis, setPeriodosDisponiveis] = useState({ manha: false, tarde: false, noite: false });
   const [horariosDisponiveis, setHorariosDisponiveis] = useState({ manha: [], tarde: [], noite: [] });
-  const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados (inclui folgas)
+  const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados
   const [diasComHorarios, setDiasComHorarios] = useState([]); // Dias com horários disponíveis
+  const [diasFolgaTotal, setDiasFolgaTotal] = useState([]); // Dias com folga total (vermelho escuro)
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -119,6 +120,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         // Analisar localmente quais dias estão ocupados e quais têm horários
         const diasOcupados = [];
         const diasDisponiveis = [];
+        const diasComFolgaTotal = [];
         const diasDoMes = getDaysInMonth(currentMonth);
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
@@ -154,9 +156,10 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
             }
           }
 
-          // Se TODOS os períodos estão de folga, tratar como "sem horários"
+          // Se TODOS os períodos estão de folga, marcar como folga total (vermelho escuro)
           if (todosPeriodosDeFolga) {
-            diasOcupados.push(day.getDate());
+            diasComFolgaTotal.push(day.getDate());
+            console.log('🔴 Dia com folga total:', day.getDate());
           } else {
             // Verificar agendamentos normalmente
             const agendamentosDoDia = agendamentosDoMes.filter(ag => ag.data_agendamento === dataStr);
@@ -173,8 +176,10 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         
         setDiasSemHorarios(diasOcupados);
         setDiasComHorarios(diasDisponiveis);
-        console.log('📅 Dias sem horários (ocupados + folgas):', diasOcupados);
+        setDiasFolgaTotal(diasComFolgaTotal);
+        console.log('📅 Dias sem horários (ocupados):', diasOcupados);
         console.log('📅 Dias com horários:', diasDisponiveis);
+        console.log('🔴 Dias com folga total:', diasComFolgaTotal);
       } catch (error) {
         console.error('Erro ao verificar dias sem horários:', error);
       }
@@ -191,12 +196,12 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         return;
       }
 
-      // VERIFICAR SE O DIA SELECIONADO ESTÁ SEM HORÁRIOS (inclui folgas)
+      // VERIFICAR SE O DIA SELECIONADO ESTÁ SEM HORÁRIOS (ocupado ou folga total)
       const dataSelecionadaObj = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
       const diaDoMes = dataSelecionadaObj.getDate();
       
-      if (diasSemHorarios.includes(diaDoMes)) {
-        console.log('❌ Dia selecionado sem horários (ocupado ou folga), não carregando períodos');
+      if (diasSemHorarios.includes(diaDoMes) || diasFolgaTotal.includes(diaDoMes)) {
+        console.log('❌ Dia selecionado sem horários (ocupado ou folga total), não carregando períodos');
         setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
         setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
         return;
@@ -276,7 +281,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     };
 
     loadPeriodosDisponiveis();
-  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados, diasSemHorarios]);
+  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados, diasSemHorarios, diasFolgaTotal]);
 
   // Set initial selections if provided
   useEffect(() => {
@@ -386,8 +391,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   const isToday = day.toDateString() === today.toDateString();
                   const isPast = day < today;
                   const isClosed = closedDays.includes(day.getDay()); // Verifica se o dia da semana está fechado
-                  const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis (inclui folgas)
-                  const isComHorarios = diasComHorarios.includes(day.getDate()); // Dia com horários disponíveis
+                  const isSemHorarios = diasSemHorarios.includes(day.getDate()); // Dia sem horários disponíveis
+                  const isComHorarios = diasComHorarios.includes(day.getDate()); // Dia com horários disponíveis  
+                  const isFolgaTotal = diasFolgaTotal.includes(day.getDate()); // Dia com folga total
                   const isSelected = selectedDate && day && 
                     (typeof selectedDate === 'object' ? 
                       day.toDateString() === selectedDate.toDateString() : 
@@ -400,7 +406,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                       onClick={() => !isDisabled && setSelectedDate(day)}
                       disabled={isDisabled}
                       className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
-                        isDisabled
+                        isFolgaTotal && !isSelected
+                          ? 'bg-red-600 text-white border-2 border-red-700 hover:bg-red-700'
+                          : isDisabled
                           ? 'text-gray-200 cursor-not-allowed bg-gray-50'
                           : isSelected
                           ? 'bg-primary text-white'
@@ -412,7 +420,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                           ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
-                      title={isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
+                      title={isFolgaTotal ? 'Profissional de folga (dia todo)' : isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
                     >
                       {day.getDate()}
                     </button>
