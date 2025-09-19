@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import PhotoUpload from '../PhotoUpload';
-// import FolgasModal from '../FolgasModal'; // Temporariamente desabilitado
+import FolgasModal from '../FolgasModalSimples';
 
 const ProfissionaisManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -23,8 +23,8 @@ const ProfissionaisManager = ({ currentUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProfissional, setEditingProfissional] = useState(null);
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
-  // const [showFolgasModal, setShowFolgasModal] = useState(false);
-  // const [profissionalFolgasSelected, setProfissionalFolgasSelected] = useState(null);
+  const [showFolgasModal, setShowFolgasModal] = useState(false);
+  const [profissionalFolgasSelected, setProfissionalFolgasSelected] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     especialidade: '',
@@ -242,9 +242,8 @@ const ProfissionaisManager = ({ currentUser }) => {
   };
 
   const handleFolgas = (profissional) => {
-    // setProfissionalFolgasSelected(profissional);
-    // setShowFolgasModal(true);
-    alert(`Configurar folgas para ${profissional.nome} - Em desenvolvimento`);
+    setProfissionalFolgasSelected(profissional);
+    setShowFolgasModal(true);
   };
 
   const resetForm = () => {
@@ -572,14 +571,12 @@ const ProfissionaisManager = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Modal de Folgas - Temporariamente desabilitado */}
-      {/*
+      {/* Modal de Folgas */}
       <FolgasModal 
         isOpen={showFolgasModal}
         onClose={() => setShowFolgasModal(false)}
         profissional={profissionalFolgasSelected}
       />
-      */}
     </div>
   );
 };
