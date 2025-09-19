@@ -1,39 +1,49 @@
--- CORREÇÃO DEFINITIVA PARA PRODUÇÃO
--- Remove dependências que não existem e cria estrutura correta
+-- SOLUÇÃO DEFINITIVA: Transformar usuário cliente existente em admin
 
--- 1. CRIAR TABELA USERS SE NÃO EXISTIR
-CREATE TABLE IF NOT EXISTS public.users (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    email TEXT UNIQUE,
-    nome TEXT,
-    telefone TEXT,
-    criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- 1. Primeiro, execute o SQL da tabela administradores se ainda não executou
+-- (create-admin-roles.sql)
 
--- 2. INSERIR USUÁRIO PADRÃO PARA AGENDAMENTOS
-INSERT INTO public.users (id, email, nome) 
-VALUES ('123e4567-e89b-12d3-a456-426614174000', 'cliente@bookia.com', 'Cliente BookIA')
-ON CONFLICT (id) DO NOTHING;
+-- 2. Depois, transforme o usuário cliente atual em admin:
+-- Substitua 'EMAIL_DO_CLIENTE' pelo email que está logado como cliente
 
--- 3. REMOVER CONSTRAINT PROBLEMÁTICA SE EXISTIR
-ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_usuario_id_fkey;
+DO $$
+DECLARE
+    cliente_user_id UUID;
+    cliente_email TEXT := 'sirviluizgmj@gmail.com'; -- ALTERE AQUI para seu email
+BEGIN
+    -- Buscar o user_id do cliente
+    SELECT id INTO cliente_user_id 
+    FROM auth.users 
+    WHERE email = cliente_email;
+    
+    IF cliente_user_id IS NOT NULL THEN
+        -- Inserir na tabela administradores
+        INSERT INTO administradores (user_id, nome, email, nivel_acesso, ativo)
+        VALUES (
+            cliente_user_id, 
+            'Silvio Luiz - Admin', 
+            cliente_email, 
+            'super_admin', 
+            true
+        )
+        ON CONFLICT (user_id) DO UPDATE SET
+            nivel_acesso = 'super_admin',
+            ativo = true;
+        
+        RAISE NOTICE 'Usuário % agora é administrador!', cliente_email;
+    ELSE
+        RAISE NOTICE 'Usuário % não encontrado', cliente_email;
+    END IF;
+END $$;
 
--- 4. RECRIAR CONSTRAINT CORRETA
-ALTER TABLE public.agendamentos 
-ADD CONSTRAINT agendamentos_usuario_id_fkey 
-FOREIGN KEY (usuario_id) REFERENCES public.users(id) ON DELETE SET NULL;
+-- 3. Verificar se deu certo
+SELECT 
+    u.email as email_usuario,
+    a.nome as nome_admin,
+    a.nivel_acesso,
+    a.ativo
+FROM auth.users u
+JOIN administradores a ON u.id = a.user_id
+WHERE u.email = 'sirviluizgmj@gmail.com'; -- ALTERE AQUI também
 
--- 5. GARANTIR QUE TODAS AS TABELAS ESTÃO SEM RLS
-ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.unidades DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profissionais DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.servicos DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.horario_funcionamento DISABLE ROW LEVEL SECURITY;
-
--- 6. VERIFICAÇÃO FINAL
-SELECT 'CORREÇÃO DEFINITIVA APLICADA - SISTEMA PRONTO PARA PRODUÇÃO!' as status;
-
--- 7. MOSTRAR ESTRUTURA DAS TABELAS PRINCIPAIS
-\d public.agendamentos;
-\d public.users;
+SELECT 'Transformação concluída! Agora você pode acessar o painel admin com seu email atual.' as resultado;
