@@ -129,10 +129,10 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
           const dataStr = day.toISOString().split('T')[0];
           const diaSemana = day.getDay();
           
-          // VERIFICAR SE É DIA DE FOLGA (só para datas presente/futuras)
-          let isDiaFolga = false;
+          // VERIFICAR SE TODOS OS PERÍODOS ESTÃO DE FOLGA (só para datas presente/futuras)
+          let todosPeriodosDeFolga = false;
           if (day >= hoje) {
-            isDiaFolga = datasComFolga.some(folga => {
+            const folgasNoDia = datasComFolga.filter(folga => {
               if (folga.tipo_folga === 'data_especifica' && folga.data_folga === dataStr) {
                 return true;
               }
@@ -141,10 +141,17 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
               }
               return false;
             });
+
+            // Verificar se todos os períodos (manhã E tarde E noite) estão de folga
+            if (folgasNoDia.length > 0) {
+              todosPeriodosDeFolga = folgasNoDia.some(folga => 
+                folga.folga_manha && folga.folga_tarde && folga.folga_noite
+              );
+            }
           }
 
-          // Se é dia de folga, tratar como "sem horários"
-          if (isDiaFolga) {
+          // Se TODOS os períodos estão de folga, tratar como "sem horários"
+          if (todosPeriodosDeFolga) {
             diasOcupados.push(day.getDate());
           } else {
             // Verificar agendamentos normalmente
@@ -218,21 +225,33 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         
         console.log('📅 Data criada:', dataObj.toISOString());
         const periodos = await supabaseData.getPeriodosDisponiveis(unitId, dataObj);
-        setPeriodosDisponiveis(periodos);
         
-        // Carregar horários para cada período disponível
+        // Carregar horários para cada período disponível (verificando folgas por período)
         const horariosMap = { manha: [], tarde: [], noite: [] };
+        const periodosComFolga = { manha: false, tarde: false, noite: false };
         
+        // Verificar folgas por período
         for (const periodo of ['manha', 'tarde', 'noite']) {
-          if (periodos[periodo]) {
+          const estaDefolga = await supabaseData.profissionalEstaDefolguePeriodo(
+            professionalId, 
+            dataObj.toISOString().split('T')[0], 
+            periodo
+          );
+          periodosComFolga[periodo] = estaDefolga;
+          
+          if (periodos[periodo] && !estaDefolga) {
             console.log(`🕐 Carregando horários para período: ${periodo}`);
             const horarios = await supabaseData.gerarHorariosDisponiveis(unitId, dataObj, periodo, professionalId, servicosSelecionados);
             horariosMap[periodo] = horarios;
             console.log(`✅ Horários para ${periodo}:`, horarios);
+          } else if (estaDefolga) {
+            console.log(`❌ Profissional de folga no período: ${periodo}`);
+            periodos[periodo] = false; // Desabilitar período de folga
           }
         }
         
         setHorariosDisponiveis(horariosMap);
+        setPeriodosDisponiveis(periodos); // Atualizar períodos após verificar folgas
         
         // Se o período selecionado não está disponível, mudar para o primeiro disponível
         if (!periodos[selectedPeriod]) {

@@ -21,7 +21,10 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
     data_folga: '',
     dia_semana: '',
     motivo: '',
-    observacoes: ''
+    observacoes: '',
+    folga_manha: false,
+    folga_tarde: false,
+    folga_noite: false
   });
 
   const carregarFolgas = useCallback(async () => {
@@ -57,11 +60,20 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
 
   const adicionarFolga = async () => {
     try {
+      // Verificar se pelo menos um período foi selecionado
+      if (!novaFolga.folga_manha && !novaFolga.folga_tarde && !novaFolga.folga_noite) {
+        showMessage('error', 'Selecione pelo menos um período (manhã, tarde ou noite)');
+        return;
+      }
+
       const folgaData = {
         profissional_id: profissional.id,
         tipo_folga: tipoFolga,
         motivo: novaFolga.motivo,
         observacoes: novaFolga.observacoes,
+        folga_manha: novaFolga.folga_manha,
+        folga_tarde: novaFolga.folga_tarde,
+        folga_noite: novaFolga.folga_noite,
         ativo: true
       };
 
@@ -88,7 +100,15 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
       if (error) throw error;
 
       showMessage('success', 'Folga adicionada com sucesso!');
-      setNovaFolga({ data_folga: '', dia_semana: '', motivo: '', observacoes: '' });
+      setNovaFolga({ 
+        data_folga: '', 
+        dia_semana: '', 
+        motivo: '', 
+        observacoes: '',
+        folga_manha: false,
+        folga_tarde: false,
+        folga_noite: false
+      });
       await carregarFolgas();
     } catch (error) {
       console.error('Erro ao adicionar folga:', error);
@@ -170,20 +190,21 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
               Adicionar Nova Folga
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Folga
-                </label>
-                <select
-                  value={tipoFolga}
-                  onChange={(e) => setTipoFolga(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="data_especifica">Data Específica</option>
-                  <option value="dia_semana_recorrente">Dia da Semana (Recorrente)</option>
-                </select>
-              </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Folga
+                  </label>
+                  <select
+                    value={tipoFolga}
+                    onChange={(e) => setTipoFolga(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="data_especifica">Data Específica</option>
+                    <option value="dia_semana_recorrente">Dia da Semana (Recorrente)</option>
+                  </select>
+                </div>
 
               {tipoFolga === 'data_especifica' ? (
                 <div>
@@ -216,7 +237,56 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
                   </select>
                 </div>
               )}
+              </div>
 
+              {/* Seleção de Períodos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Períodos de Folga
+                </label>
+                <div className="grid grid-cols-3 gap-4">
+                  <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={novaFolga.folga_manha}
+                      onChange={(e) => setNovaFolga({...novaFolga, folga_manha: e.target.checked})}
+                      className="mr-3 text-blue-600"
+                    />
+                    <div>
+                      <div className="font-medium text-blue-700">☀️ Manhã</div>
+                      <div className="text-xs text-gray-500">8h às 12h</div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={novaFolga.folga_tarde}
+                      onChange={(e) => setNovaFolga({...novaFolga, folga_tarde: e.target.checked})}
+                      className="mr-3 text-green-600"
+                    />
+                    <div>
+                      <div className="font-medium text-green-700">🌤️ Tarde</div>
+                      <div className="text-xs text-gray-500">14h às 18h</div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-purple-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={novaFolga.folga_noite}
+                      onChange={(e) => setNovaFolga({...novaFolga, folga_noite: e.target.checked})}
+                      className="mr-3 text-purple-600"
+                    />
+                    <div>
+                      <div className="font-medium text-purple-700">🌙 Noite</div>
+                      <div className="text-xs text-gray-500">19h às 22h</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Motivo
@@ -290,6 +360,25 @@ const FolgasModal = ({ isOpen, onClose, profissional }) => {
                             ? formatarData(folga.data_folga)
                             : `Todas as ${obterNomeDiaSemana(folga.dia_semana)}`
                           }
+                        </div>
+
+                        {/* Exibir períodos da folga */}
+                        <div className="flex items-center mt-2 space-x-2">
+                          {folga.folga_manha && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              ☀️ Manhã
+                            </span>
+                          )}
+                          {folga.folga_tarde && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              🌤️ Tarde
+                            </span>
+                          )}
+                          {folga.folga_noite && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              🌙 Noite
+                            </span>
+                          )}
                         </div>
                         
                         {folga.motivo && (

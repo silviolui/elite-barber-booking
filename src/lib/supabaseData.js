@@ -413,6 +413,28 @@ export const supabaseData = {
     return data || [];
   },
 
+  // Verificar se profissional está de folga em um período específico
+  async profissionalEstaDefolguePeriodo(profissionalId, data, periodo) {
+    try {
+      const { data: result, error } = await supabase
+        .rpc('profissional_esta_de_folga_periodo', {
+          profissional_uuid: profissionalId,
+          data_verificar: data,
+          periodo: periodo
+        });
+
+      if (error) {
+        console.error('Erro ao verificar folga do profissional por período:', error);
+        return false;
+      }
+
+      return result || false;
+    } catch (error) {
+      console.error('Erro ao verificar folga por período:', error);
+      return false;
+    }
+  },
+
   // Adicionar nova folga
   async adicionarFolga(folgaData) {
     const { data, error } = await supabase
