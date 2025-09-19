@@ -23,8 +23,8 @@ const ProfissionaisManager = ({ currentUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingProfissional, setEditingProfissional] = useState(null);
   const [servicosSelecionados, setServicosSelecionados] = useState([]);
-  const [showFolgasModal, setShowFolgasModal] = useState(false);
-  const [profissionalFolgasSelected, setProfissionalFolgasSelected] = useState(null);
+  // const [showFolgasModal, setShowFolgasModal] = useState(false);
+  // const [profissionalFolgasSelected, setProfissionalFolgasSelected] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     especialidade: '',
@@ -242,8 +242,9 @@ const ProfissionaisManager = ({ currentUser }) => {
   };
 
   const handleFolgas = (profissional) => {
-    setProfissionalFolgasSelected(profissional);
-    setShowFolgasModal(true);
+    // setProfissionalFolgasSelected(profissional);
+    // setShowFolgasModal(true);
+    alert(`Configurar folgas para ${profissional.nome} - Em desenvolvimento`);
   };
 
   const resetForm = () => {
