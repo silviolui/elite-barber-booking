@@ -68,7 +68,6 @@ const AgendamentosManager = ({ currentUser }) => {
 
       // TERCEIRO: Tentar consulta com joins individuais para identificar o problema
       let dataWithJoins = null;
-      let errorWithJoins = null;
       
       try {
         console.log('🔍 DEBUG - Testando joins individuais...');
@@ -92,16 +91,13 @@ const AgendamentosManager = ({ currentUser }) => {
         
         if (!error && data && data.length > 0) {
           dataWithJoins = data;
-          errorWithJoins = null;
         } else {
           // Fallback para consulta básica
           dataWithJoins = dataBasic;
-          errorWithJoins = errorBasic;
         }
       } catch (joinError) {
         console.log('🔍 DEBUG - Erro nos joins, usando dados básicos:', joinError);
         dataWithJoins = dataBasic;
-        errorWithJoins = errorBasic;
       }
 
       // TERCEIRO: Se unidadeId existe, testar filtro
