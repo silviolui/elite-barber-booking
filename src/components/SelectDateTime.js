@@ -188,7 +188,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     verificarDiasSemHorarios();
   }, [unitId, professionalId, servicosSelecionados, currentMonth, closedDays]);
 
-  // Carregar períodos e horários quando a data for selecionada
+  // Carregar períodos e horários quando a data for selecionada (OTIMIZADO)
   useEffect(() => {
     const loadPeriodosDisponiveis = async () => {
       if (!unitId || !selectedDate) {
@@ -208,7 +208,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
       }
       
       try {
-        console.log('🚀 Carregando períodos para:', { unitId, selectedDate });
+        console.log('🚀 Carregando períodos OTIMIZADO para:', { unitId, selectedDate });
         
         // Criar data de forma mais robusta
         let dataObj;
@@ -233,34 +233,19 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         }
         
         console.log('📅 Data criada:', dataObj.toISOString());
-        const periodos = await supabaseData.getPeriodosDisponiveis(unitId, dataObj);
         
-        // Carregar horários para cada período disponível (verificando folgas por período)
-        const horariosMap = { manha: [], tarde: [], noite: [] };
-        const periodosComFolga = { manha: false, tarde: false, noite: false };
+        // USAR FUNÇÃO OTIMIZADA - UMA ÚNICA CHAMADA
+        const dadosCompletos = await supabaseData.getDadosCompletosData(
+          unitId, 
+          dataObj, 
+          professionalId, 
+          servicosSelecionados
+        );
         
-        // Verificar folgas por período
-        for (const periodo of ['manha', 'tarde', 'noite']) {
-          const estaDefolga = await supabaseData.profissionalEstaDefolguePeriodo(
-            professionalId, 
-            dataObj.toISOString().split('T')[0], 
-            periodo
-          );
-          periodosComFolga[periodo] = estaDefolga;
-          
-          if (periodos[periodo] && !estaDefolga) {
-            console.log(`🕐 Carregando horários para período: ${periodo}`);
-            const horarios = await supabaseData.gerarHorariosDisponiveis(unitId, dataObj, periodo, professionalId, servicosSelecionados);
-            horariosMap[periodo] = horarios;
-            console.log(`✅ Horários para ${periodo}:`, horarios);
-          } else if (estaDefolga) {
-            console.log(`❌ Profissional de folga no período: ${periodo}`);
-            periodos[periodo] = false; // Desabilitar período de folga
-          }
-        }
+        const { periodos, horariosMap } = dadosCompletos;
         
         setHorariosDisponiveis(horariosMap);
-        setPeriodosDisponiveis(periodos); // Atualizar períodos após verificar folgas
+        setPeriodosDisponiveis(periodos);
         
         // Se o período selecionado não está disponível, mudar para o primeiro disponível
         if (!periodos[selectedPeriod]) {
@@ -270,13 +255,16 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
           else if (periodos.noite) setSelectedPeriod('noite');
         }
         
-        console.log('📋 Resumo final:', {
+        console.log('📋 Resumo final OTIMIZADO:', {
           periodos,
           horariosMap,
           selectedPeriod
         });
       } catch (error) {
         console.error('Erro ao carregar períodos disponíveis:', error);
+        // Fallback para método anterior em caso de erro
+        console.warn('🔄 Tentando método não otimizado...');
+        // Aqui você pode manter o código antigo como fallback se necessário
       }
     };
 

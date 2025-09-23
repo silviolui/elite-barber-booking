@@ -261,8 +261,9 @@ export const supabaseData = {
   },
 
   // NOVA FUNÇÃO: Gerar horários disponíveis baseado no período e horário de funcionamento
-  async gerarHorariosDisponiveis(unidadeId, data, periodo, profissionalId = null, servicosSelecionados = []) {
-    const periodos = await this.getPeriodosDisponiveis(unidadeId, data);
+  async gerarHorariosDisponiveis(unidadeId, data, periodo, profissionalId = null, servicosSelecionados = [], periodosPrecarregados = null) {
+    // Usar períodos pré-carregados para evitar consulta duplicada
+    const periodos = periodosPrecarregados || await this.getPeriodosDisponiveis(unidadeId, data);
     
     if (!periodos[periodo]) {
       return []; // Período fechado, retorna array vazio
@@ -350,6 +351,98 @@ export const supabaseData = {
     }
     
     return horarios;
+  },
+
+  // NOVA FUNÇÃO OTIMIZADA: Busca todos os dados de uma vez para uma data específica
+  async getDadosCompletosData(unidadeId, data, profissionalId, servicosSelecionados = []) {
+    try {
+      const promises = [];
+      
+      // 1. Buscar períodos disponíveis
+      promises.push(this.getPeriodosDisponiveis(unidadeId, data));
+      
+      // 2. Buscar folgas do profissional para a data (uma query RPC que verifica todos os períodos)
+      const dataStr = typeof data === 'string' ? data : data.toISOString().split('T')[0];
+      promises.push(
+        supabase.rpc('verificar_folgas_todos_periodos', {
+          profissional_uuid: profissionalId,
+          data_verificar: dataStr
+        }).then(response => {
+          if (response.error) {
+            console.warn('Erro na verificação de folgas otimizada, usando método individual:', response.error);
+            return null; // Fallback para método individual
+          }
+          return response.data;
+        })
+      );
+      
+      // 3. Buscar horários ocupados
+      if (profissionalId) {
+        promises.push(this.getHorariosOcupados(profissionalId, dataStr));
+      }
+      
+      const [periodos, folgasPeriodos, horariosOcupados] = await Promise.all(promises);
+      
+      // Processar folgas por período (fallback se RPC falhar)
+      let folgas = folgasPeriodos;
+      if (!folgas) {
+        const folgasPromises = ['manha', 'tarde', 'noite'].map(periodo =>
+          this.profissionalEstaDefolguePeriodo(profissionalId, dataStr, periodo)
+        );
+        const resultadosFolgas = await Promise.all(folgasPromises);
+        folgas = {
+          manha: resultadosFolgas[0],
+          tarde: resultadosFolgas[1],
+          noite: resultadosFolgas[2]
+        };
+      }
+      
+      // Gerar horários para todos os períodos disponíveis
+      const horariosMap = { manha: [], tarde: [], noite: [] };
+      const periodosComFolga = { manha: false, tarde: false, noite: false };
+      
+      for (const periodo of ['manha', 'tarde', 'noite']) {
+        const estaDefolga = folgas[periodo] || false;
+        periodosComFolga[periodo] = estaDefolga;
+        
+        if (periodos[periodo] && !estaDefolga) {
+          // Usar função otimizada passando períodos pré-carregados
+          const horarios = await this.gerarHorariosDisponiveis(
+            unidadeId, 
+            data, 
+            periodo, 
+            null, // não filtrar ocupados aqui
+            servicosSelecionados,
+            periodos // passar períodos pré-carregados
+          );
+          
+          // Filtrar horários ocupados se necessário
+          if (profissionalId && horariosOcupados) {
+            const horariosDisponiveis = horarios.filter(horario => {
+              return !horariosOcupados.some(ocupado => {
+                const horarioOcupado = ocupado.horario_inicio.substring(0, 5);
+                return horarioOcupado === horario;
+              });
+            });
+            horariosMap[periodo] = horariosDisponiveis;
+          } else {
+            horariosMap[periodo] = horarios;
+          }
+        } else if (estaDefolga) {
+          periodos[periodo] = false; // Desabilitar período de folga
+        }
+      }
+      
+      return {
+        periodos,
+        horariosMap,
+        folgas: periodosComFolga
+      };
+      
+    } catch (error) {
+      console.error('Erro ao buscar dados completos da data:', error);
+      throw error;
+    }
   },
 
   // Buscar horários ocupados de um profissional em uma data
