@@ -945,10 +945,32 @@ const AgendamentosManager = ({ currentUser }) => {
                         </option>
                         {servicosFiltrados.map((servico) => (
                           <option key={servico.id} value={servico.id}>
-                            {servico.nome} - R$ {servico.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {servico.nome} - R$ {servico.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({servico.duracao_minutos || 20} min)
                           </option>
                         ))}
                       </select>
+                      
+                      {/* Mostrar duração do serviço selecionado */}
+                      {editForm.servico_id && (
+                        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">⏱</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-orange-800">
+                                Duração do Serviço
+                              </p>
+                              <p className="text-xs text-orange-600">
+                                {(() => {
+                                  const servicoSelecionado = servicosFiltrados.find(s => s.id === editForm.servico_id);
+                                  return servicoSelecionado ? `${servicoSelecionado.duracao_minutos || 20} minutos` : '20 minutos';
+                                })()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
