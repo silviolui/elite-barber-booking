@@ -11,6 +11,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { supabaseData } from '../../../lib/supabaseData';
 import ConfirmationModal from '../../ConfirmationModal';
 
 const AgendamentosManager = ({ currentUser }) => {
@@ -41,6 +42,7 @@ const AgendamentosManager = ({ currentUser }) => {
   const [editingAgendamento, setEditingAgendamento] = useState(null);
   const [profissionais, setProfissionais] = useState([]);
   const [servicos, setServicos] = useState([]);
+  const [servicosFiltrados, setServicosFiltrados] = useState([]);
   const [editForm, setEditForm] = useState({
     cliente_nome: '',
     cliente_telefone: '',
@@ -50,6 +52,21 @@ const AgendamentosManager = ({ currentUser }) => {
     horario_inicio: '',
     horario_fim: ''
   });
+
+  // Estados para sistema de slots
+  const [periodosDisponiveis, setPeriodosDisponiveis] = useState({
+    manha: false,
+    tarde: false,
+    noite: false
+  });
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState({
+    manha: [],
+    tarde: [],
+    noite: []
+  });
+  const [periodoSelecionado, setPeriodoSelecionado] = useState('');
+  const [horarioSelecionado, setHorarioSelecionado] = useState('');
+  const [loadingHorarios, setLoadingHorarios] = useState(false);
 
   useEffect(() => {
     loadAgendamentos();
@@ -271,7 +288,78 @@ const AgendamentosManager = ({ currentUser }) => {
     }
   };
 
-  const abrirModalEdicao = (agendamento) => {
+  const filtrarServicosPorProfissional = async (profissionalId) => {
+    if (!profissionalId) {
+      setServicosFiltrados([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profissional_servicos')
+        .select(`
+          servico_id,
+          servicos (
+            id,
+            nome,
+            preco,
+            duracao_minutos
+          )
+        `)
+        .eq('profissional_id', profissionalId)
+        .eq('ativo', true);
+
+      if (error) throw error;
+      
+      const servicosFiltrados = data?.map(item => item.servicos).filter(Boolean) || [];
+      setServicosFiltrados(servicosFiltrados);
+    } catch (error) {
+      console.error('Erro ao filtrar serviços por profissional:', error);
+      setServicosFiltrados([]);
+    }
+  };
+
+  const carregarHorariosDisponiveis = async (profissionalId, data, servicoId) => {
+    if (!profissionalId || !data || !servicoId) return;
+
+    setLoadingHorarios(true);
+    try {
+      // Buscar dados do serviço para calcular duração
+      const servico = servicosFiltrados.find(s => s.id === servicoId) || 
+                     servicos.find(s => s.id === servicoId);
+      
+      const servicosSelecionados = servico ? [servico] : [];
+
+      // Usar a função do supabaseData para buscar horários
+      const resultado = await supabaseData.getDadosCompletosData(
+        unidadeId,
+        data,
+        profissionalId,
+        servicosSelecionados
+      );
+
+      setPeriodosDisponiveis({
+        manha: resultado.periodosComFolga?.manha === false && resultado.horariosDisponiveis?.manha?.length > 0,
+        tarde: resultado.periodosComFolga?.tarde === false && resultado.horariosDisponiveis?.tarde?.length > 0,
+        noite: resultado.periodosComFolga?.noite === false && resultado.horariosDisponiveis?.noite?.length > 0
+      });
+
+      setHorariosDisponiveis(resultado.horariosDisponiveis || {
+        manha: [],
+        tarde: [],
+        noite: []
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar horários:', error);
+      setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+      setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+    } finally {
+      setLoadingHorarios(false);
+    }
+  };
+
+  const abrirModalEdicao = async (agendamento) => {
     setEditingAgendamento(agendamento);
     setEditForm({
       cliente_nome: agendamento.users?.nome || '',
@@ -282,7 +370,83 @@ const AgendamentosManager = ({ currentUser }) => {
       horario_inicio: agendamento.horario_inicio || '',
       horario_fim: agendamento.horario_fim || ''
     });
+
+    // Filtrar serviços pelo profissional
+    if (agendamento.profissional_id) {
+      await filtrarServicosPorProfissional(agendamento.profissional_id);
+    }
+
+    // Resetar seleções de horário
+    setPeriodoSelecionado('');
+    setHorarioSelecionado('');
+    setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+    setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+
     setShowEditModal(true);
+  };
+
+  const handleProfissionalChange = async (profissionalId) => {
+    setEditForm({...editForm, profissional_id: profissionalId, servico_id: ''});
+    await filtrarServicosPorProfissional(profissionalId);
+    
+    // Resetar horários quando trocar profissional
+    setPeriodoSelecionado('');
+    setHorarioSelecionado('');
+    setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+    setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+  };
+
+  const handleDataChange = (novaData) => {
+    setEditForm({...editForm, data_agendamento: novaData});
+    
+    // Resetar horários quando trocar data
+    setPeriodoSelecionado('');
+    setHorarioSelecionado('');
+    setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+    setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+
+    // Se já tem profissional e serviço, carregar novos horários
+    if (editForm.profissional_id && editForm.servico_id) {
+      carregarHorariosDisponiveis(editForm.profissional_id, novaData, editForm.servico_id);
+    }
+  };
+
+  const handleServicoChange = (servicoId) => {
+    setEditForm({...editForm, servico_id: servicoId});
+    
+    // Resetar horários quando trocar serviço
+    setPeriodoSelecionado('');
+    setHorarioSelecionado('');
+    setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+    setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+
+    // Se já tem profissional e data, carregar novos horários
+    if (editForm.profissional_id && editForm.data_agendamento) {
+      carregarHorariosDisponiveis(editForm.profissional_id, editForm.data_agendamento, servicoId);
+    }
+  };
+
+  const selecionarHorario = (periodo, horario) => {
+    setPeriodoSelecionado(periodo);
+    setHorarioSelecionado(horario);
+    
+    // Calcular horário de fim baseado na duração do serviço
+    const servico = servicosFiltrados.find(s => s.id === editForm.servico_id) || 
+                   servicos.find(s => s.id === editForm.servico_id);
+    const duracao = servico?.duracao_minutos || 30;
+    
+    const [hora, minuto] = horario.split(':').map(Number);
+    const inicioMinutos = hora * 60 + minuto;
+    const fimMinutos = inicioMinutos + duracao;
+    const horaFim = Math.floor(fimMinutos / 60);
+    const minutoFim = fimMinutos % 60;
+    const horarioFim = `${horaFim.toString().padStart(2, '0')}:${minutoFim.toString().padStart(2, '0')}`;
+    
+    setEditForm({
+      ...editForm,
+      horario_inicio: horario,
+      horario_fim: horarioFim
+    });
   };
 
   const salvarEdicao = async () => {
@@ -860,7 +1024,7 @@ const AgendamentosManager = ({ currentUser }) => {
                       </label>
                       <select
                         value={editForm.profissional_id}
-                        onChange={(e) => setEditForm({...editForm, profissional_id: e.target.value})}
+                        onChange={(e) => handleProfissionalChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       >
                         <option value="">Selecione um profissional</option>
@@ -878,11 +1042,14 @@ const AgendamentosManager = ({ currentUser }) => {
                       </label>
                       <select
                         value={editForm.servico_id}
-                        onChange={(e) => setEditForm({...editForm, servico_id: e.target.value})}
+                        onChange={(e) => handleServicoChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        disabled={!editForm.profissional_id}
                       >
-                        <option value="">Selecione um serviço</option>
-                        {servicos.map((servico) => (
+                        <option value="">
+                          {!editForm.profissional_id ? 'Selecione um profissional primeiro' : 'Selecione um serviço'}
+                        </option>
+                        {servicosFiltrados.map((servico) => (
                           <option key={servico.id} value={servico.id}>
                             {servico.nome} - R$ {servico.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </option>
@@ -905,33 +1072,112 @@ const AgendamentosManager = ({ currentUser }) => {
                     <input
                       type="date"
                       value={editForm.data_agendamento}
-                      onChange={(e) => setEditForm({...editForm, data_agendamento: e.target.value})}
+                      onChange={(e) => handleDataChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Horário de Início
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                      Horário Selecionado
                     </label>
-                    <input
-                      type="time"
-                      value={editForm.horario_inicio}
-                      onChange={(e) => setEditForm({...editForm, horario_inicio: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Horário de Término
-                    </label>
-                    <input
-                      type="time"
-                      value={editForm.horario_fim}
-                      onChange={(e) => setEditForm({...editForm, horario_fim: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
+                    
+                    {editForm.horario_inicio && editForm.horario_fim ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-green-700">
+                            {editForm.horario_inicio} - {editForm.horario_fim}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditForm({...editForm, horario_inicio: '', horario_fim: ''});
+                              setPeriodoSelecionado('');
+                              setHorarioSelecionado('');
+                            }}
+                            className="text-green-600 hover:text-green-800 text-sm"
+                          >
+                            Alterar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-600 mb-4">
+                        {!editForm.profissional_id || !editForm.servico_id || !editForm.data_agendamento
+                          ? 'Selecione profissional, serviço e data para ver horários disponíveis'
+                          : 'Clique em um período abaixo para ver os horários disponíveis'
+                        }
+                      </div>
+                    )}
+
+                    {/* Seleção de Períodos */}
+                    {(editForm.profissional_id && editForm.servico_id && editForm.data_agendamento) && (
+                      <div>
+                        <div className="flex space-x-2 mb-4">
+                          {[
+                            { key: 'manha', label: '☀️ Manhã', disponivel: periodosDisponiveis.manha },
+                            { key: 'tarde', label: '🌤️ Tarde', disponivel: periodosDisponiveis.tarde },
+                            { key: 'noite', label: '🌙 Noite', disponivel: periodosDisponiveis.noite }
+                          ].map(periodo => (
+                            <button
+                              key={periodo.key}
+                              type="button"
+                              onClick={() => {
+                                if (!periodo.disponivel) return;
+                                if (!horariosDisponiveis[periodo.key]?.length) {
+                                  carregarHorariosDisponiveis(editForm.profissional_id, editForm.data_agendamento, editForm.servico_id);
+                                }
+                                setPeriodoSelecionado(periodo.key === periodoSelecionado ? '' : periodo.key);
+                              }}
+                              disabled={!periodo.disponivel || loadingHorarios}
+                              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                periodo.disponivel
+                                  ? periodoSelecionado === periodo.key
+                                    ? 'bg-orange-600 text-white'
+                                    : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              }`}
+                            >
+                              {periodo.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Horários do Período Selecionado */}
+                        {periodoSelecionado && horariosDisponiveis[periodoSelecionado]?.length > 0 && (
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-3">
+                              Horários disponíveis - {periodoSelecionado.charAt(0).toUpperCase() + periodoSelecionado.slice(1)}:
+                            </h5>
+                            <div className="grid grid-cols-4 gap-2">
+                              {horariosDisponiveis[periodoSelecionado].map(horario => (
+                                <button
+                                  key={horario}
+                                  type="button"
+                                  onClick={() => selecionarHorario(periodoSelecionado, horario)}
+                                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                                    horarioSelecionado === horario
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  }`}
+                                >
+                                  {horario}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {loadingHorarios && (
+                          <div className="text-center py-4">
+                            <div className="inline-flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                              Carregando horários...
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -949,7 +1195,8 @@ const AgendamentosManager = ({ currentUser }) => {
                 </button>
                 <button
                   onClick={salvarEdicao}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                  disabled={!editForm.cliente_nome || !editForm.profissional_id || !editForm.servico_id || !editForm.data_agendamento || !editForm.horario_inicio}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:text-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
                 >
                   <CheckCircle size={20} />
                   <span>Salvar Alterações</span>
