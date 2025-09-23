@@ -432,111 +432,153 @@ const AgendamentosManager = ({ currentUser }) => {
           </div>
         ) : (
           filteredAgendamentos.map((agendamento) => (
-            <div key={agendamento.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Cliente Info */}
-                  <div>
-                    <p className="font-medium text-gray-900 flex items-center">
-                      <User size={16} className="mr-2 text-gray-400" />
-                      {agendamento.users?.nome || 
-                       agendamento.users?.email?.split('@')[0] ||
-                       'Cliente'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      📞 {agendamento.users?.telefone || 'Telefone não informado'}
-                    </p>
+            <div key={agendamento.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              {/* Header com Status */}
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Calendar size={20} className="text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Agendamento #{agendamento.id.slice(-8)}</h3>
+                      <p className="text-sm text-gray-600">{formatDate(agendamento.data_agendamento)} • {formatTime(agendamento.horario_inicio)} - {formatTime(agendamento.horario_fim)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    {getStatusBadge(agendamento.status)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Conteúdo Principal */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Informações do Cliente */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User size={16} className="text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Cliente</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Nome:</p>
+                        <p className="font-medium text-gray-900">{agendamento.users?.nome || agendamento.users?.email?.split('@')[0] || 'Cliente'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Telefone:</p>
+                        <p className="font-medium text-gray-900">{agendamento.users?.telefone || 'Não informado'}</p>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Date & Time */}
-                  <div>
-                    <p className="font-medium text-gray-900 flex items-center">
-                      <Calendar size={16} className="mr-2 text-gray-400" />
-                      {formatDate(agendamento.data_agendamento)}
-                    </p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <Clock size={14} className="mr-1" />
-                      {formatTime(agendamento.horario_inicio)} - {formatTime(agendamento.horario_fim)}
-                    </p>
+                  {/* Informações do Profissional e Local */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <User size={16} className="text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Profissional</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Nome:</p>
+                        <p className="font-medium text-gray-900">{agendamento.profissionais?.nome || 'Profissional'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Local:</p>
+                        <div className="flex items-center space-x-1">
+                          <MapPin size={14} className="text-gray-400" />
+                          <p className="font-medium text-gray-900">{agendamento.unidades?.nome || 'Unidade'}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Profissional & Unidade */}
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      👨‍💼 {agendamento.profissionais?.nome || 'Profissional'}
-                    </p>
-                    {agendamento.profissionais?.telefone && (
-                      <p className="text-xs text-gray-500">
-                        📞 {agendamento.profissionais.telefone}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <MapPin size={14} className="mr-1" />
-                      {agendamento.unidades?.nome || 'Unidade'}
-                    </p>
-                  </div>
-
-                  {/* Serviço & Preço */}
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {agendamento.servicos?.nome || 'Corte de Cabelo'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      R$ {(agendamento.servicos?.preco || agendamento.preco_total || 30.00).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                    {agendamento.servicos?.duracao_minutos && (
-                      <p className="text-xs text-gray-400">
-                        ⏱️ {agendamento.servicos.duracao_minutos} min
-                      </p>
-                    )}
+                  {/* Informações do Serviço */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <div className="w-4 h-4 bg-green-600 rounded"></div>
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Serviço</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Serviço:</p>
+                        <p className="font-medium text-gray-900">{agendamento.servicos?.nome || 'Corte de Cabelo'}</p>
+                      </div>
+                      <div className="flex space-x-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Valor:</p>
+                          <p className="font-bold text-green-600">R$ {(agendamento.servicos?.preco || agendamento.preco_total || 30.00).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Duração:</p>
+                          <div className="flex items-center space-x-1">
+                            <Clock size={14} className="text-gray-400" />
+                            <p className="font-medium text-gray-900">{agendamento.servicos?.duracao_minutos || 20} min</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="ml-4 flex flex-col items-end space-y-2">
-                  {getStatusBadge(agendamento.status)}
+                {/* Ações */}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                  {agendamento.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => updateAgendamentoStatus(agendamento.id, 'confirmed')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+                      >
+                        <CheckCircle size={16} />
+                        <span>Confirmar</span>
+                      </button>
+                      <button
+                        onClick={() => updateAgendamentoStatus(agendamento.id, 'cancelled')}
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+                      >
+                        <XCircle size={16} />
+                        <span>Cancelar</span>
+                      </button>
+                    </>
+                  )}
                   
-                  <div className="flex space-x-2">
-                    {agendamento.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => updateAgendamentoStatus(agendamento.id, 'confirmed')}
-                          className="text-green-600 hover:bg-green-50 p-2 rounded"
-                          title="Confirmar"
-                        >
-                          <CheckCircle size={18} />
-                        </button>
-                        <button
-                          onClick={() => updateAgendamentoStatus(agendamento.id, 'cancelled')}
-                          className="text-red-600 hover:bg-red-50 p-2 rounded"
-                          title="Cancelar"
-                        >
-                          <XCircle size={18} />
-                        </button>
-                      </>
-                    )}
-                    
+                  {agendamento.status === 'confirmed' && (
                     <button
-                      className="text-gray-600 hover:bg-gray-50 p-2 rounded"
-                      title="Visualizar"
+                      onClick={() => updateAgendamentoStatus(agendamento.id, 'completed')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
                     >
-                      <Eye size={18} />
+                      <CheckCircle size={16} />
+                      <span>Concluir</span>
                     </button>
-                    
-                    <button
-                      className="text-gray-600 hover:bg-gray-50 p-2 rounded"
-                      title="Editar"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    
-                    <button
-                      onClick={() => deleteAgendamento(agendamento.id)}
-                      className="text-red-600 hover:bg-red-50 p-2 rounded"
-                      title="Excluir"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  )}
+                  
+                  <button
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+                  >
+                    <Eye size={16} />
+                    <span>Visualizar</span>
+                  </button>
+                  
+                  <button
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+                  >
+                    <Edit size={16} />
+                    <span>Editar</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => deleteAgendamento(agendamento.id)}
+                    className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    <span>Excluir</span>
+                  </button>
                 </div>
               </div>
             </div>
