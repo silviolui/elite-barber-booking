@@ -308,12 +308,8 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     </div>
   );
 
-  const renderTimeSlots = (times, title, icon) => (
+  const renderTimeSlots = (times) => (
     <div className="mb-6">
-      <div className="flex items-center mb-3">
-        <span className="text-lg mr-2">{icon}</span>
-        <h5 className="text-gray-900 font-semibold">{title}</h5>
-      </div>
       <div className="grid grid-cols-4 gap-2">
         {times.map(time => (
           <button
@@ -495,9 +491,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
                   </div>
 
                   {/* Show only selected period times */}
-                  {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
-                  {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
-                  {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
+                  {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha)}
+                  {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde)}
+                  {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite)}
 
                   {/* Mensagem se não houver horários disponíveis */}
                   {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
