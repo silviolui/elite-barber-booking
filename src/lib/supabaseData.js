@@ -356,36 +356,40 @@ export const supabaseData = {
   // NOVA FUNÇÃO OTIMIZADA: Busca todos os dados de uma vez para uma data específica
   async getDadosCompletosData(unidadeId, data, profissionalId, servicosSelecionados = []) {
     try {
-      const promises = [];
-      
-      // 1. Buscar períodos disponíveis
-      promises.push(this.getPeriodosDisponiveis(unidadeId, data));
-      
-      // 2. Buscar folgas do profissional para a data (uma query RPC que verifica todos os períodos)
+      console.log('🚀 Iniciando busca otimizada de dados...');
       const dataStr = typeof data === 'string' ? data : data.toISOString().split('T')[0];
-      promises.push(
-        supabase.rpc('verificar_folgas_todos_periodos', {
+      
+      // Primeira fase: buscar dados básicos em paralelo
+      const [periodos, horariosOcupados] = await Promise.all([
+        this.getPeriodosDisponiveis(unidadeId, data),
+        profissionalId ? this.getHorariosOcupados(profissionalId, dataStr) : Promise.resolve([])
+      ]);
+      
+      console.log('✅ Períodos e horários ocupados carregados');
+      
+      // Segunda fase: tentar RPC otimizada para folgas ou usar fallback
+      let folgas = null;
+      
+      try {
+        console.log('🔄 Tentando RPC otimizada para folgas...');
+        const response = await supabase.rpc('verificar_folgas_todos_periodos', {
           profissional_uuid: profissionalId,
           data_verificar: dataStr
-        }).then(response => {
-          if (response.error) {
-            console.warn('Erro na verificação de folgas otimizada, usando método individual:', response.error);
-            return null; // Fallback para método individual
-          }
-          return response.data;
-        })
-      );
-      
-      // 3. Buscar horários ocupados
-      if (profissionalId) {
-        promises.push(this.getHorariosOcupados(profissionalId, dataStr));
+        });
+        
+        if (!response.error && response.data) {
+          folgas = response.data;
+          console.log('✅ RPC de folgas funcionou:', folgas);
+        } else {
+          console.log('⚠️ RPC retornou erro:', response.error?.message);
+        }
+      } catch (error) {
+        console.log('⚠️ RPC não disponível, usando fallback:', error.message);
       }
       
-      const [periodos, folgasPeriodos, horariosOcupados] = await Promise.all(promises);
-      
-      // Processar folgas por período (fallback se RPC falhar)
-      let folgas = folgasPeriodos;
+      // Se RPC falhou, usar método individual (otimizado com Promise.all)
       if (!folgas) {
+        console.log('🔄 Usando verificação individual de folgas...');
         const folgasPromises = ['manha', 'tarde', 'noite'].map(periodo =>
           this.profissionalEstaDefolguePeriodo(profissionalId, dataStr, periodo)
         );
@@ -395,6 +399,7 @@ export const supabaseData = {
           tarde: resultadosFolgas[1],
           noite: resultadosFolgas[2]
         };
+        console.log('✅ Folgas individuais carregadas:', folgas);
       }
       
       // Gerar horários para todos os períodos disponíveis
@@ -447,7 +452,7 @@ export const supabaseData = {
 
   // Buscar horários ocupados de um profissional em uma data
   async getHorariosOcupados(profissionalId, data) {
-    const dataFormatada = data.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dataFormatada = typeof data === 'string' ? data : data.toISOString().split('T')[0]; // YYYY-MM-DD
     
     const { data: agendamentos, error } = await supabase
       .from('agendamentos')
