@@ -326,6 +326,8 @@ const Historico = ({ usuarioId }) => {
           horario_fim: agendamento.horario_fim,
           status: 'cancelado',
           valor_total: agendamento.preco_total,
+          tipo_pagamento: agendamento.tipo_pagamento,
+          forma_pagamento: agendamento.tipo_pagamento, // Manter compatibilidade
           data_conclusao: new Date().toISOString()
         });
 

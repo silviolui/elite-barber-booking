@@ -232,6 +232,7 @@ const AgendamentosManager = ({ currentUser }) => {
     }
 
     try {
+      // Atualizar agendamento com tipo de pagamento e status confirmado
       const { error } = await supabase
         .from('agendamentos')
         .update({ 
@@ -242,6 +243,9 @@ const AgendamentosManager = ({ currentUser }) => {
         .eq('id', selectedAgendamento.id);
 
       if (error) throw error;
+
+      // Após confirmar o pagamento, mover automaticamente para o histórico como 'concluido'
+      await moverParaHistorico(selectedAgendamento.id, 'concluido');
 
       setShowPaymentModal(false);
       setSelectedAgendamento(null);
@@ -255,10 +259,15 @@ const AgendamentosManager = ({ currentUser }) => {
 
   const updateAgendamentoStatus = async (id, novoStatus) => {
     try {
-      // Se o status for "completed", mover para histórico
+      // Se o status for "completed", mover para histórico como concluído
       if (novoStatus === 'completed') {
         await moverParaHistorico(id, 'concluido');
-      } else {
+      } 
+      // Se o status for "cancelled", mover para histórico como cancelado
+      else if (novoStatus === 'cancelled') {
+        await moverParaHistorico(id, 'cancelado');
+      } 
+      else {
         const { error } = await supabase
           .from('agendamentos')
           .update({ status: novoStatus })
@@ -301,6 +310,8 @@ const AgendamentosManager = ({ currentUser }) => {
           horario_fim: agendamento.horario_fim,
           status: status,
           valor_total: agendamento.preco_total,
+          tipo_pagamento: agendamento.tipo_pagamento,
+          forma_pagamento: agendamento.tipo_pagamento, // Manter compatibilidade
           data_conclusao: new Date().toISOString()
         });
 
@@ -329,14 +340,9 @@ const AgendamentosManager = ({ currentUser }) => {
   const deleteAgendamento = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
       try {
-        const { error } = await supabase
-          .from('agendamentos')
-          .delete()
-          .eq('id', id);
-
-        if (!error) {
-          await loadAgendamentos();
-        }
+        // Mover para histórico como "excluído" em vez de deletar
+        await moverParaHistorico(id, 'excluido');
+        await loadAgendamentos();
       } catch (error) {
         console.error('Erro ao excluir agendamento:', error);
       }

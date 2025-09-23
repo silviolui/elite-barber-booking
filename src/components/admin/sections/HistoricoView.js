@@ -51,7 +51,14 @@ const HistoricoView = ({ currentUser }) => {
   const getStatusBadge = (status) => {
     const styles = {
       concluido: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
-      cancelado: { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle }
+      cancelado: { bg: 'bg-red-100', text: 'text-red-800', icon: XCircle },
+      excluido: { bg: 'bg-gray-100', text: 'text-gray-800', icon: XCircle }
+    };
+
+    const labels = {
+      concluido: 'Concluído',
+      cancelado: 'Cancelado',
+      excluido: 'Excluído'
     };
 
     const config = styles[status] || { bg: 'bg-gray-100', text: 'text-gray-800', icon: Clock };
@@ -60,7 +67,7 @@ const HistoricoView = ({ currentUser }) => {
     return (
       <span className={`px-3 py-1 text-sm font-medium rounded-full ${config.bg} ${config.text} flex items-center`}>
         <Icon size={14} className="mr-1" />
-        {status === 'concluido' ? 'Concluído' : status === 'cancelado' ? 'Cancelado' : status}
+        {labels[status] || status}
       </span>
     );
   };
@@ -91,6 +98,7 @@ const HistoricoView = ({ currentUser }) => {
           <option value="todos">Todos os status</option>
           <option value="concluido">Concluídos</option>
           <option value="cancelado">Cancelados</option>
+          <option value="excluido">Excluídos</option>
         </select>
       </div>
 
@@ -143,6 +151,15 @@ const HistoricoView = ({ currentUser }) => {
                       <DollarSign size={14} className="mr-1" />
                       R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
+                    {item.tipo_pagamento && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {item.tipo_pagamento === 'pix' ? '📱 PIX' :
+                         item.tipo_pagamento === 'debito' ? '💳 Cartão de Débito' :
+                         item.tipo_pagamento === 'credito' ? '💎 Cartão de Crédito' :
+                         item.tipo_pagamento === 'dinheiro' ? '💵 Dinheiro' :
+                         item.tipo_pagamento}
+                      </p>
+                    )}
                   </div>
                 </div>
 
