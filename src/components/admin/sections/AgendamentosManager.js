@@ -41,7 +41,6 @@ const AgendamentosManager = ({ currentUser }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState(null);
   const [profissionais, setProfissionais] = useState([]);
-  const [servicos, setServicos] = useState([]);
   const [servicosFiltrados, setServicosFiltrados] = useState([]);
   const [editForm, setEditForm] = useState({
     cliente_nome: '',
@@ -59,7 +58,6 @@ const AgendamentosManager = ({ currentUser }) => {
   useEffect(() => {
     loadAgendamentos();
     loadProfissionais();
-    loadServicos();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAgendamentos = async () => {
@@ -261,20 +259,7 @@ const AgendamentosManager = ({ currentUser }) => {
     }
   };
 
-  const loadServicos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .eq('unidade_id', unidadeId)
-        .order('nome');
-      
-      if (error) throw error;
-      setServicos(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
-    }
-  };
+
 
   const filtrarServicosPorProfissional = async (profissionalId) => {
     if (!profissionalId) {
