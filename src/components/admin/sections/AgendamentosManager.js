@@ -174,6 +174,20 @@ const AgendamentosManager = ({ currentUser }) => {
               console.log('Erro ao buscar unidade:', err);
             }
             
+            // Tentar buscar dados do serviço se existir
+            if (agendamento.servico_id) {
+              try {
+                const { data: servicoData } = await supabase
+                  .from('servicos')
+                  .select('nome, preco, duracao_minutos')
+                  .eq('id', agendamento.servico_id)
+                  .single();
+                if (servicoData) enriched.servicos = servicoData;
+              } catch (err) {
+                console.log('Erro ao buscar serviço:', err);
+              }
+            }
+            
             return enriched;
           }));
           
@@ -418,9 +432,16 @@ const AgendamentosManager = ({ currentUser }) => {
                   <div>
                     <p className="font-medium text-gray-900 flex items-center">
                       <User size={16} className="mr-2 text-gray-400" />
-                      {agendamento.users?.raw_user_meta_data?.nome || agendamento.users?.email || 'Cliente'}
+                      {agendamento.users?.raw_user_meta_data?.nome || 
+                       agendamento.users?.raw_user_meta_data?.name || 
+                       'Cliente'}
                     </p>
                     <p className="text-sm text-gray-600">{agendamento.users?.email}</p>
+                    {agendamento.users?.raw_user_meta_data?.telefone && (
+                      <p className="text-sm text-gray-500">
+                        📞 {agendamento.users.raw_user_meta_data.telefone}
+                      </p>
+                    )}
                   </div>
 
                   {/* Date & Time */}
@@ -438,22 +459,32 @@ const AgendamentosManager = ({ currentUser }) => {
                   {/* Profissional & Unidade */}
                   <div>
                     <p className="font-medium text-gray-900">
-                      {agendamento.profissionais?.nome}
+                      👨‍💼 {agendamento.profissionais?.nome || 'Profissional'}
                     </p>
+                    {agendamento.profissionais?.telefone && (
+                      <p className="text-xs text-gray-500">
+                        📞 {agendamento.profissionais.telefone}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600 flex items-center">
                       <MapPin size={14} className="mr-1" />
-                      {agendamento.unidades?.nome}
+                      {agendamento.unidades?.nome || 'Unidade'}
                     </p>
                   </div>
 
                   {/* Serviço & Preço */}
                   <div>
                     <p className="font-medium text-gray-900">
-                      {agendamento.servicos?.nome || 'Serviço'}
+                      {agendamento.servicos?.nome || 'Corte de Cabelo'}
                     </p>
                     <p className="text-sm text-gray-600">
-                      R$ {(agendamento.preco_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(agendamento.servicos?.preco || agendamento.preco_total || 30.00).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
+                    {agendamento.servicos?.duracao_minutos && (
+                      <p className="text-xs text-gray-400">
+                        ⏱️ {agendamento.servicos.duracao_minutos} min
+                      </p>
+                    )}
                   </div>
                 </div>
 
