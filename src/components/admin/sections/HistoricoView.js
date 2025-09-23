@@ -196,76 +196,137 @@ const HistoricoView = ({ currentUser }) => {
           </div>
         ) : (
           filteredHistorico.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Cliente */}
-                  <div>
-                    <p className="font-medium text-gray-900 flex items-center">
-                      <User size={16} className="mr-2 text-gray-400" />
-                      {item.users?.nome || item.users?.raw_user_meta_data?.nome || item.users?.email?.split('@')[0] || 'Cliente'}
-                    </p>
-                    <p className="text-sm text-gray-600">{item.users?.email}</p>
-                    {item.users?.telefone && (
-                      <p className="text-sm text-gray-600">📞 {item.users.telefone}</p>
-                    )}
+            <div key={item.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              {/* Header com Status - Data/Horário em Destaque */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-5 border-b border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+                      <Calendar size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-3 mb-1">
+                        <h3 className="text-2xl font-bold text-blue-900">
+                          {new Date(item.data_agendamento).toLocaleDateString('pt-BR')}
+                        </h3>
+                        <span className="text-xl text-blue-700">•</span>
+                        <h4 className="text-xl font-bold text-blue-800">
+                          {item.horario_inicio?.substring(0, 5)} - {item.horario_fim?.substring(0, 5)}
+                        </h4>
+                      </div>
+                      <p className="text-sm text-blue-700 font-medium">Histórico de Agendamento</p>
+                    </div>
                   </div>
-
-                  {/* Data & Horário */}
-                  <div>
-                    <p className="font-medium text-gray-900 flex items-center">
-                      <Calendar size={16} className="mr-2 text-gray-400" />
-                      {new Date(item.data_agendamento).toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <Clock size={14} className="mr-1" />
-                      {item.horario_inicio?.substring(0, 5)} - {item.horario_fim?.substring(0, 5)}
-                    </p>
+                  <div className="flex items-center space-x-3">
+                    {getStatusBadge(item.status)}
                   </div>
-
-                  {/* Profissional & Unidade */}
-                  <div>
-                    <p className="font-medium text-gray-900">{item.profissionais?.nome}</p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <MapPin size={14} className="mr-1" />
-                      {item.unidades?.nome}
-                    </p>
-                  </div>
-
-                  {/* Serviço & Valor */}
-                  <div>
-                    <p className="font-medium text-gray-900">{item.servicos?.nome || 'Serviço'}</p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <DollarSign size={14} className="mr-1" />
-                      R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                    {item.tipo_pagamento && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {item.tipo_pagamento === 'pix' ? '📱 PIX' :
-                         item.tipo_pagamento === 'debito' ? '💳 Cartão de Débito' :
-                         item.tipo_pagamento === 'credito' ? '💎 Cartão de Crédito' :
-                         item.tipo_pagamento === 'dinheiro' ? '💵 Dinheiro' :
-                         item.tipo_pagamento}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="ml-4">
-                  {getStatusBadge(item.status)}
                 </div>
               </div>
 
-              {/* Data de conclusão */}
-              <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500">
-                Finalizado em: {new Date(item.data_conclusao).toLocaleString('pt-BR', { 
-                  timeZone: 'America/Sao_Paulo',
-                  year: 'numeric',
-                  month: '2-digit', 
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+              {/* Conteúdo Principal */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Informações do Cliente */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <User size={16} className="text-green-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Cliente</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Nome:</p>
+                        <p className="font-medium text-gray-900">
+                          {item.users?.nome || item.users?.raw_user_meta_data?.nome || item.users?.email?.split('@')[0] || 'Cliente não identificado'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email:</p>
+                        <p className="font-medium text-gray-900">{item.users?.email || 'Não informado'}</p>
+                      </div>
+                      {item.users?.telefone && (
+                        <div>
+                          <p className="text-sm text-gray-500">Telefone:</p>
+                          <p className="font-medium text-gray-900">{item.users.telefone}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Informações do Profissional e Local */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <User size={16} className="text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Profissional</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Nome:</p>
+                        <p className="font-medium text-gray-900">{item.profissionais?.nome || 'Profissional'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Local:</p>
+                        <div className="flex items-center space-x-1">
+                          <MapPin size={14} className="text-gray-400" />
+                          <p className="font-medium text-gray-900">{item.unidades?.nome || 'Unidade'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Informações do Serviço e Pagamento */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <DollarSign size={16} className="text-orange-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800">Serviço & Pagamento</h4>
+                    </div>
+                    <div className="ml-10 space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-500">Serviço:</p>
+                        <p className="font-medium text-gray-900">{item.servicos?.nome || 'Serviço'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Valor:</p>
+                        <p className="font-bold text-green-600">
+                          R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      {item.tipo_pagamento && (
+                        <div>
+                          <p className="text-sm text-gray-500">Tipo de Pagamento:</p>
+                          <p className="font-medium text-gray-900">
+                            {item.tipo_pagamento === 'pix' ? '📱 PIX' :
+                             item.tipo_pagamento === 'debito' ? '💳 Cartão de Débito' :
+                             item.tipo_pagamento === 'credito' ? '💎 Cartão de Crédito' :
+                             item.tipo_pagamento === 'dinheiro' ? '💵 Dinheiro' :
+                             item.tipo_pagamento}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data de conclusão */}
+                <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                  <p className="text-sm text-gray-500">
+                    Finalizado em: <span className="font-medium text-gray-700">
+                      {new Date(item.data_conclusao).toLocaleString('pt-BR', { 
+                        timeZone: 'America/Sao_Paulo',
+                        year: 'numeric',
+                        month: '2-digit', 
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
           ))
