@@ -16,15 +16,13 @@ const HistoricoView = ({ currentUser }) => {
   const loadHistorico = async () => {
     setLoading(true);
     try {
+      console.log('🔍 CARREGANDO HISTÓRICO...');
+      console.log('🔍 unidadeId:', unidadeId);
+      
+      // PRIMEIRA tentativa: buscar histórico SEM joins
       let query = supabase
         .from('historico')
-        .select(`
-          *,
-          users (email, raw_user_meta_data),
-          profissionais (nome),
-          unidades (nome),
-          servicos (nome)
-        `)
+        .select('*')
         .order('data_conclusao', { ascending: false });
 
       // Se não for super admin, filtrar por unidade
@@ -32,13 +30,97 @@ const HistoricoView = ({ currentUser }) => {
         query = query.eq('unidade_id', unidadeId);
       }
 
-      const { data, error } = await query;
+      const { data: historicoBasico, error: erroBasico } = await query;
 
-      if (!error) {
-        setHistorico(data || []);
+      console.log('🔍 Histórico básico:', { historicoBasico, erroBasico });
+
+      if (erroBasico) {
+        console.error('❌ Erro ao carregar histórico básico:', erroBasico);
+        setHistorico([]);
+        return;
       }
+
+      if (!historicoBasico || historicoBasico.length === 0) {
+        console.log('📊 Nenhum registro encontrado no histórico');
+        setHistorico([]);
+        return;
+      }
+
+      // SEGUNDA tentativa: enriquecer com dados relacionados
+      try {
+        console.log('🔍 Enriquecendo histórico com dados relacionados...');
+        
+        const historicoEnriquecido = await Promise.all(
+          historicoBasico.map(async (item) => {
+            const enriched = { ...item };
+            
+            // Buscar dados do usuário
+            try {
+              const { data: userData } = await supabase
+                .from('users')
+                .select('email, raw_user_meta_data')
+                .eq('id', item.usuario_id)
+                .single();
+              if (userData) enriched.users = userData;
+            } catch (err) {
+              console.log('⚠️ Erro ao buscar usuário:', item.usuario_id);
+              enriched.users = { email: 'Usuario', raw_user_meta_data: { nome: 'Cliente' } };
+            }
+            
+            // Buscar dados do profissional
+            try {
+              const { data: profData } = await supabase
+                .from('profissionais')
+                .select('nome')
+                .eq('id', item.profissional_id)
+                .single();
+              if (profData) enriched.profissionais = profData;
+            } catch (err) {
+              console.log('⚠️ Erro ao buscar profissional:', item.profissional_id);
+              enriched.profissionais = { nome: 'Profissional' };
+            }
+            
+            // Buscar dados da unidade
+            try {
+              const { data: unidadeData } = await supabase
+                .from('unidades')
+                .select('nome')
+                .eq('id', item.unidade_id)
+                .single();
+              if (unidadeData) enriched.unidades = unidadeData;
+            } catch (err) {
+              console.log('⚠️ Erro ao buscar unidade:', item.unidade_id);
+              enriched.unidades = { nome: 'Unidade' };
+            }
+            
+            // Buscar dados do serviço
+            try {
+              const { data: servicoData } = await supabase
+                .from('servicos')
+                .select('nome')
+                .eq('id', item.servico_id)
+                .single();
+              if (servicoData) enriched.servicos = servicoData;
+            } catch (err) {
+              console.log('⚠️ Erro ao buscar serviço:', item.servico_id);
+              enriched.servicos = { nome: 'Serviço' };
+            }
+            
+            return enriched;
+          })
+        );
+        
+        console.log('✅ Histórico enriquecido:', historicoEnriquecido);
+        setHistorico(historicoEnriquecido);
+        
+      } catch (enrichError) {
+        console.log('⚠️ Erro ao enriquecer dados, usando histórico básico:', enrichError);
+        setHistorico(historicoBasico);
+      }
+
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      console.error('❌ ERRO GERAL ao carregar histórico:', error);
+      setHistorico([]);
     } finally {
       setLoading(false);
     }
