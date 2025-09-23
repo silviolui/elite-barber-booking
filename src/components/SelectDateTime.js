@@ -256,13 +256,15 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         setHorariosDisponiveis(horariosMap);
         setPeriodosDisponiveis(periodos);
         
-        // Se o período selecionado não está disponível, mudar para o primeiro disponível
-        if (!periodos[selectedPeriod]) {
-          console.log(`🔄 Período ${selectedPeriod} não disponível, mudando...`);
-          if (periodos.manha) setSelectedPeriod('manha');
-          else if (periodos.tarde) setSelectedPeriod('tarde');
-          else if (periodos.noite) setSelectedPeriod('noite');
-        }
+        // Se o período selecionado não está disponível, mudar para o primeiro disponível (SEM causar recarregamento)
+        setTimeout(() => {
+          if (!periodos[selectedPeriod]) {
+            console.log(`🔄 Período ${selectedPeriod} não disponível, mudando...`);
+            if (periodos.manha) setSelectedPeriod('manha');
+            else if (periodos.tarde) setSelectedPeriod('tarde');
+            else if (periodos.noite) setSelectedPeriod('noite');
+          }
+        }, 0);
         
         console.log('📋 Resumo final OTIMIZADO:', {
           periodos,
@@ -281,7 +283,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     };
 
     loadPeriodosDisponiveis();
-  }, [unitId, selectedDate, selectedPeriod, professionalId, servicosSelecionados, diasSemHorarios, diasFolgaTotal]);
+  }, [unitId, selectedDate, professionalId, servicosSelecionados, diasSemHorarios, diasFolgaTotal]); // Removi selectedPeriod das dependências
 
   // Set initial selections if provided
   useEffect(() => {
