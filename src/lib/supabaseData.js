@@ -260,34 +260,65 @@ export const supabaseData = {
     return { manha: false, tarde: false, noite: false };
   },
 
-  // Função auxiliar para calcular quantos slots de 20min um serviço consome
-  calcularSlotsNecessarios(servicosSelecionados) {
+  // Função para buscar configuração de intervalos de uma unidade
+  async getIntervaloSlots(unidadeId) {
+    try {
+      if (!unidadeId) {
+        console.log('⚠️ Unidade não especificada, usando padrão de 20 minutos');
+        return 20; // Padrão global
+      }
+
+      const { data, error } = await supabase
+        .from('configuracoes_unidade')
+        .select('intervalo_slots')
+        .eq('unidade_id', unidadeId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Erro ao buscar configuração de intervalos:', error);
+        return 20; // Padrão em caso de erro
+      }
+
+      const intervalo = data?.intervalo_slots || 20;
+      console.log(`📊 Intervalo de slots para unidade ${unidadeId}: ${intervalo} minutos`);
+      return intervalo;
+    } catch (error) {
+      console.error('Erro ao buscar configuração de intervalos:', error);
+      return 20; // Padrão em caso de erro
+    }
+  },
+
+  // Função auxiliar para calcular quantos slots um serviço consome (baseado no intervalo configurado)
+  calcularSlotsNecessarios(servicosSelecionados, intervaloSlots = 20) {
     const duracaoTotal = servicosSelecionados.reduce((total, servico) => {
       return total + (parseInt(servico.duracao_minutos || servico.duracao || servico.duration) || 30);
     }, 0) || 30; // Default 30 minutos se não houver serviços
     
-    // Calcular quantos slots de 20min são necessários (sempre arredonda para cima)
-    const slotsNecessarios = Math.ceil(duracaoTotal / 20);
+    // Calcular quantos slots são necessários baseado no intervalo configurado (sempre arredonda para cima)
+    const slotsNecessarios = Math.ceil(duracaoTotal / intervaloSlots);
     
     console.log('⏱️ Duração total dos serviços:', duracaoTotal, 'minutos');
-    console.log('🎯 Slots necessários (20min cada):', slotsNecessarios);
+    console.log(`🎯 Slots necessários (${intervaloSlots}min cada):`, slotsNecessarios);
     
     return { duracaoTotal, slotsNecessarios };
   },
 
-  // Função auxiliar para verificar se dois slots são consecutivos (20min de diferença)
-  saoSlotsConsecutivos(slot1, slot2) {
+  // Função auxiliar para verificar se dois slots são consecutivos (baseado no intervalo configurado)
+  saoSlotsConsecutivos(slot1, slot2, intervaloSlots = 20) {
     const [hora1, min1] = slot1.split(':').map(Number);
     const [hora2, min2] = slot2.split(':').map(Number);
     
     const minutos1 = hora1 * 60 + min1;
     const minutos2 = hora2 * 60 + min2;
     
-    return minutos2 - minutos1 === 20;
+    return minutos2 - minutos1 === intervaloSlots;
   },
 
   // NOVA FUNÇÃO: Gerar horários disponíveis baseado no período e horário de funcionamento
   async gerarHorariosDisponiveis(unidadeId, data, periodo, profissionalId = null, servicosSelecionados = [], periodosPrecarregados = null) {
+    // Buscar configuração de intervalos da unidade
+    const intervaloSlots = await this.getIntervaloSlots(unidadeId);
+    
     // Usar períodos pré-carregados para evitar consulta duplicada
     const periodos = periodosPrecarregados || await this.getPeriodosDisponiveis(unidadeId, data);
     
@@ -300,8 +331,8 @@ export const supabaseData = {
       return []; // Sem horários definidos
     }
     
-    // Calcular quantos slots de 20min o serviço precisa
-    const { duracaoTotal, slotsNecessarios } = this.calcularSlotsNecessarios(servicosSelecionados);
+    // Calcular quantos slots o serviço precisa baseado no intervalo configurado
+    const { duracaoTotal, slotsNecessarios } = this.calcularSlotsNecessarios(servicosSelecionados, intervaloSlots);
     
     // Verificar se é o dia de hoje e aplicar regra de 20 minutos de antecedência
     const hoje = new Date();
@@ -310,26 +341,26 @@ export const supabaseData = {
     
     let horarioMinimoInicio = null;
     if (isHoje) {
-      // Adicionar 20 minutos à hora atual e arredondar para próximo slot de 20min
+      // Adicionar 20 minutos à hora atual e arredondar para próximo slot configurado
       const agora = new Date();
       agora.setMinutes(agora.getMinutes() + 20);
       
-      // Arredondar para o próximo slot de 20min (:00, :20, :40)
-      let minutosArredondados = agora.getMinutes();
-      if (minutosArredondados <= 20) {
-        minutosArredondados = 20;
-      } else if (minutosArredondados <= 40) {
-        minutosArredondados = 40;
+      // Arredondar para o próximo slot baseado no intervalo configurado
+      const minutosAtuais = agora.getMinutes();
+      const minutosArredondados = Math.ceil(minutosAtuais / intervaloSlots) * intervaloSlots;
+      
+      if (minutosArredondados >= 60) {
+        agora.setHours(agora.getHours() + Math.floor(minutosArredondados / 60));
+        agora.setMinutes(minutosArredondados % 60);
       } else {
-        minutosArredondados = 0;
-        agora.setHours(agora.getHours() + 1);
+        agora.setMinutes(minutosArredondados);
       }
       
-      horarioMinimoInicio = `${agora.getHours().toString().padStart(2, '0')}:${minutosArredondados.toString().padStart(2, '0')}`;
-      console.log('🕐 Horário mínimo para hoje (20min + arredondamento):', horarioMinimoInicio);
+      horarioMinimoInicio = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`;
+      console.log(`🕐 Horário mínimo para hoje (20min + arredondamento para ${intervaloSlots}min):`, horarioMinimoInicio);
     }
     
-    // Gerar slots FIXOS de 20 em 20 minutos
+    // Gerar slots FIXOS baseado no intervalo configurado
     const todosSlots = [];
     const [horaInicio, minutoInicio] = horarioInfo.inicio.split(':').map(Number);
     const [horaFim, minutoFim] = horarioInfo.fim.split(':').map(Number);
@@ -337,16 +368,16 @@ export const supabaseData = {
     let horaAtual = horaInicio;
     let minutoAtual = minutoInicio;
     
-    // Ajustar o minuto inicial para o próximo slot de 20min
-    if (minutoAtual % 20 !== 0) {
-      minutoAtual = Math.ceil(minutoAtual / 20) * 20;
+    // Ajustar o minuto inicial para o próximo slot baseado no intervalo configurado
+    if (minutoAtual % intervaloSlots !== 0) {
+      minutoAtual = Math.ceil(minutoAtual / intervaloSlots) * intervaloSlots;
       if (minutoAtual >= 60) {
         horaAtual += Math.floor(minutoAtual / 60);
         minutoAtual = minutoAtual % 60;
       }
     }
     
-    // Gerar todos os slots de 20 em 20 minutos
+    // Gerar todos os slots baseado no intervalo configurado
     while (horaAtual < horaFim || (horaAtual === horaFim && minutoAtual < minutoFim)) {
       const horarioFormatado = `${horaAtual.toString().padStart(2, '0')}:${minutoAtual.toString().padStart(2, '0')}`;
       
@@ -363,8 +394,8 @@ export const supabaseData = {
         todosSlots.push(horarioFormatado);
       }
       
-      // Incrementar SEMPRE 20 minutos (slot fixo)
-      minutoAtual += 20;
+      // Incrementar baseado no intervalo configurado
+      minutoAtual += intervaloSlots;
       if (minutoAtual >= 60) {
         horaAtual += Math.floor(minutoAtual / 60);
         minutoAtual = minutoAtual % 60;
@@ -382,7 +413,7 @@ export const supabaseData = {
         const slotAtual = todosSlots[i + j];
         const slotAnterior = todosSlots[i + j - 1];
         
-        if (!slotAtual || !this.saoSlotsConsecutivos(slotAnterior, slotAtual)) {
+        if (!slotAtual || !this.saoSlotsConsecutivos(slotAnterior, slotAtual, intervaloSlots)) {
           slotsConsecutivos = false;
           break;
         }

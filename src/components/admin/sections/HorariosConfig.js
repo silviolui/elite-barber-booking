@@ -20,10 +20,102 @@ const HorariosConfig = ({ currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  
+  // Estados para configuração de intervalos de slots
+  const [intervalosConfig, setIntervalosConfig] = useState({
+    intervalo_slots: 20, // Padrão atual: 20 minutos
+    loading: false
+  });
 
   const carregarUnidades = async () => {
     const unidadesList = await supabaseData.getUnidades();
     setUnidades(unidadesList);
+  };
+
+  // Carregar configuração de intervalos de slots
+  const carregarIntervalosConfig = async () => {
+    if (!unidadeSelecionada) return;
+    
+    setIntervalosConfig(prev => ({ ...prev, loading: true }));
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes_unidade')
+        .select('intervalo_slots')
+        .eq('unidade_id', unidadeSelecionada)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      // Se não existe configuração, usar o padrão de 20 minutos
+      const intervalo = data?.intervalo_slots || 20;
+      setIntervalosConfig(prev => ({ 
+        ...prev, 
+        intervalo_slots: intervalo,
+        loading: false 
+      }));
+      
+      console.log('📊 Configuração de intervalos carregada:', { intervalo, unidade: unidadeSelecionada });
+    } catch (error) {
+      console.error('Erro ao carregar configuração de intervalos:', error);
+      showMessage('error', 'Erro ao carregar configuração de intervalos');
+      setIntervalosConfig(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Salvar configuração de intervalos de slots
+  const salvarIntervalosConfig = async () => {
+    if (!unidadeSelecionada) {
+      showMessage('error', 'Selecione uma unidade primeiro');
+      return;
+    }
+
+    setIntervalosConfig(prev => ({ ...prev, loading: true }));
+    try {
+      // Verificar se já existe configuração
+      const { data: existing } = await supabase
+        .from('configuracoes_unidade')
+        .select('id')
+        .eq('unidade_id', unidadeSelecionada)
+        .maybeSingle();
+
+      if (existing) {
+        // Atualizar existente
+        const { error } = await supabase
+          .from('configuracoes_unidade')
+          .update({ 
+            intervalo_slots: intervalosConfig.intervalo_slots,
+            updated_at: new Date().toISOString()
+          })
+          .eq('unidade_id', unidadeSelecionada);
+          
+        if (error) throw error;
+      } else {
+        // Criar novo
+        const { error } = await supabase
+          .from('configuracoes_unidade')
+          .insert({
+            unidade_id: unidadeSelecionada,
+            intervalo_slots: intervalosConfig.intervalo_slots,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      }
+
+      showMessage('success', `Intervalo de slots atualizado para ${intervalosConfig.intervalo_slots} minutos!`);
+      console.log('✅ Configuração de intervalos salva:', { 
+        intervalo: intervalosConfig.intervalo_slots, 
+        unidade: unidadeSelecionada 
+      });
+    } catch (error) {
+      console.error('Erro ao salvar configuração de intervalos:', error);
+      showMessage('error', 'Erro ao salvar configuração: ' + error.message);
+    } finally {
+      setIntervalosConfig(prev => ({ ...prev, loading: false }));
+    }
   };
 
   const carregarHorarios = useCallback(async () => {
@@ -82,10 +174,11 @@ const HorariosConfig = ({ currentUser }) => {
     initializeData();
   }, [currentUser]);
 
-  // Carregar horários quando uma unidade é selecionada
+  // Carregar horários e configurações quando uma unidade é selecionada
   useEffect(() => {
     if (unidadeSelecionada) {
       carregarHorarios();
+      carregarIntervalosConfig();
     }
   }, [unidadeSelecionada, carregarHorarios]);
 
@@ -298,6 +391,115 @@ const HorariosConfig = ({ currentUser }) => {
                 {unidades.find(u => u.id === unidadeSelecionada)?.nome || 'Carregando...'}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Configuração de Intervalos de Slots */}
+      {unidadeSelecionada && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Clock size={20} className="mr-2" />
+              Configuração de Intervalos de Agendamento
+            </h3>
+            <button
+              onClick={salvarIntervalosConfig}
+              disabled={intervalosConfig.loading}
+              className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+            >
+              <Save size={20} className="mr-2" />
+              {intervalosConfig.loading ? 'Salvando...' : 'Salvar Configuração'}
+            </button>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <AlertCircle size={20} className="text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-800 mb-1">Como funciona:</h4>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  <li>• <strong>10 minutos:</strong> Slots de 8:00, 8:10, 8:20, 8:30... (mais flexível)</li>
+                  <li>• <strong>20 minutos:</strong> Slots de 8:00, 8:20, 8:40, 9:00... (padrão atual)</li>
+                  <li>• <strong>40 minutos:</strong> Slots de 8:00, 8:40, 9:20, 10:00... (menos opções)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {intervalosConfig.loading ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Carregando configuração...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[10, 20, 40].map(intervalo => (
+                <label key={intervalo} className="relative">
+                  <input
+                    type="radio"
+                    name="intervalo_slots"
+                    value={intervalo}
+                    checked={intervalosConfig.intervalo_slots === intervalo}
+                    onChange={(e) => setIntervalosConfig(prev => ({ 
+                      ...prev, 
+                      intervalo_slots: parseInt(e.target.value) 
+                    }))}
+                    className="sr-only"
+                  />
+                  <div className={`
+                    border-2 rounded-lg p-4 cursor-pointer transition-all
+                    ${intervalosConfig.intervalo_slots === intervalo
+                      ? 'border-orange-500 bg-orange-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-orange-300 hover:bg-orange-25'
+                    }
+                  `}>
+                    <div className="text-center">
+                      <div className={`
+                        text-2xl font-bold mb-2
+                        ${intervalosConfig.intervalo_slots === intervalo ? 'text-orange-600' : 'text-gray-700'}
+                      `}>
+                        {intervalo} min
+                      </div>
+                      <div className={`
+                        text-sm mb-2
+                        ${intervalosConfig.intervalo_slots === intervalo ? 'text-orange-700' : 'text-gray-500'}
+                      `}>
+                        Intervalos de {intervalo} em {intervalo} minutos
+                      </div>
+                      <div className={`
+                        text-xs
+                        ${intervalosConfig.intervalo_slots === intervalo ? 'text-orange-600' : 'text-gray-400'}
+                      `}>
+                        {intervalo === 10 && 'Máxima flexibilidade'}
+                        {intervalo === 20 && 'Padrão atual'}
+                        {intervalo === 40 && 'Menos opções, mais organização'}
+                      </div>
+                    </div>
+                    {intervalosConfig.intervalo_slots === intervalo && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle size={20} className="text-orange-500" />
+                      </div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-900 mb-2">Exemplo prático:</h4>
+            <p className="text-sm text-blue-800">
+              {intervalosConfig.intervalo_slots === 10 && 
+                "Corte de 40min às 8:00h → ocupará slots: 8:00, 8:10, 8:20, 8:30. Próximo disponível: 8:40"
+              }
+              {intervalosConfig.intervalo_slots === 20 && 
+                "Corte de 40min às 8:00h → ocupará slots: 8:00, 8:20. Próximo disponível: 8:40"
+              }
+              {intervalosConfig.intervalo_slots === 40 && 
+                "Corte de 40min às 8:00h → ocupará slot: 8:00. Próximo disponível: 8:40"
+              }
+            </p>
           </div>
         </div>
       )}
