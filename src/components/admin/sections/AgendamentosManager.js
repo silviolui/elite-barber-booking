@@ -12,6 +12,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import ConfirmationModal from '../../ConfirmationModal';
 
 const AgendamentosManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -30,6 +31,11 @@ const AgendamentosManager = ({ currentUser }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState(null);
   const [tipoPagamento, setTipoPagamento] = useState('');
+  
+  // Estados para modal de confirmação
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmData, setConfirmData] = useState({});
 
   useEffect(() => {
     loadAgendamentos();
@@ -315,16 +321,52 @@ const AgendamentosManager = ({ currentUser }) => {
     }
   };
 
+  const handleCancelAgendamento = (agendamento) => {
+    setConfirmAction('cancel');
+    setConfirmData({
+      id: agendamento.id,
+      clienteNome: agendamento.users?.nome || agendamento.users?.email?.split('@')[0] || 'Cliente',
+      dataAgendamento: formatDate(agendamento.data_agendamento),
+      horario: `${formatTime(agendamento.horario_inicio)} - ${formatTime(agendamento.horario_fim)}`
+    });
+    setShowConfirmModal(true);
+  };
+
+  const handleDeleteAgendamento = (agendamento) => {
+    setConfirmAction('delete');
+    setConfirmData({
+      id: agendamento.id,
+      clienteNome: agendamento.users?.nome || agendamento.users?.email?.split('@')[0] || 'Cliente',
+      dataAgendamento: formatDate(agendamento.data_agendamento),
+      horario: `${formatTime(agendamento.horario_inicio)} - ${formatTime(agendamento.horario_fim)}`
+    });
+    setShowConfirmModal(true);
+  };
+
+  const executeConfirmAction = async () => {
+    try {
+      if (confirmAction === 'cancel') {
+        await moverParaHistorico(confirmData.id, 'cancelado');
+      } else if (confirmAction === 'delete') {
+        await moverParaHistorico(confirmData.id, 'excluido');
+      }
+      await loadAgendamentos();
+      alert(confirmAction === 'cancel' 
+        ? 'Agendamento cancelado com sucesso!' 
+        : 'Agendamento excluído com sucesso!');
+    } catch (error) {
+      console.error(`Erro ao ${confirmAction === 'cancel' ? 'cancelar' : 'excluir'} agendamento:`, error);
+      alert(`Erro ao ${confirmAction === 'cancel' ? 'cancelar' : 'excluir'} agendamento: ${error.message}`);
+    }
+  };
+
   const updateAgendamentoStatus = async (id, novoStatus) => {
     try {
       // Se o status for "completed", mover para histórico como concluído
       if (novoStatus === 'completed') {
         await moverParaHistorico(id, 'concluido');
       } 
-      // Se o status for "cancelled", mover para histórico como cancelado
-      else if (novoStatus === 'cancelled') {
-        await moverParaHistorico(id, 'cancelado');
-      } 
+      // Se o status for "cancelled", será tratado pelo handleCancelAgendamento
       else {
         const { error } = await supabase
           .from('agendamentos')
@@ -399,17 +441,7 @@ const AgendamentosManager = ({ currentUser }) => {
     }
   };
 
-  const deleteAgendamento = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
-      try {
-        // Mover para histórico como "excluído" em vez de deletar
-        await moverParaHistorico(id, 'excluido');
-        await loadAgendamentos();
-      } catch (error) {
-        console.error('Erro ao excluir agendamento:', error);
-      }
-    }
-  };
+  // Função deleteAgendamento removida - agora usa handleDeleteAgendamento
 
   const filteredAgendamentos = agendamentos.filter(agendamento => {
     const matchesSearch = 
@@ -649,7 +681,7 @@ const AgendamentosManager = ({ currentUser }) => {
                         <span>Confirmar Pagamento</span>
                       </button>
                       <button
-                        onClick={() => updateAgendamentoStatus(agendamento.id, 'cancelled')}
+                        onClick={() => handleCancelAgendamento(agendamento)}
                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
                       >
                         <XCircle size={16} />
@@ -676,7 +708,7 @@ const AgendamentosManager = ({ currentUser }) => {
                   </button>
                   
                   <button
-                    onClick={() => deleteAgendamento(agendamento.id)}
+                    onClick={() => handleDeleteAgendamento(agendamento)}
                     className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
                   >
                     <Trash2 size={16} />
@@ -789,6 +821,31 @@ const AgendamentosManager = ({ currentUser }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setConfirmAction(null);
+          setConfirmData({});
+        }}
+        onConfirm={executeConfirmAction}
+        type={confirmAction === 'cancel' ? 'warning' : 'danger'}
+        title={confirmAction === 'cancel' ? 'Cancelar Agendamento' : 'Excluir Agendamento'}
+        message={
+          confirmAction === 'cancel' 
+            ? `Você tem certeza que deseja cancelar o agendamento de ${confirmData.clienteNome} para o dia ${confirmData.dataAgendamento} às ${confirmData.horario}?\n\nO agendamento será movido para o histórico como cancelado.`
+            : `Você tem certeza que deseja excluir permanentemente o agendamento de ${confirmData.clienteNome} para o dia ${confirmData.dataAgendamento} às ${confirmData.horario}?\n\nEsta ação não pode ser desfeita e o agendamento será movido para o histórico como excluído.`
+        }
+        confirmText={confirmAction === 'cancel' ? 'Sim, Cancelar' : 'Sim, Excluir'}
+        cancelText="Não, Manter"
+        confirmButtonColor={
+          confirmAction === 'cancel' 
+            ? 'bg-yellow-600 hover:bg-yellow-700' 
+            : 'bg-red-600 hover:bg-red-700'
+        }
+      />
     </div>
   );
 };
