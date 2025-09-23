@@ -17,6 +17,37 @@ const ServicosManager = ({ currentUser }) => {
     descricao: ''
   });
 
+  // Função para gerar opções de duração de 20 em 20 minutos (20min até 4h)
+  const getDurationOptions = () => {
+    const options = [];
+    
+    // De 20 a 240 minutos (4 horas) em intervalos de 20
+    for (let minutes = 20; minutes <= 240; minutes += 20) {
+      let label;
+      
+      if (minutes < 60) {
+        // Menos de 1 hora: "20 min", "40 min"
+        label = `${minutes} min`;
+      } else {
+        // 1 hora ou mais: converter para horas e minutos
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        
+        if (remainingMinutes === 0) {
+          // Horas exatas: "1 hora", "2 horas"
+          label = hours === 1 ? '1 hora' : `${hours} horas`;
+        } else {
+          // Horas com minutos: "1 hora e 20", "1 hora e 40"
+          label = `${hours} hora${hours > 1 ? 's' : ''} e ${remainingMinutes}`;
+        }
+      }
+      
+      options.push({ value: minutes, label });
+    }
+    
+    return options;
+  };
+
   useEffect(() => {
     loadServicos();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -282,17 +313,21 @@ const ServicosManager = ({ currentUser }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duração (min) *
+                    Duração *
                   </label>
-                  <input
-                    type="number"
-                    min="1"
+                  <select
                     required
                     value={formData.duracao}
                     onChange={(e) => setFormData({...formData, duracao: parseInt(e.target.value)})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="30"
-                  />
+                  >
+                    <option value="">Selecione a duração</option>
+                    {getDurationOptions().map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
