@@ -113,44 +113,59 @@ const ProfissionaisManager = ({ currentUser }) => {
     console.log('🔄 Atualizando serviços do profissional:', profissionalId, servicosIds);
     
     try {
-      // 1. REMOVIDO: NÃO DELETAR MAIS OS SERVIÇOS! Isso estava deletando agendamentos
-      // Em vez de deletar serviços, vamos usar a tabela de relacionamento profissional_servicos
-      
-      // 2. Remover relacionamentos antigos (sem afetar agendamentos)
-      console.log('🗑️ Removendo relacionamentos antigos do profissional...');
-      const { error: deleteRelError } = await supabase
-        .from('profissional_servicos')
+      // 1. Remover serviços atuais do profissional (da tabela servicos)
+      // IMPORTANTE: Agora vamos deletar serviços MAS com constraint modificada para não deletar agendamentos
+      console.log('🗑️ Removendo serviços atuais do profissional...');
+      const { error: deleteError } = await supabase
+        .from('servicos')
         .delete()
         .eq('profissional_id', profissionalId);
 
-      if (deleteRelError) {
-        console.error('❌ Erro ao deletar relacionamentos:', deleteRelError);
+      if (deleteError) {
+        console.error('❌ Erro ao deletar serviços:', deleteError);
       } else {
-        console.log('✅ Relacionamentos antigos do profissional removidos (sem afetar agendamentos)');
+        console.log('✅ Serviços antigos do profissional removidos (agendamentos preservados)');
       }
 
-      // 3. Criar novos relacionamentos
+      // 2. Para cada serviço selecionado, criar nova linha na tabela servicos
       if (servicosIds.length > 0) {
-        console.log('➕ Criando novos relacionamentos profissional-serviço...');
+        console.log('➕ Criando serviços específicos para o profissional...');
         
-        const novosRelacionamentos = servicosIds.map(servicoId => ({
-          profissional_id: profissionalId,
-          servico_id: servicoId,
-          ativo: true
-        }));
+        for (const servicoId of servicosIds) {
+          // Buscar dados do serviço modelo (sem profissional_id)
+          const { data: servicoModelo } = await supabase
+            .from('servicos')
+            .select('nome, preco, duracao_minutos, unidade_id')
+            .eq('id', servicoId)
+            .single();
 
-        const { error: insertError } = await supabase
-          .from('profissional_servicos')
-          .insert(novosRelacionamentos);
+          if (servicoModelo) {
+            // Criar novo serviço específico para este profissional
+            const novoServico = {
+              nome: servicoModelo.nome,
+              preco: servicoModelo.preco,
+              duracao_minutos: servicoModelo.duracao_minutos,
+              unidade_id: servicoModelo.unidade_id || unidadeId, // Usar unidade do admin se o modelo for global
+              profissional_id: profissionalId, // Associar ao profissional
+              ativo: true
+            };
 
-        if (insertError) {
-          console.error('❌ Erro ao inserir relacionamentos:', insertError);
-        } else {
-          console.log('✅ Novos relacionamentos criados:', servicosIds.length, 'serviços');
+            console.log('📋 Criando serviço:', novoServico);
+
+            const { error: insertError } = await supabase
+              .from('servicos')
+              .insert(novoServico);
+
+            if (insertError) {
+              console.error('❌ Erro ao inserir serviço:', insertError);
+            } else {
+              console.log('✅ Serviço criado:', servicoModelo.nome);
+            }
+          }
         }
       }
       
-      console.log('🎉 Serviços do profissional atualizados SEM afetar agendamentos existentes!');
+      console.log('🎉 Serviços do profissional atualizados (agendamentos preservados pela constraint)!');
     } catch (error) {
       console.error('💥 Erro geral ao atualizar serviços:', error);
     }
@@ -169,21 +184,42 @@ const ProfissionaisManager = ({ currentUser }) => {
       ativo: profissional.ativo
     });
 
-    // Carregar serviços do profissional usando a tabela de relacionamento
+    // Carregar serviços do profissional 
+    // Precisamos encontrar quais serviços-modelo foram usados para criar serviços específicos deste profissional
     try {
-      console.log('🔍 Carregando serviços do profissional via relacionamentos...');
-      
-      // Buscar relacionamentos ativos do profissional com serviços
-      const { data: relacionamentos } = await supabase
-        .from('profissional_servicos')
-        .select('servico_id')
+      // Buscar serviços específicos do profissional
+      const { data: servicosEspecificos } = await supabase
+        .from('servicos')
+        .select('nome, preco, duracao_minutos')
         .eq('profissional_id', profissional.id)
         .eq('ativo', true);
 
-      const servicosIds = relacionamentos ? relacionamentos.map(rel => rel.servico_id) : [];
+      console.log('🔍 Serviços específicos do profissional:', servicosEspecificos);
+
+      // Para cada serviço específico, encontrar o serviço-modelo correspondente
+      const servicosModeloIds = [];
       
-      console.log('📋 Serviços do profissional (via relacionamentos):', servicosIds);
-      setServicosSelecionados(servicosIds);
+      if (servicosEspecificos && servicosEspecificos.length > 0) {
+        for (const servicoEspecifico of servicosEspecificos) {
+          // Buscar serviço-modelo com mesmo nome/preço/duração e sem profissional_id
+          const { data: servicoModelo } = await supabase
+            .from('servicos')
+            .select('id')
+            .eq('nome', servicoEspecifico.nome)
+            .eq('preco', servicoEspecifico.preco)
+            .eq('duracao_minutos', servicoEspecifico.duracao_minutos)
+            .is('profissional_id', null)
+            .eq('ativo', true)
+            .single();
+
+          if (servicoModelo) {
+            servicosModeloIds.push(servicoModelo.id);
+          }
+        }
+      }
+
+      console.log('📋 Serviços-modelo correspondentes:', servicosModeloIds);
+      setServicosSelecionados(servicosModeloIds);
     } catch (error) {
       console.error('Erro ao carregar serviços do profissional:', error);
       setServicosSelecionados([]);
