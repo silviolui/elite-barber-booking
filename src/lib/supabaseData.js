@@ -337,13 +337,26 @@ export const supabaseData = {
       }
     }
     
-    // Se profissionalId foi fornecido, filtrar horários ocupados
+    // Se profissionalId foi fornecido, filtrar horários ocupados (VERIFICAÇÃO DE SOBREPOSIÇÃO)
     if (profissionalId) {
       const horariosOcupados = await this.getHorariosOcupados(profissionalId, data);
       const horariosDisponiveis = horarios.filter(horario => {
         return !horariosOcupados.some(ocupado => {
-          const horarioOcupado = ocupado.horario_inicio.substring(0, 5);
-          return horarioOcupado === horario;
+          // Converter horários para minutos para facilitar cálculo
+          const [novoHoraInicio, novoMinutoInicio] = horario.split(':').map(Number);
+          const novoInicioMinutos = novoHoraInicio * 60 + novoMinutoInicio;
+          const novoFimMinutos = novoInicioMinutos + duracaoTotal;
+          
+          // Horário ocupado existente
+          const [ocupadoHoraInicio, ocupadoMinutoInicio] = ocupado.horario_inicio.substring(0, 5).split(':').map(Number);
+          const [ocupadoHoraFim, ocupadoMinutoFim] = ocupado.horario_fim.substring(0, 5).split(':').map(Number);
+          const ocupadoInicioMinutos = ocupadoHoraInicio * 60 + ocupadoMinutoInicio;
+          const ocupadoFimMinutos = ocupadoHoraFim * 60 + ocupadoMinutoFim;
+          
+          // VERIFICAR SOBREPOSIÇÃO: há conflito se os intervalos se sobrepõem
+          const haConflito = !(novoFimMinutos <= ocupadoInicioMinutos || novoInicioMinutos >= ocupadoFimMinutos);
+          
+          return haConflito;
         });
       });
       
@@ -421,12 +434,35 @@ export const supabaseData = {
             periodos // passar períodos pré-carregados
           );
           
-          // Filtrar horários ocupados se necessário
+          // Filtrar horários ocupados se necessário (VERIFICAÇÃO DE SOBREPOSIÇÃO COMPLETA)
           if (profissionalId && horariosOcupados) {
+            // Calcular duração total dos serviços selecionados para o novo agendamento
+            const duracaoTotal = servicosSelecionados.reduce((total, servico) => {
+              return total + (parseInt(servico.duracao_minutos || servico.duracao || servico.duration) || 30);
+            }, 0) || 30;
+            
             const horariosDisponiveis = horarios.filter(horario => {
+              // Para cada horário candidato, verificar se há conflito com agendamentos existentes
               return !horariosOcupados.some(ocupado => {
-                const horarioOcupado = ocupado.horario_inicio.substring(0, 5);
-                return horarioOcupado === horario;
+                // Converter horários para minutos para facilitar cálculo
+                const [novoHoraInicio, novoMinutoInicio] = horario.split(':').map(Number);
+                const novoInicioMinutos = novoHoraInicio * 60 + novoMinutoInicio;
+                const novoFimMinutos = novoInicioMinutos + duracaoTotal;
+                
+                // Horário ocupado existente
+                const [ocupadoHoraInicio, ocupadoMinutoInicio] = ocupado.horario_inicio.substring(0, 5).split(':').map(Number);
+                const [ocupadoHoraFim, ocupadoMinutoFim] = ocupado.horario_fim.substring(0, 5).split(':').map(Number);
+                const ocupadoInicioMinutos = ocupadoHoraInicio * 60 + ocupadoMinutoInicio;
+                const ocupadoFimMinutos = ocupadoHoraFim * 60 + ocupadoMinutoFim;
+                
+                // VERIFICAR SOBREPOSIÇÃO: há conflito se os intervalos se sobrepõem
+                const haConflito = !(novoFimMinutos <= ocupadoInicioMinutos || novoInicioMinutos >= ocupadoFimMinutos);
+                
+                if (haConflito) {
+                  console.log(`❌ Conflito detectado: ${horario} (${novoInicioMinutos}-${novoFimMinutos}min) sobrepõe com ${ocupado.horario_inicio.substring(0,5)}-${ocupado.horario_fim.substring(0,5)} (${ocupadoInicioMinutos}-${ocupadoFimMinutos}min)`);
+                }
+                
+                return haConflito;
               });
             });
             horariosMap[periodo] = horariosDisponiveis;
