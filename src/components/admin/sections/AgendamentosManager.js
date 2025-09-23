@@ -6,7 +6,6 @@ import {
   MapPin,
   Search,
   Plus,
-  Eye,
   Edit,
   Trash2,
   CheckCircle,
