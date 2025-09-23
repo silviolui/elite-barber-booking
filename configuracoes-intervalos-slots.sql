@@ -24,83 +24,43 @@ ALTER TABLE configuracoes_unidade ENABLE ROW LEVEL SECURITY;
 
 -- 3. Políticas de segurança
 
--- Super admins podem ver todas as configurações
-CREATE POLICY "Super admins podem ver todas configurações" ON configuracoes_unidade
+-- Todos os admin_usuarios podem ver todas as configurações (simplificado)
+CREATE POLICY "Admin usuarios podem ver configurações" ON configuracoes_unidade
     FOR SELECT 
     USING (
         EXISTS (
             SELECT 1 FROM admin_usuarios 
-            WHERE id = auth.uid() 
-            AND role = 'super_admin'
+            WHERE id = auth.uid()
         )
     );
 
--- Admins de unidade só podem ver a própria configuração
-CREATE POLICY "Admins podem ver configuração da própria unidade" ON configuracoes_unidade
-    FOR SELECT 
-    USING (
-        EXISTS (
-            SELECT 1 FROM admin_usuarios a
-            WHERE a.id = auth.uid() 
-            AND a.role = 'admin'
-            AND a.unidade_id = configuracoes_unidade.unidade_id
-        )
-    );
-
--- Super admins podem inserir configurações
-CREATE POLICY "Super admins podem inserir configurações" ON configuracoes_unidade
+-- Todos os admin_usuarios podem inserir configurações (simplificado)
+CREATE POLICY "Admin usuarios podem inserir configurações" ON configuracoes_unidade
     FOR INSERT 
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM admin_usuarios 
-            WHERE id = auth.uid() 
-            AND role = 'super_admin'
+            WHERE id = auth.uid()
         )
     );
 
--- Admins de unidade podem inserir configuração da própria unidade
-CREATE POLICY "Admins podem inserir configuração da própria unidade" ON configuracoes_unidade
-    FOR INSERT 
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM admin_usuarios a
-            WHERE a.id = auth.uid() 
-            AND a.role = 'admin'
-            AND a.unidade_id = configuracoes_unidade.unidade_id
-        )
-    );
-
--- Super admins podem atualizar todas as configurações
-CREATE POLICY "Super admins podem atualizar todas configurações" ON configuracoes_unidade
+-- Todos os admin_usuarios podem atualizar configurações (simplificado)
+CREATE POLICY "Admin usuarios podem atualizar configurações" ON configuracoes_unidade
     FOR UPDATE 
     USING (
         EXISTS (
             SELECT 1 FROM admin_usuarios 
-            WHERE id = auth.uid() 
-            AND role = 'super_admin'
+            WHERE id = auth.uid()
         )
     );
 
--- Admins de unidade podem atualizar configuração da própria unidade
-CREATE POLICY "Admins podem atualizar configuração da própria unidade" ON configuracoes_unidade
-    FOR UPDATE 
-    USING (
-        EXISTS (
-            SELECT 1 FROM admin_usuarios a
-            WHERE a.id = auth.uid() 
-            AND a.role = 'admin'
-            AND a.unidade_id = configuracoes_unidade.unidade_id
-        )
-    );
-
--- Super admins podem deletar configurações
-CREATE POLICY "Super admins podem deletar configurações" ON configuracoes_unidade
+-- Todos os admin_usuarios podem deletar configurações (simplificado)
+CREATE POLICY "Admin usuarios podem deletar configurações" ON configuracoes_unidade
     FOR DELETE 
     USING (
         EXISTS (
             SELECT 1 FROM admin_usuarios 
-            WHERE id = auth.uid() 
-            AND role = 'super_admin'
+            WHERE id = auth.uid()
         )
     );
 

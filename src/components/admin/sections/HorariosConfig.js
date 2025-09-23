@@ -33,7 +33,7 @@ const HorariosConfig = ({ currentUser }) => {
   };
 
   // Carregar configuração de intervalos de slots
-  const carregarIntervalosConfig = async () => {
+  const carregarIntervalosConfig = useCallback(async () => {
     if (!unidadeSelecionada) return;
     
     setIntervalosConfig(prev => ({ ...prev, loading: true }));
@@ -62,7 +62,7 @@ const HorariosConfig = ({ currentUser }) => {
       showMessage('error', 'Erro ao carregar configuração de intervalos');
       setIntervalosConfig(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, [unidadeSelecionada]);
 
   // Salvar configuração de intervalos de slots
   const salvarIntervalosConfig = async () => {
@@ -180,7 +180,7 @@ const HorariosConfig = ({ currentUser }) => {
       carregarHorarios();
       carregarIntervalosConfig();
     }
-  }, [unidadeSelecionada, carregarHorarios]);
+  }, [unidadeSelecionada, carregarHorarios, carregarIntervalosConfig]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
