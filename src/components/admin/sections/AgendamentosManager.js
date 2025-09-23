@@ -612,7 +612,11 @@ const AgendamentosManager = ({ currentUser }) => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    if (!dateString) return '';
+    // Evitar problemas de timezone - tratar como data local
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('pt-BR');
   };
 
   const formatTime = (timeString) => {
