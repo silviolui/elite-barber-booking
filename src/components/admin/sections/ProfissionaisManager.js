@@ -52,7 +52,8 @@ const ProfissionaisManager = ({ currentUser }) => {
       if (unidadeId) {
         profissionaisQuery = profissionaisQuery.eq('unidade_id', unidadeId);
         unidadesQuery = unidadesQuery.eq('id', unidadeId);
-        // Serviços podem ser da unidade específica ou globais (se implementarmos isso depois)
+        // Filtrar serviços por unidade: apenas serviços da unidade atual ou globais (unidade_id = null)
+        servicosQuery = servicosQuery.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
       }
 
       const [profissionaisResult, unidadesResult, servicosResult] = await Promise.all([
