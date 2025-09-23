@@ -332,31 +332,18 @@ const AgendamentosManager = ({ currentUser }) => {
     setShowConfirmModal(true);
   };
 
-  const handleDeleteAgendamento = (agendamento) => {
-    setConfirmAction('delete');
-    setConfirmData({
-      id: agendamento.id,
-      clienteNome: agendamento.users?.nome || agendamento.users?.email?.split('@')[0] || 'Cliente',
-      dataAgendamento: formatDate(agendamento.data_agendamento),
-      horario: `${formatTime(agendamento.horario_inicio)} - ${formatTime(agendamento.horario_fim)}`
-    });
-    setShowConfirmModal(true);
-  };
+  // Função handleDeleteAgendamento removida - botão excluir foi removido
 
   const executeConfirmAction = async () => {
     try {
       if (confirmAction === 'cancel') {
         await moverParaHistorico(confirmData.id, 'cancelado');
-      } else if (confirmAction === 'delete') {
-        await moverParaHistorico(confirmData.id, 'excluido');
+        await loadAgendamentos();
+        alert('Agendamento cancelado com sucesso!');
       }
-      await loadAgendamentos();
-      alert(confirmAction === 'cancel' 
-        ? 'Agendamento cancelado com sucesso!' 
-        : 'Agendamento excluído com sucesso!');
     } catch (error) {
-      console.error(`Erro ao ${confirmAction === 'cancel' ? 'cancelar' : 'excluir'} agendamento:`, error);
-      alert(`Erro ao ${confirmAction === 'cancel' ? 'cancelar' : 'excluir'} agendamento: ${error.message}`);
+      console.error('Erro ao cancelar agendamento:', error);
+      alert(`Erro ao cancelar agendamento: ${error.message}`);
     }
   };
 
@@ -706,14 +693,6 @@ const AgendamentosManager = ({ currentUser }) => {
                     <Edit size={16} />
                     <span>Editar</span>
                   </button>
-                  
-                  <button
-                    onClick={() => handleDeleteAgendamento(agendamento)}
-                    className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                    <span>Excluir</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -831,20 +810,12 @@ const AgendamentosManager = ({ currentUser }) => {
           setConfirmData({});
         }}
         onConfirm={executeConfirmAction}
-        type={confirmAction === 'cancel' ? 'warning' : 'danger'}
-        title={confirmAction === 'cancel' ? 'Cancelar Agendamento' : 'Excluir Agendamento'}
-        message={
-          confirmAction === 'cancel' 
-            ? `Você tem certeza que deseja cancelar o agendamento de ${confirmData.clienteNome} para o dia ${confirmData.dataAgendamento} às ${confirmData.horario}?\n\nO agendamento será movido para o histórico como cancelado.`
-            : `Você tem certeza que deseja excluir permanentemente o agendamento de ${confirmData.clienteNome} para o dia ${confirmData.dataAgendamento} às ${confirmData.horario}?\n\nEsta ação não pode ser desfeita e o agendamento será movido para o histórico como excluído.`
-        }
-        confirmText={confirmAction === 'cancel' ? 'Sim, Cancelar' : 'Sim, Excluir'}
+        type="warning"
+        title="Cancelar Agendamento"
+        message={`Você tem certeza que deseja cancelar o agendamento de ${confirmData.clienteNome} para o dia ${confirmData.dataAgendamento} às ${confirmData.horario}?\n\nO agendamento será movido para o histórico como cancelado.`}
+        confirmText="Sim, Cancelar"
         cancelText="Não, Manter"
-        confirmButtonColor={
-          confirmAction === 'cancel' 
-            ? 'bg-yellow-600 hover:bg-yellow-700' 
-            : 'bg-red-600 hover:bg-red-700'
-        }
+        confirmButtonColor="bg-yellow-600 hover:bg-yellow-700"
       />
     </div>
   );
