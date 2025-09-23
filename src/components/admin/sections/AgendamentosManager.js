@@ -232,20 +232,43 @@ const AgendamentosManager = ({ currentUser }) => {
     }
 
     try {
-      // Atualizar agendamento com tipo de pagamento e status confirmado
-      const { error } = await supabase
+      // Buscar o agendamento completo
+      const { data: agendamento, error: fetchError } = await supabase
         .from('agendamentos')
-        .update({ 
-          status: 'confirmed',
+        .select('*')
+        .eq('id', selectedAgendamento.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Inserir diretamente no histórico com tipo de pagamento
+      const { error: insertError } = await supabase
+        .from('historico')
+        .insert({
+          agendamento_id: agendamento.id,
+          usuario_id: agendamento.usuario_id,
+          profissional_id: agendamento.profissional_id,
+          unidade_id: agendamento.unidade_id,
+          servico_id: agendamento.servico_id,
+          data_agendamento: agendamento.data_agendamento,
+          horario_inicio: agendamento.horario_inicio,
+          horario_fim: agendamento.horario_fim,
+          status: 'concluido',
+          valor_total: agendamento.preco_total,
           tipo_pagamento: tipoPagamento,
-          data_confirmacao: new Date().toISOString()
-        })
+          forma_pagamento: tipoPagamento,
+          data_conclusao: new Date().toISOString()
+        });
+
+      if (insertError) throw insertError;
+
+      // Deletar da tabela agendamentos
+      const { error: deleteError } = await supabase
+        .from('agendamentos')
+        .delete()
         .eq('id', selectedAgendamento.id);
 
-      if (error) throw error;
-
-      // Após confirmar o pagamento, mover automaticamente para o histórico como 'concluido'
-      await moverParaHistorico(selectedAgendamento.id, 'concluido');
+      if (deleteError) throw deleteError;
 
       setShowPaymentModal(false);
       setSelectedAgendamento(null);
