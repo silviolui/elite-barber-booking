@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle, Filter } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import CustomCalendar from '../../CustomCalendar';
 
 const HistoricoView = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -8,6 +9,8 @@ const HistoricoView = ({ currentUser }) => {
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [dateFilter, setDateFilter] = useState(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     loadHistorico();
@@ -129,9 +132,20 @@ const HistoricoView = ({ currentUser }) => {
     }
   };
 
-  const filteredHistorico = historico.filter(item => 
-    statusFilter === 'todos' || item.status === statusFilter
-  );
+  const filteredHistorico = historico.filter(item => {
+    // Filtrar por status
+    const statusMatch = statusFilter === 'todos' || item.status === statusFilter;
+    
+    // Filtrar por data
+    let dateMatch = true;
+    if (dateFilter) {
+      const itemDate = new Date(item.data_agendamento);
+      const filterDate = new Date(dateFilter);
+      dateMatch = itemDate.toDateString() === filterDate.toDateString();
+    }
+    
+    return statusMatch && dateMatch;
+  });
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -189,6 +203,39 @@ const HistoricoView = ({ currentUser }) => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Histórico de Agendamentos</h2>
         <div className="flex items-center space-x-4">
+          {/* Filtro por Data */}
+          <button
+            onClick={() => setShowCalendar(true)}
+            className={`
+              px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent
+              flex items-center space-x-2 transition-colors duration-200
+              ${dateFilter 
+                ? 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100' 
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }
+            `}
+          >
+            <Calendar size={16} />
+            <span className="text-sm font-medium">
+              {dateFilter 
+                ? dateFilter.toLocaleDateString('pt-BR')
+                : 'Filtrar por Data'
+              }
+            </span>
+            {dateFilter && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDateFilter(null);
+                }}
+                className="ml-1 hover:bg-orange-200 rounded-full p-1"
+              >
+                <XCircle size={14} />
+              </button>
+            )}
+          </button>
+
+          {/* Filtro por Status */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -199,6 +246,7 @@ const HistoricoView = ({ currentUser }) => {
             <option value="cancelado">Cancelados ({statusCounts.cancelado})</option>
             <option value="excluido">Excluídos ({statusCounts.excluido})</option>
           </select>
+          
           <div className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
             Mostrando: {filteredHistorico.length} registro{filteredHistorico.length !== 1 ? 's' : ''}
           </div>
@@ -319,6 +367,15 @@ const HistoricoView = ({ currentUser }) => {
           ))
         )}
       </div>
+
+      {/* Calendário Personalizado */}
+      {showCalendar && (
+        <CustomCalendar
+          selectedDate={dateFilter}
+          onDateSelect={setDateFilter}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
     </div>
   );
 };
