@@ -232,6 +232,10 @@ const AgendamentosManager = ({ currentUser }) => {
     }
 
     try {
+      console.log('🔍 CONFIRMANDO PAGAMENTO - Iniciando...');
+      console.log('🔍 Agendamento selecionado:', selectedAgendamento);
+      console.log('🔍 Tipo de pagamento:', tipoPagamento);
+
       // Buscar o agendamento completo
       const { data: agendamento, error: fetchError } = await supabase
         .from('agendamentos')
@@ -239,28 +243,46 @@ const AgendamentosManager = ({ currentUser }) => {
         .eq('id', selectedAgendamento.id)
         .single();
 
-      if (fetchError) throw fetchError;
+      console.log('🔍 Agendamento buscado:', { agendamento, fetchError });
+
+      if (fetchError) {
+        console.error('❌ Erro ao buscar agendamento:', fetchError);
+        throw fetchError;
+      }
+
+      // Preparar dados para histórico
+      const dadosHistorico = {
+        agendamento_id: agendamento.id,
+        usuario_id: agendamento.usuario_id,
+        profissional_id: agendamento.profissional_id,
+        unidade_id: agendamento.unidade_id,
+        servico_id: agendamento.servico_id,
+        data_agendamento: agendamento.data_agendamento,
+        horario_inicio: agendamento.horario_inicio,
+        horario_fim: agendamento.horario_fim,
+        status: 'concluido',
+        valor_total: agendamento.preco_total,
+        tipo_pagamento: tipoPagamento,
+        forma_pagamento: tipoPagamento,
+        data_conclusao: new Date().toISOString()
+      };
+
+      console.log('🔍 Dados para inserir no histórico:', dadosHistorico);
 
       // Inserir diretamente no histórico com tipo de pagamento
-      const { error: insertError } = await supabase
+      const { data: historicoData, error: insertError } = await supabase
         .from('historico')
-        .insert({
-          agendamento_id: agendamento.id,
-          usuario_id: agendamento.usuario_id,
-          profissional_id: agendamento.profissional_id,
-          unidade_id: agendamento.unidade_id,
-          servico_id: agendamento.servico_id,
-          data_agendamento: agendamento.data_agendamento,
-          horario_inicio: agendamento.horario_inicio,
-          horario_fim: agendamento.horario_fim,
-          status: 'concluido',
-          valor_total: agendamento.preco_total,
-          tipo_pagamento: tipoPagamento,
-          forma_pagamento: tipoPagamento,
-          data_conclusao: new Date().toISOString()
-        });
+        .insert(dadosHistorico)
+        .select();
 
-      if (insertError) throw insertError;
+      console.log('🔍 Resultado inserção histórico:', { historicoData, insertError });
+
+      if (insertError) {
+        console.error('❌ Erro ao inserir no histórico:', insertError);
+        throw insertError;
+      }
+
+      console.log('✅ Agendamento inserido no histórico com sucesso!');
 
       // Deletar da tabela agendamentos
       const { error: deleteError } = await supabase
@@ -268,14 +290,23 @@ const AgendamentosManager = ({ currentUser }) => {
         .delete()
         .eq('id', selectedAgendamento.id);
 
-      if (deleteError) throw deleteError;
+      console.log('🔍 Resultado deletar agendamento:', { deleteError });
+
+      if (deleteError) {
+        console.error('❌ Erro ao deletar agendamento:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('✅ Agendamento deletado da tabela agendamentos!');
 
       setShowPaymentModal(false);
       setSelectedAgendamento(null);
       setTipoPagamento('');
       await loadAgendamentos();
+
+      alert('Pagamento confirmado e movido para histórico com sucesso!');
     } catch (error) {
-      console.error('Erro ao confirmar pagamento:', error);
+      console.error('❌ ERRO GERAL ao confirmar pagamento:', error);
       alert('Erro ao confirmar pagamento: ' + error.message);
     }
   };
