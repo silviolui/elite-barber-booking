@@ -170,25 +170,43 @@ const HistoricoView = ({ currentUser }) => {
     );
   }
 
+  // Calcular contadores por status
+  const getStatusCounts = () => {
+    const counts = {
+      todos: historico.length,
+      concluido: historico.filter(item => item.status === 'concluido').length,
+      cancelado: historico.filter(item => item.status === 'cancelado').length,
+      excluido: historico.filter(item => item.status === 'excluido').length
+    };
+    return counts;
+  };
+
+  const statusCounts = getStatusCounts();
+
   return (
     <div className="space-y-6">
       {/* Header & Filters */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Histórico de Agendamentos</h2>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-        >
-          <option value="todos">Todos os status</option>
-          <option value="concluido">Concluídos</option>
-          <option value="cancelado">Cancelados</option>
-          <option value="excluido">Excluídos</option>
-        </select>
+        <div className="flex items-center space-x-4">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          >
+            <option value="todos">Todos os status ({statusCounts.todos})</option>
+            <option value="concluido">Concluídos ({statusCounts.concluido})</option>
+            <option value="cancelado">Cancelados ({statusCounts.cancelado})</option>
+            <option value="excluido">Excluídos ({statusCounts.excluido})</option>
+          </select>
+          <div className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
+            Mostrando: {filteredHistorico.length} registro{filteredHistorico.length !== 1 ? 's' : ''}
+          </div>
+        </div>
       </div>
 
-      {/* Histórico List */}
-      <div className="space-y-4">
+      {/* Histórico List - Formato Lista Compacta */}
+      <div className="space-y-2">
         {filteredHistorico.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
             <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
@@ -196,136 +214,105 @@ const HistoricoView = ({ currentUser }) => {
           </div>
         ) : (
           filteredHistorico.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              {/* Header com Status - Data/Horário em Destaque */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-5 border-b border-blue-200">
+            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+              <div className="px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
-                      <Calendar size={24} className="text-white" />
+                  {/* Data e Horário */}
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Calendar size={18} className="text-blue-600" />
                     </div>
                     <div>
-                      <div className="flex items-center space-x-3 mb-1">
-                        <h3 className="text-2xl font-bold text-blue-900">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-gray-900">
                           {new Date(item.data_agendamento).toLocaleDateString('pt-BR')}
-                        </h3>
-                        <span className="text-xl text-blue-700">•</span>
-                        <h4 className="text-xl font-bold text-blue-800">
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-lg font-semibold text-gray-700">
                           {item.horario_inicio?.substring(0, 5)} - {item.horario_fim?.substring(0, 5)}
-                        </h4>
+                        </span>
                       </div>
-                      <p className="text-sm text-blue-700 font-medium">Histórico de Agendamento</p>
+                      <div className="text-xs text-gray-500">
+                        Finalizado: {new Date(item.data_conclusao).toLocaleDateString('pt-BR')} às {new Date(item.data_conclusao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Status */}
                   <div className="flex items-center space-x-3">
                     {getStatusBadge(item.status)}
                   </div>
                 </div>
-              </div>
 
-              {/* Conteúdo Principal */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Informações do Cliente */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <User size={16} className="text-green-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-800">Cliente</h4>
+                {/* Informações Detalhadas em uma linha */}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                  {/* Cliente */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                      <User size={12} className="text-green-600" />
                     </div>
-                    <div className="ml-10 space-y-2">
-                      <div>
-                        <p className="text-sm text-gray-500">Nome:</p>
-                        <p className="font-medium text-gray-900">
-                          {item.users?.nome || item.users?.email?.split('@')[0] || 'Cliente não identificado'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Email:</p>
-                        <p className="font-medium text-gray-900">{item.users?.email || 'Não informado'}</p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500">Cliente</p>
+                      <p className="font-medium text-gray-900 truncate">
+                        {item.users?.nome || item.users?.email?.split('@')[0] || 'Cliente'}
+                      </p>
                       {item.users?.telefone && (
-                        <div>
-                          <p className="text-sm text-gray-500">Telefone:</p>
-                          <p className="font-medium text-gray-900">{item.users.telefone}</p>
-                        </div>
+                        <p className="text-xs text-gray-500">{item.users.telefone}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Informações do Profissional e Local */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <User size={16} className="text-purple-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-800">Profissional</h4>
+                  {/* Profissional */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                      <User size={12} className="text-purple-600" />
                     </div>
-                    <div className="ml-10 space-y-2">
-                      <div>
-                        <p className="text-sm text-gray-500">Nome:</p>
-                        <p className="font-medium text-gray-900">{item.profissionais?.nome || 'Profissional'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Local:</p>
-                        <div className="flex items-center space-x-1">
-                          <MapPin size={14} className="text-gray-400" />
-                          <p className="font-medium text-gray-900">{item.unidades?.nome || 'Unidade'}</p>
-                        </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500">Profissional</p>
+                      <p className="font-medium text-gray-900 truncate">
+                        {item.profissionais?.nome || 'Profissional'}
+                      </p>
+                      <div className="flex items-center space-x-1">
+                        <MapPin size={10} className="text-gray-400" />
+                        <p className="text-xs text-gray-500 truncate">{item.unidades?.nome || 'Unidade'}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Informações do Serviço e Pagamento */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                        <DollarSign size={16} className="text-orange-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-800">Serviço & Pagamento</h4>
+                  {/* Serviço */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Clock size={12} className="text-orange-600" />
                     </div>
-                    <div className="ml-10 space-y-2">
-                      <div>
-                        <p className="text-sm text-gray-500">Serviço:</p>
-                        <p className="font-medium text-gray-900">{item.servicos?.nome || 'Serviço'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Valor:</p>
-                        <p className="font-bold text-green-600">
-                          R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500">Serviço</p>
+                      <p className="font-medium text-gray-900 truncate">
+                        {item.servicos?.nome || 'Serviço'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Valor e Pagamento */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                      <DollarSign size={12} className="text-green-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500">Valor</p>
+                      <p className="font-bold text-green-600">
+                        R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
                       {item.tipo_pagamento && (
-                        <div>
-                          <p className="text-sm text-gray-500">Tipo de Pagamento:</p>
-                          <p className="font-medium text-gray-900">
-                            {item.tipo_pagamento === 'pix' ? '📱 PIX' :
-                             item.tipo_pagamento === 'debito' ? '💳 Cartão de Débito' :
-                             item.tipo_pagamento === 'credito' ? '💎 Cartão de Crédito' :
-                             item.tipo_pagamento === 'dinheiro' ? '💵 Dinheiro' :
-                             item.tipo_pagamento}
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-500">
+                          {item.tipo_pagamento === 'pix' ? 'PIX' :
+                           item.tipo_pagamento === 'debito' ? 'Débito' :
+                           item.tipo_pagamento === 'credito' ? 'Crédito' :
+                           item.tipo_pagamento === 'dinheiro' ? 'Dinheiro' :
+                           item.tipo_pagamento}
+                        </p>
                       )}
                     </div>
                   </div>
-                </div>
-
-                {/* Data de conclusão */}
-                <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                  <p className="text-sm text-gray-500">
-                    Finalizado em: <span className="font-medium text-gray-700">
-                      {new Date(item.data_conclusao).toLocaleString('pt-BR', { 
-                        timeZone: 'America/Sao_Paulo',
-                        year: 'numeric',
-                        month: '2-digit', 
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </p>
                 </div>
               </div>
             </div>
