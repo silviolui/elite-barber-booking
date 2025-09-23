@@ -432,16 +432,20 @@ const AgendamentosManager = ({ currentUser }) => {
         ) : (
           filteredAgendamentos.map((agendamento) => (
             <div key={agendamento.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              {/* Header com Status */}
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+              {/* Header com Status - Data/Horário em Destaque */}
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-5 border-b border-orange-200">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Calendar size={20} className="text-orange-600" />
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-sm">
+                      <Calendar size={24} className="text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Agendamento</h3>
-                      <p className="text-sm text-gray-600">{formatDate(agendamento.data_agendamento)} • {formatTime(agendamento.horario_inicio)} - {formatTime(agendamento.horario_fim)}</p>
+                      <div className="flex items-center space-x-3 mb-1">
+                        <h3 className="text-2xl font-bold text-orange-900">{formatDate(agendamento.data_agendamento)}</h3>
+                        <span className="text-xl text-orange-700">•</span>
+                        <h4 className="text-xl font-bold text-orange-800">{formatTime(agendamento.horario_inicio)} - {formatTime(agendamento.horario_fim)}</h4>
+                      </div>
+                      <p className="text-sm text-orange-700 font-medium">Agendamento</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
