@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import AgendamentoModal from './AgendamentoModal';
 
 const Historico = ({ usuarioId }) => {
+  console.log('Historico.js - componente inicializado com usuarioId:', usuarioId);
+  
   const [agendamentosAbertos, setAgendamentosAbertos] = useState([]);
   const [historicoPassado, setHistoricoPassado] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,8 +13,22 @@ const Historico = ({ usuarioId }) => {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    console.log('Historico.js - useEffect executado, usuarioId:', usuarioId);
     if (usuarioId) {
       carregarDados();
+    } else {
+      console.log('Historico.js - usuarioId não disponível, tentando obter do currentUser...');
+      // Tentar obter o usuário atual diretamente do Supabase
+      const getCurrentUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('Historico.js - user do Supabase auth:', user);
+        if (user) {
+          console.log('Historico.js - carregando com user.id:', user.id);
+          // Temporariamente usar o user.id para carregar
+          carregarAgendamentosComUserId(user.id);
+        }
+      };
+      getCurrentUser();
     }
   }, [usuarioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -33,6 +49,23 @@ const Historico = ({ usuarioId }) => {
     }
   };
 
+  const carregarAgendamentosComUserId = async (userId) => {
+    try {
+      setLoading(true);
+      
+      // Carregar agendamentos em aberto usando o userId fornecido
+      await carregarAgendamentosAbertosComUserId(userId);
+      
+      // Carregar histórico passado usando o userId fornecido  
+      await carregarHistoricoPassadoComUserId(userId);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const carregarAgendamentosAbertos = async () => {
     console.log('Carregando agendamentos para usuário:', usuarioId);
     
@@ -40,6 +73,8 @@ const Historico = ({ usuarioId }) => {
     const hoje = new Date();
     const ontem = new Date(hoje);
     ontem.setDate(hoje.getDate() - 1);
+    
+    console.log('Data de filtro (ontem):', ontem.toISOString().split('T')[0]);
     
     const { data, error } = await supabase
       .from('agendamentos')
@@ -75,6 +110,46 @@ const Historico = ({ usuarioId }) => {
     }
   };
 
+  const carregarAgendamentosAbertosComUserId = async (userId) => {
+    console.log('Carregando agendamentos para usuário (direto):', userId);
+    
+    const hoje = new Date();
+    const ontem = new Date(hoje);
+    ontem.setDate(hoje.getDate() - 1);
+    
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .select('*')
+      .eq('usuario_id', userId)
+      .in('status', ['pending', 'confirmed'])
+      .gte('data_agendamento', ontem.toISOString().split('T')[0])
+      .order('data_agendamento', { ascending: true });
+
+    console.log('Agendamentos encontrados (direto):', data, 'Erro:', error);
+    if (!error && data) {
+      const agendamentosComDetalhes = await Promise.all(
+        data.map(async (agendamento) => {
+          const [profissional, unidade, servico] = await Promise.all([
+            supabase.from('profissionais').select('nome, foto_url').eq('id', agendamento.profissional_id).single(),
+            supabase.from('unidades').select('nome').eq('id', agendamento.unidade_id).single(),
+            agendamento.servico_id ? 
+              supabase.from('servicos').select('nome, duracao').eq('id', agendamento.servico_id).single() :
+              Promise.resolve({ data: { nome: 'Corte de Cabelo', duracao: 30 } })
+          ]);
+          
+          return {
+            ...agendamento,
+            profissionais: profissional.data,
+            unidades: unidade.data,
+            servicos: servico.data
+          };
+        })
+      );
+      
+      setAgendamentosAbertos(agendamentosComDetalhes);
+    }
+  };
+
   const carregarHistoricoPassado = async () => {
     const { data, error } = await supabase
       .from('historico')
@@ -85,6 +160,23 @@ const Historico = ({ usuarioId }) => {
         servicos (nome, duracao)
       `)
       .eq('usuario_id', usuarioId)
+      .order('data_agendamento', { ascending: false });
+
+    if (!error && data) {
+      setHistoricoPassado(agruparPorMes(data));
+    }
+  };
+
+  const carregarHistoricoPassadoComUserId = async (userId) => {
+    const { data, error } = await supabase
+      .from('historico')
+      .select(`
+        *,
+        profissionais (nome, foto_url),
+        unidades (nome),
+        servicos (nome, duracao)
+      `)
+      .eq('usuario_id', userId)
       .order('data_agendamento', { ascending: false });
 
     if (!error && data) {

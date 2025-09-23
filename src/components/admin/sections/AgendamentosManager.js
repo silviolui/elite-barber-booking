@@ -16,7 +16,11 @@ import { supabase } from '../../../lib/supabase';
 
 const AgendamentosManager = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
-  const unidadeId = adminData.unidade_id; // NULL se for super admin
+  const unidadeId = adminData.unidade_id || currentUser?.unidade_id; // Usar currentUser como fallback
+  
+  console.log('AgendamentosManager - adminData:', adminData);
+  console.log('AgendamentosManager - currentUser:', currentUser);
+  console.log('AgendamentosManager - unidadeId:', unidadeId);
   const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +34,8 @@ const AgendamentosManager = ({ currentUser }) => {
   const loadAgendamentos = async () => {
     setLoading(true);
     try {
+      console.log('loadAgendamentos - iniciando com unidadeId:', unidadeId);
+      
       let query = supabase
         .from('agendamentos')
         .select(`
@@ -44,10 +50,16 @@ const AgendamentosManager = ({ currentUser }) => {
 
       // Se não for super admin, filtrar por unidade
       if (unidadeId) {
+        console.log('loadAgendamentos - aplicando filtro por unidade:', unidadeId);
         query = query.eq('unidade_id', unidadeId);
+      } else {
+        console.log('loadAgendamentos - sem filtro de unidade (super admin)');
       }
 
       const { data, error } = await query;
+      
+      console.log('loadAgendamentos - resultado:', { data: data?.length || 0, error });
+      console.log('loadAgendamentos - agendamentos encontrados:', data);
 
       if (error) {
         console.error('Erro ao carregar agendamentos:', error);

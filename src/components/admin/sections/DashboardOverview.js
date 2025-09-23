@@ -13,7 +13,11 @@ import { supabase } from '../../../lib/supabase';
 
 const DashboardOverview = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
-  const unidadeId = adminData.unidade_id; // NULL se for super admin
+  const unidadeId = adminData.unidade_id || currentUser?.unidade_id; // Usar currentUser como fallback
+  
+  console.log('DashboardOverview - adminData:', adminData);
+  console.log('DashboardOverview - currentUser:', currentUser);
+  console.log('DashboardOverview - unidadeId:', unidadeId);
   const [stats, setStats] = useState({
     totalAgendamentos: 0,
     agendamentosHoje: 0,

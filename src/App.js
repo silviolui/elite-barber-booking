@@ -364,6 +364,8 @@ function App() {
     if (activeTab !== 'agenda') {
       switch (activeTab) {
         case 'historico':
+          console.log('App.js - currentUser para Historico:', currentUser);
+          console.log('App.js - usuarioId para Historico:', currentUser?.id);
           return <Historico usuarioId={currentUser?.id} />;
         case 'assinatura':
           return <PlaceholderScreen title="Assinatura" />;
