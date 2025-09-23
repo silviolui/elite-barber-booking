@@ -58,7 +58,7 @@ const HistoricoView = ({ currentUser }) => {
             try {
               const { data: userData } = await supabase
                 .from('users')
-                .select('email, raw_user_meta_data, nome, telefone')
+                .select('email, nome, telefone')
                 .eq('id', item.usuario_id)
                 .single();
               if (userData) {
@@ -66,8 +66,8 @@ const HistoricoView = ({ currentUser }) => {
                 console.log('👤 Dados do usuário carregados:', userData);
               }
             } catch (err) {
-              console.log('⚠️ Erro ao buscar usuário:', item.usuario_id);
-              enriched.users = { email: 'Usuario', raw_user_meta_data: { nome: 'Cliente' }, nome: 'Cliente', telefone: '' };
+              console.log('⚠️ Erro ao buscar usuário:', item.usuario_id, err);
+              enriched.users = { email: 'Usuario', nome: 'Cliente', telefone: '' };
             }
             
             // Buscar dados do profissional
@@ -238,7 +238,7 @@ const HistoricoView = ({ currentUser }) => {
                       <div>
                         <p className="text-sm text-gray-500">Nome:</p>
                         <p className="font-medium text-gray-900">
-                          {item.users?.nome || item.users?.raw_user_meta_data?.nome || item.users?.email?.split('@')[0] || 'Cliente não identificado'}
+                          {item.users?.nome || item.users?.email?.split('@')[0] || 'Cliente não identificado'}
                         </p>
                       </div>
                       <div>
