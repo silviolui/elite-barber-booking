@@ -250,6 +250,10 @@ const AgendamentosManager = ({ currentUser }) => {
         throw fetchError;
       }
 
+      // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
+      const agora = new Date();
+      const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
+
       // Preparar dados para histórico
       const dadosHistorico = {
         agendamento_id: agendamento.id,
@@ -264,7 +268,7 @@ const AgendamentosManager = ({ currentUser }) => {
         valor_total: agendamento.preco_total,
         tipo_pagamento: tipoPagamento,
         forma_pagamento: tipoPagamento,
-        data_conclusao: new Date().toISOString()
+        data_conclusao: horarioBrasil.toISOString()
       };
 
       console.log('🔍 Dados para inserir no histórico:', dadosHistorico);
@@ -350,6 +354,10 @@ const AgendamentosManager = ({ currentUser }) => {
         return;
       }
 
+      // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
+      const agora = new Date();
+      const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
+
       // Inserir no histórico
       const { error: insertError } = await supabase
         .from('historico')
@@ -366,7 +374,7 @@ const AgendamentosManager = ({ currentUser }) => {
           valor_total: agendamento.preco_total,
           tipo_pagamento: agendamento.tipo_pagamento,
           forma_pagamento: agendamento.tipo_pagamento, // Manter compatibilidade
-          data_conclusao: new Date().toISOString()
+          data_conclusao: horarioBrasil.toISOString()
         });
 
       if (insertError) {

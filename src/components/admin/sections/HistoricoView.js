@@ -58,13 +58,16 @@ const HistoricoView = ({ currentUser }) => {
             try {
               const { data: userData } = await supabase
                 .from('users')
-                .select('email, raw_user_meta_data')
+                .select('email, raw_user_meta_data, nome, telefone')
                 .eq('id', item.usuario_id)
                 .single();
-              if (userData) enriched.users = userData;
+              if (userData) {
+                enriched.users = userData;
+                console.log('👤 Dados do usuário carregados:', userData);
+              }
             } catch (err) {
               console.log('⚠️ Erro ao buscar usuário:', item.usuario_id);
-              enriched.users = { email: 'Usuario', raw_user_meta_data: { nome: 'Cliente' } };
+              enriched.users = { email: 'Usuario', raw_user_meta_data: { nome: 'Cliente' }, nome: 'Cliente', telefone: '' };
             }
             
             // Buscar dados do profissional
@@ -200,9 +203,12 @@ const HistoricoView = ({ currentUser }) => {
                   <div>
                     <p className="font-medium text-gray-900 flex items-center">
                       <User size={16} className="mr-2 text-gray-400" />
-                      {item.users?.raw_user_meta_data?.nome || item.users?.email || 'Cliente'}
+                      {item.users?.nome || item.users?.raw_user_meta_data?.nome || item.users?.email?.split('@')[0] || 'Cliente'}
                     </p>
                     <p className="text-sm text-gray-600">{item.users?.email}</p>
+                    {item.users?.telefone && (
+                      <p className="text-sm text-gray-600">📞 {item.users.telefone}</p>
+                    )}
                   </div>
 
                   {/* Data & Horário */}
@@ -252,7 +258,14 @@ const HistoricoView = ({ currentUser }) => {
 
               {/* Data de conclusão */}
               <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500">
-                Finalizado em: {new Date(item.data_conclusao).toLocaleString('pt-BR')}
+                Finalizado em: {new Date(item.data_conclusao).toLocaleString('pt-BR', { 
+                  timeZone: 'America/Sao_Paulo',
+                  year: 'numeric',
+                  month: '2-digit', 
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
               </div>
             </div>
           ))
