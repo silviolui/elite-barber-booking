@@ -52,27 +52,57 @@ const AgendamentosManager = ({ currentUser }) => {
         primeiros5: allData 
       });
 
-      // SEGUNDO: Consulta com joins mas SEM filtro de unidade
-      console.log('🔍 DEBUG - Testando consulta com joins SEM filtro...');
-      let query = supabase
+      // SEGUNDO: Consulta básica SEM joins primeiro
+      console.log('🔍 DEBUG - Testando consulta básica sem joins...');
+      const { data: dataBasic, error: errorBasic } = await supabase
         .from('agendamentos')
-        .select(`
-          *,
-          users (email, raw_user_meta_data),
-          profissionais (nome, telefone),
-          unidades (nome, endereco),
-          servicos (nome, preco, duracao_minutos)
-        `)
+        .select('*')
         .order('data_agendamento', { ascending: true })
         .order('horario_inicio', { ascending: true });
-
-      const { data: dataWithJoins, error: errorWithJoins } = await query;
       
-      console.log('🔍 DEBUG - Consulta com joins (sem filtro unidade):', { 
-        count: dataWithJoins?.length || 0, 
-        error: errorWithJoins,
-        dados: dataWithJoins 
+      console.log('🔍 DEBUG - Consulta básica (sem joins):', { 
+        count: dataBasic?.length || 0, 
+        error: errorBasic,
+        dados: dataBasic?.slice(0, 2) // Mostrar só os 2 primeiros
       });
+
+      // TERCEIRO: Tentar consulta com joins individuais para identificar o problema
+      let dataWithJoins = null;
+      let errorWithJoins = null;
+      
+      try {
+        console.log('🔍 DEBUG - Testando joins individuais...');
+        
+        const { data, error } = await supabase
+          .from('agendamentos')
+          .select(`
+            *,
+            users!inner (email, raw_user_meta_data),
+            profissionais!inner (nome, telefone),
+            unidades!inner (nome, endereco)
+          `)
+          .limit(10)
+          .order('data_agendamento', { ascending: true });
+        
+        console.log('🔍 DEBUG - Joins com users, profissionais, unidades:', { 
+          count: data?.length || 0, 
+          error,
+          dados: data?.slice(0, 1) 
+        });
+        
+        if (!error && data && data.length > 0) {
+          dataWithJoins = data;
+          errorWithJoins = null;
+        } else {
+          // Fallback para consulta básica
+          dataWithJoins = dataBasic;
+          errorWithJoins = errorBasic;
+        }
+      } catch (joinError) {
+        console.log('🔍 DEBUG - Erro nos joins, usando dados básicos:', joinError);
+        dataWithJoins = dataBasic;
+        errorWithJoins = errorBasic;
+      }
 
       // TERCEIRO: Se unidadeId existe, testar filtro
       let finalData = dataWithJoins;
@@ -85,16 +115,10 @@ const AgendamentosManager = ({ currentUser }) => {
           filteredData
         });
         
-        // Testar também consulta direta com filtro
+        // Testar também consulta direta com filtro (SEM joins problemáticos)
         const { data: directFiltered, error: directError } = await supabase
           .from('agendamentos')
-          .select(`
-            *,
-            users (email, raw_user_meta_data),
-            profissionais (nome, telefone),
-            unidades (nome, endereco),
-            servicos (nome, preco, duracao_minutos)
-          `)
+          .select('*')
           .eq('unidade_id', unidadeId)
           .order('data_agendamento', { ascending: true });
           
@@ -110,7 +134,62 @@ const AgendamentosManager = ({ currentUser }) => {
       }
 
       console.log('🔍 DEBUG - Definindo agendamentos finais:', finalData?.length || 0);
-      setAgendamentos(finalData || []);
+      
+      // Se temos dados básicos, tentar enriquecer com dados relacionados separadamente
+      if (finalData && finalData.length > 0) {
+        try {
+          console.log('🔍 DEBUG - Enriquecendo dados com informações relacionadas...');
+          const enrichedData = await Promise.all(finalData.map(async (agendamento) => {
+            const enriched = { ...agendamento };
+            
+            // Tentar buscar dados do usuário
+            try {
+              const { data: userData } = await supabase
+                .from('users')
+                .select('email, raw_user_meta_data')
+                .eq('id', agendamento.usuario_id)
+                .single();
+              if (userData) enriched.users = userData;
+            } catch (err) {
+              console.log('Erro ao buscar usuário:', err);
+            }
+            
+            // Tentar buscar dados do profissional
+            try {
+              const { data: profData } = await supabase
+                .from('profissionais')
+                .select('nome, telefone')
+                .eq('id', agendamento.profissional_id)
+                .single();
+              if (profData) enriched.profissionais = profData;
+            } catch (err) {
+              console.log('Erro ao buscar profissional:', err);
+            }
+            
+            // Tentar buscar dados da unidade
+            try {
+              const { data: unidadeData } = await supabase
+                .from('unidades')
+                .select('nome, endereco')
+                .eq('id', agendamento.unidade_id)
+                .single();
+              if (unidadeData) enriched.unidades = unidadeData;
+            } catch (err) {
+              console.log('Erro ao buscar unidade:', err);
+            }
+            
+            return enriched;
+          }));
+          
+          console.log('🔍 DEBUG - Dados enriquecidos:', enrichedData.length);
+          setAgendamentos(enrichedData);
+        } catch (enrichError) {
+          console.log('🔍 DEBUG - Erro ao enriquecer dados, usando dados básicos:', enrichError);
+          setAgendamentos(finalData);
+        }
+      } else {
+        setAgendamentos([]);
+      }
       
     } catch (error) {
       console.error('🔍 DEBUG - Erro geral:', error);
