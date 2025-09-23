@@ -140,26 +140,32 @@ const AgendamentosManager = ({ currentUser }) => {
             
             // Tentar buscar dados do usuário
             try {
-              const { data: userData } = await supabase
+              console.log('🔍 DEBUG - Buscando usuário:', agendamento.usuario_id);
+              const { data: userData, error: userError } = await supabase
                 .from('users')
-                .select('email, raw_user_meta_data')
+                .select('*')
                 .eq('id', agendamento.usuario_id)
                 .single();
+              
+              console.log('🔍 DEBUG - Dados do usuário:', { userData, userError });
               if (userData) enriched.users = userData;
             } catch (err) {
-              console.log('Erro ao buscar usuário:', err);
+              console.log('🔍 DEBUG - Erro ao buscar usuário:', err);
             }
             
             // Tentar buscar dados do profissional
             try {
-              const { data: profData } = await supabase
+              console.log('🔍 DEBUG - Buscando profissional:', agendamento.profissional_id);
+              const { data: profData, error: profError } = await supabase
                 .from('profissionais')
-                .select('nome, telefone')
+                .select('*')
                 .eq('id', agendamento.profissional_id)
                 .single();
+              
+              console.log('🔍 DEBUG - Dados do profissional:', { profData, profError });
               if (profData) enriched.profissionais = profData;
             } catch (err) {
-              console.log('Erro ao buscar profissional:', err);
+              console.log('🔍 DEBUG - Erro ao buscar profissional:', err);
             }
             
             // Tentar buscar dados da unidade
@@ -192,6 +198,7 @@ const AgendamentosManager = ({ currentUser }) => {
           }));
           
           console.log('🔍 DEBUG - Dados enriquecidos:', enrichedData.length);
+          console.log('🔍 DEBUG - Primeiro agendamento enriquecido:', enrichedData[0]);
           setAgendamentos(enrichedData);
         } catch (enrichError) {
           console.log('🔍 DEBUG - Erro ao enriquecer dados, usando dados básicos:', enrichError);
@@ -433,13 +440,22 @@ const AgendamentosManager = ({ currentUser }) => {
                     <p className="font-medium text-gray-900 flex items-center">
                       <User size={16} className="mr-2 text-gray-400" />
                       {agendamento.users?.raw_user_meta_data?.nome || 
-                       agendamento.users?.raw_user_meta_data?.name || 
+                       agendamento.users?.raw_user_meta_data?.name ||
+                       agendamento.users?.user_metadata?.nome ||
+                       agendamento.users?.user_metadata?.name ||
+                       agendamento.users?.email?.split('@')[0] ||
                        'Cliente'}
                     </p>
                     <p className="text-sm text-gray-600">{agendamento.users?.email}</p>
-                    {agendamento.users?.raw_user_meta_data?.telefone && (
+                    {(agendamento.users?.raw_user_meta_data?.telefone || 
+                      agendamento.users?.user_metadata?.telefone ||
+                      agendamento.users?.raw_user_meta_data?.phone ||
+                      agendamento.users?.user_metadata?.phone) && (
                       <p className="text-sm text-gray-500">
-                        📞 {agendamento.users.raw_user_meta_data.telefone}
+                        📞 {agendamento.users?.raw_user_meta_data?.telefone || 
+                             agendamento.users?.user_metadata?.telefone ||
+                             agendamento.users?.raw_user_meta_data?.phone ||
+                             agendamento.users?.user_metadata?.phone}
                       </p>
                     )}
                   </div>

@@ -15,8 +15,7 @@ LIMIT 10;
 -- Substitua 'SEU_USUARIO_ID' pelo ID do console: 06bb5fa4-a7a1-47ba-b039-e9657176cebd
 SELECT 
     id,
-    email,
-    raw_user_meta_data
+    email
 FROM public.users 
 WHERE id = '06bb5fa4-a7a1-47ba-b039-e9657176cebd';
 
@@ -37,9 +36,8 @@ ORDER BY data_agendamento DESC;
 SELECT DISTINCT 
     a.usuario_id,
     u.email,
-    u.raw_user_meta_data->'nome' as nome,
     COUNT(a.id) as total_agendamentos
 FROM public.agendamentos a
 LEFT JOIN public.users u ON u.id = a.usuario_id
-GROUP BY a.usuario_id, u.email, u.raw_user_meta_data->'nome'
+GROUP BY a.usuario_id, u.email
 ORDER BY total_agendamentos DESC;
