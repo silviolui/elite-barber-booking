@@ -7,7 +7,6 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2,
   CheckCircle,
   XCircle
 } from 'lucide-react';
