@@ -23,8 +23,7 @@ BEGIN
             nome = NEW.nome,
             preco = NEW.preco,
             duracao_minutos = NEW.duracao_minutos,
-            ativo = NEW.ativo,
-            updated_at = NOW()
+            ativo = NEW.ativo
         WHERE 
             -- Serviços específicos de profissionais (não modelos)
             profissional_id IS NOT NULL
@@ -75,8 +74,7 @@ BEGIN
         nome = servico_modelo.nome,
         preco = servico_modelo.preco,
         duracao_minutos = servico_modelo.duracao_minutos,
-        ativo = servico_modelo.ativo,
-        updated_at = NOW()
+        ativo = servico_modelo.ativo
     WHERE 
         profissional_id IS NOT NULL
         AND nome = servico_modelo.nome
