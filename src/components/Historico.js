@@ -76,6 +76,17 @@ const Historico = ({ usuarioId }) => {
     
     console.log('Data de filtro (ontem):', ontem.toISOString().split('T')[0]);
     
+    // TESTE: Ver todos os agendamentos SEM filtro para debug
+    const { data: todosAgendamentos } = await supabase
+      .from('agendamentos')
+      .select('*')
+      .limit(10);
+    
+    console.log('🔍 CLIENTE - Todos os agendamentos (sem filtro):', {
+      total: todosAgendamentos?.length || 0,
+      agendamentos: todosAgendamentos
+    });
+    
     const { data, error } = await supabase
       .from('agendamentos')
       .select('*')
@@ -84,7 +95,13 @@ const Historico = ({ usuarioId }) => {
       .gte('data_agendamento', ontem.toISOString().split('T')[0]) // Incluir desde ontem
       .order('data_agendamento', { ascending: true });
 
-    console.log('Agendamentos encontrados:', data, 'Erro:', error);
+    console.log('🔍 CLIENTE - Agendamentos encontrados:', { 
+      count: data?.length || 0, 
+      error, 
+      usuarioId: usuarioId,
+      agendamentos: data 
+    });
+    
     if (!error && data) {
       // Carregar dados relacionados separadamente
       const agendamentosComDetalhes = await Promise.all(
