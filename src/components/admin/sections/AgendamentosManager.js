@@ -331,9 +331,12 @@ const AgendamentosManager = ({ currentUser }) => {
       const servicosSelecionados = servico ? [servico] : [];
 
       // Usar a função do supabaseData para buscar horários
+      // Converter string para objeto Date se necessário
+      const dataObj = typeof data === 'string' ? new Date(data + 'T00:00:00') : data;
+      
       const resultado = await supabaseData.getDadosCompletosData(
         unidadeId,
-        data,
+        dataObj,
         profissionalId,
         servicosSelecionados
       );
