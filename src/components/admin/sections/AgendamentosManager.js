@@ -63,16 +63,74 @@ const AgendamentosManager = ({ currentUser }) => {
 
   const updateAgendamentoStatus = async (id, novoStatus) => {
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: novoStatus })
-        .eq('id', id);
+      // Se o status for "completed", mover para histórico
+      if (novoStatus === 'completed') {
+        await moverParaHistorico(id, 'concluido');
+      } else {
+        const { error } = await supabase
+          .from('agendamentos')
+          .update({ status: novoStatus })
+          .eq('id', id);
 
-      if (!error) {
-        await loadAgendamentos();
+        if (error) throw error;
       }
+
+      await loadAgendamentos();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+    }
+  };
+
+  const moverParaHistorico = async (agendamentoId, status) => {
+    try {
+      // Primeiro, buscar o agendamento completo
+      const { data: agendamento, error: fetchError } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('id', agendamentoId)
+        .single();
+
+      if (fetchError) {
+        console.error('Erro ao buscar agendamento:', fetchError);
+        return;
+      }
+
+      // Inserir no histórico
+      const { error: insertError } = await supabase
+        .from('historico')
+        .insert({
+          agendamento_id: agendamento.id,
+          usuario_id: agendamento.usuario_id,
+          profissional_id: agendamento.profissional_id,
+          unidade_id: agendamento.unidade_id,
+          servico_id: agendamento.servico_id,
+          data_agendamento: agendamento.data_agendamento,
+          horario_inicio: agendamento.horario_inicio,
+          horario_fim: agendamento.horario_fim,
+          status: status,
+          valor_total: agendamento.preco_total,
+          data_conclusao: new Date().toISOString()
+        });
+
+      if (insertError) {
+        console.error('Erro ao inserir no histórico:', insertError);
+        return;
+      }
+
+      // Deletar da tabela agendamentos
+      const { error: deleteError } = await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('id', agendamentoId);
+
+      if (deleteError) {
+        console.error('Erro ao deletar agendamento:', deleteError);
+        return;
+      }
+
+      console.log('Agendamento movido para histórico com sucesso');
+    } catch (error) {
+      console.error('Erro ao mover agendamento para histórico:', error);
     }
   };
 

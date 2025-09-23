@@ -35,12 +35,18 @@ const Historico = ({ usuarioId }) => {
 
   const carregarAgendamentosAbertos = async () => {
     console.log('Carregando agendamentos para usuário:', usuarioId);
+    
+    // Obter data de hoje e ontem para incluir agendamentos recentes
+    const hoje = new Date();
+    const ontem = new Date(hoje);
+    ontem.setDate(hoje.getDate() - 1);
+    
     const { data, error } = await supabase
       .from('agendamentos')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .eq('status', 'pending')
-      .gte('data_agendamento', new Date().toISOString().split('T')[0])
+      .in('status', ['pending', 'confirmed']) // Incluir tanto pendentes quanto confirmados
+      .gte('data_agendamento', ontem.toISOString().split('T')[0]) // Incluir desde ontem
       .order('data_agendamento', { ascending: true });
 
     console.log('Agendamentos encontrados:', data, 'Erro:', error);
@@ -259,7 +265,9 @@ const Historico = ({ usuarioId }) => {
       {/* Agendamentos em Aberto */}
       {agendamentosAbertos.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">Agendamento em aberto</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">
+            Próximos agendamentos
+          </h2>
           
           {agendamentosAbertos.map((agendamento) => (
             <div 
@@ -269,9 +277,18 @@ const Historico = ({ usuarioId }) => {
             >
               {/* Cabeçalho do Card */}
               <div className="mb-4">
-                <h3 className="text-gray-900 font-medium text-lg mb-2">
-                  {agendamento.unidades?.nome}
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-gray-900 font-medium text-lg">
+                    {agendamento.unidades?.nome}
+                  </h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    agendamento.status === 'confirmed' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {agendamento.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                  </span>
+                </div>
                 
                 <div className="flex items-center justify-between text-gray-600">
                   <div className="flex items-center">
