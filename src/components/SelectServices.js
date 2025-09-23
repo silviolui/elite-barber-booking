@@ -12,6 +12,7 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
     const loadRealServices = async () => {
       if (!professionalId) {
         setRealServices([]);
+        setCurrentService(null); // LIMPAR seleção quando não há profissional
         setLoading(false);
         return;
       }
@@ -27,20 +28,33 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
         if (data && data.length > 0) {
           console.log(`Carregados ${data.length} serviços do profissional ${professionalId}`);
           setRealServices(data);
+          
+          // Verificar se o serviço pré-selecionado ainda existe e está ativo
+          if (selectedServices?.[0]) {
+            const servicoPreSelecionado = data.find(s => s.id === selectedServices[0].id);
+            if (servicoPreSelecionado) {
+              setCurrentService(servicoPreSelecionado);
+            } else {
+              console.log('Serviço pré-selecionado não está mais ativo, limpando seleção');
+              setCurrentService(null); // LIMPAR se serviço não está mais ativo
+            }
+          }
         } else {
-          console.log('Nenhum serviço encontrado na tabela, usando mock');
+          console.log('Nenhum serviço ativo encontrado, limpando seleção');
           setRealServices(services[professionalId] || []);
+          setCurrentService(null); // LIMPAR seleção quando não há serviços ativos
         }
       } catch (error) {
         console.error('Erro ao carregar serviços, usando mock:', error);
         setRealServices(services[professionalId] || []);
+        setCurrentService(null); // LIMPAR seleção em caso de erro
       } finally {
         setLoading(false);
       }
     };
 
     loadRealServices();
-  }, [professionalId, services]);
+  }, [professionalId, services, selectedServices]);
 
   // SELEÇÃO ÚNICA: Apenas um serviço por vez
   const selectService = (service) => {
@@ -48,9 +62,14 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
   };
 
   const handleContinue = () => {
-    if (currentService) {
+    // Validar se há serviços ativos E se há seleção válida
+    if (currentService && realServices.length > 0 && realServices.some(s => s.id === currentService.id)) {
       onSelect([currentService]); // Enviar como array para compatibilidade
       onClose();
+    } else {
+      console.log('❌ Tentativa de continuar sem serviço válido selecionado');
+      // Limpar seleção inválida
+      setCurrentService(null);
     }
   };
 
@@ -142,8 +161,8 @@ const SelectServices = ({ onClose, onSelect, professionalId, selectedServices, s
         </div>
       </div>
 
-      {/* Cart Summary & Continue Button */}
-      {currentService && (
+      {/* Cart Summary & Continue Button - só mostrar se há serviços ativos E seleção válida */}
+      {currentService && realServices.length > 0 && realServices.some(s => s.id === currentService.id) && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
           {/* Summary */}
           <div className="px-6 pt-4 pb-2">
