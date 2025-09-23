@@ -20,6 +20,7 @@ const HorariosConfig = ({ currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [hasExistingSchedules, setHasExistingSchedules] = useState(false);
   
   // Estados para configuração de intervalos de slots
   const [intervalosConfig, setIntervalosConfig] = useState({
@@ -123,33 +124,12 @@ const HorariosConfig = ({ currentUser }) => {
     try {
       const horariosData = await supabaseData.getHorarioFuncionamento(unidadeSelecionada);
       
-      // Se não há horários para esta unidade, criar o template padrão
+      // Verificar se já existem horários salvos no banco para esta unidade
       if (!horariosData || horariosData.length === 0) {
-        const horariosDefault = diasSemana.map(dia => ({
-          id: null,
-          unidade_id: unidadeSelecionada,
-          dia_semana: dia.id,
-          
-          // Manhã
-          abre_manha: dia.id >= 1 && dia.id <= 6, // Segunda a sábado
-          horario_abertura_manha: (dia.id >= 1 && dia.id <= 6) ? '08:00' : '',
-          horario_fechamento_manha: (dia.id >= 1 && dia.id <= 6) ? '12:00' : '',
-          
-          // Tarde
-          abre_tarde: dia.id >= 1 && dia.id <= 5, // Segunda a sexta
-          horario_abertura_tarde: (dia.id >= 1 && dia.id <= 5) ? '14:00' : '',
-          horario_fechamento_tarde: (dia.id >= 1 && dia.id <= 5) ? '18:00' : '',
-          
-          // Noite
-          abre_noite: dia.id >= 1 && dia.id <= 4, // Segunda a quinta
-          horario_abertura_noite: (dia.id >= 1 && dia.id <= 4) ? '19:00' : '',
-          horario_fechamento_noite: (dia.id >= 1 && dia.id <= 4) ? '22:00' : '',
-          
-          ativo: true,
-          isNew: true
-        }));
-        setHorarios(horariosDefault);
+        setHasExistingSchedules(false);
+        setHorarios([]);
       } else {
+        setHasExistingSchedules(true);
         setHorarios(horariosData.map(h => ({ ...h, isNew: false })));
       }
     } catch (error) {
@@ -233,6 +213,7 @@ const HorariosConfig = ({ currentUser }) => {
       if (error) throw error;
 
       showMessage('success', 'Horários salvos com sucesso!');
+      setHasExistingSchedules(true); // Agora a unidade tem horários salvos
       await carregarHorarios(); // Recarregar para atualizar IDs
     } catch (error) {
       console.error('Erro ao salvar horários:', error);
@@ -248,8 +229,8 @@ const HorariosConfig = ({ currentUser }) => {
       return;
     }
 
-    // Verificar se já existem horários para esta unidade
-    if (horarios && horarios.length > 0) {
+    // Verificar se já existem horários salvos no banco para esta unidade
+    if (hasExistingSchedules) {
       const confirmar = window.confirm(
         'Já existem horários configurados para esta unidade.\n\n' +
         'Ao criar horários padrão, os horários atuais serão substituídos.\n\n' +
@@ -308,8 +289,9 @@ const HorariosConfig = ({ currentUser }) => {
 
       if (error) throw error;
 
-      // Limpar horários da interface
+      // Limpar horários da interface e marcar que não há mais horários salvos
       setHorarios([]);
+      setHasExistingSchedules(false);
       showMessage('success', 'Todos os horários foram excluídos com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir horários:', error);
@@ -332,13 +314,15 @@ const HorariosConfig = ({ currentUser }) => {
               <Plus size={20} className="mr-2" />
               Horários Padrão
             </button>
-            <button
-              onClick={excluirTodosHorarios}
-              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <Trash2 size={20} className="mr-2" />
-              Excluir Todos
-            </button>
+            {hasExistingSchedules && (
+              <button
+                onClick={excluirTodosHorarios}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Trash2 size={20} className="mr-2" />
+                Excluir Todos
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -505,7 +489,7 @@ const HorariosConfig = ({ currentUser }) => {
       )}
 
       {/* Configuração de Horários */}
-      {unidadeSelecionada && (
+      {unidadeSelecionada && hasExistingSchedules && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -642,6 +626,163 @@ const HorariosConfig = ({ currentUser }) => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Seção especial para quando está carregando o template de horários */}
+      {unidadeSelecionada && !hasExistingSchedules && horarios.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Clock size={20} className="mr-2" />
+              Horários de Funcionamento
+            </h3>
+            <button
+              onClick={salvarHorarios}
+              disabled={saving}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              <Save size={20} className="mr-2" />
+              {saving ? 'Salvando...' : 'Salvar Horários'}
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {horarios.map((horario, index) => {
+              const dia = diasSemana.find(d => d.id === horario.dia_semana);
+              return (
+                <div key={`${horario.dia_semana}-${index}`} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-gray-800">{dia?.nome}</h4>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={horario.ativo}
+                        onChange={(e) => handleHorarioChange(index, 'ativo', e.target.checked)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-600">Ativo</span>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Manhã */}
+                    <div className="space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={horario.abre_manha}
+                          onChange={(e) => handleHorarioChange(index, 'abre_manha', e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="font-medium text-blue-700">Manhã</span>
+                      </label>
+                      {horario.abre_manha && (
+                        <div className="flex space-x-2">
+                          <input
+                            type="time"
+                            value={horario.horario_abertura_manha || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_abertura_manha', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <span className="py-1 text-gray-500">às</span>
+                          <input
+                            type="time"
+                            value={horario.horario_fechamento_manha || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_fechamento_manha', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tarde */}
+                    <div className="space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={horario.abre_tarde}
+                          onChange={(e) => handleHorarioChange(index, 'abre_tarde', e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="font-medium text-green-700">Tarde</span>
+                      </label>
+                      {horario.abre_tarde && (
+                        <div className="flex space-x-2">
+                          <input
+                            type="time"
+                            value={horario.horario_abertura_tarde || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_abertura_tarde', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <span className="py-1 text-gray-500">às</span>
+                          <input
+                            type="time"
+                            value={horario.horario_fechamento_tarde || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_fechamento_tarde', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Noite */}
+                    <div className="space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={horario.abre_noite}
+                          onChange={(e) => handleHorarioChange(index, 'abre_noite', e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="font-medium text-purple-700">Noite</span>
+                      </label>
+                      {horario.abre_noite && (
+                        <div className="flex space-x-2">
+                          <input
+                            type="time"
+                            value={horario.horario_abertura_noite || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_abertura_noite', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                          <span className="py-1 text-gray-500">às</span>
+                          <input
+                            type="time"
+                            value={horario.horario_fechamento_noite || ''}
+                            onChange={(e) => handleHorarioChange(index, 'horario_fechamento_noite', e.target.value)}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Mensagem para unidade sem horários configurados */}
+      {unidadeSelecionada && !hasExistingSchedules && horarios.length === 0 && !loading && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+          <Clock size={48} className="mx-auto text-blue-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Primeira Configuração de Horários</h3>
+          <p className="text-gray-600 mb-4">
+            Esta unidade ainda não possui horários de funcionamento configurados.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Clique no botão <span className="font-medium text-blue-600">"Horários Padrão"</span> acima para começar a configurar os horários de funcionamento.
+          </p>
+          <div className="text-sm text-blue-600 bg-blue-50 rounded-lg p-4">
+            <p className="font-medium mb-2">Como funciona:</p>
+            <ol className="text-left space-y-1">
+              <li>1. Clique em "Horários Padrão" para carregar um template básico</li>
+              <li>2. Ajuste os horários conforme necessário</li>
+              <li>3. Clique em "Salvar Horários" para aplicar as configurações</li>
+              <li>4. Após salvar, você poderá usar o botão "Excluir Todos" se necessário</li>
+            </ol>
+          </div>
         </div>
       )}
 
