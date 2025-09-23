@@ -110,26 +110,26 @@ const ProfissionaisManager = ({ currentUser }) => {
   };
 
   const atualizarServicosProfissional = async (profissionalId, servicosIds) => {
-    console.log('🔄 Atualizando serviços do profissional:', profissionalId, servicosIds);
+    console.log('🔄 Atualizando serviços do profissional (SOFT DELETE):', profissionalId, servicosIds);
     
     try {
-      // 1. Remover serviços atuais do profissional (da tabela servicos)
-      // IMPORTANTE: Agora vamos deletar serviços MAS com constraint modificada para não deletar agendamentos
-      console.log('🗑️ Removendo serviços atuais do profissional...');
-      const { error: deleteError } = await supabase
+      // 1. SOFT DELETE: Desativar todos os serviços atuais do profissional (ativo = false)
+      // NÃO DELETAR FISICAMENTE - preserva agendamentos existentes
+      console.log('🔄 Desativando serviços atuais do profissional (soft delete)...');
+      const { error: deactivateError } = await supabase
         .from('servicos')
-        .delete()
+        .update({ ativo: false })
         .eq('profissional_id', profissionalId);
 
-      if (deleteError) {
-        console.error('❌ Erro ao deletar serviços:', deleteError);
+      if (deactivateError) {
+        console.error('❌ Erro ao desativar serviços:', deactivateError);
       } else {
-        console.log('✅ Serviços antigos do profissional removidos (agendamentos preservados)');
+        console.log('✅ Serviços antigos desativados (agendamentos preservados)');
       }
 
-      // 2. Para cada serviço selecionado, criar nova linha na tabela servicos
+      // 2. Para cada serviço selecionado, verificar se já existe ou criar novo
       if (servicosIds.length > 0) {
-        console.log('➕ Criando serviços específicos para o profissional...');
+        console.log('➕ Ativando/criando serviços específicos para o profissional...');
         
         for (const servicoId of servicosIds) {
           // Buscar dados do serviço modelo (sem profissional_id)
@@ -140,32 +140,55 @@ const ProfissionaisManager = ({ currentUser }) => {
             .single();
 
           if (servicoModelo) {
-            // Criar novo serviço específico para este profissional
-            const novoServico = {
-              nome: servicoModelo.nome,
-              preco: servicoModelo.preco,
-              duracao_minutos: servicoModelo.duracao_minutos,
-              unidade_id: servicoModelo.unidade_id || unidadeId, // Usar unidade do admin se o modelo for global
-              profissional_id: profissionalId, // Associar ao profissional
-              ativo: true
-            };
-
-            console.log('📋 Criando serviço:', novoServico);
-
-            const { error: insertError } = await supabase
+            // Verificar se já existe um serviço desativado com mesmo nome/profissional
+            const { data: servicoExistente } = await supabase
               .from('servicos')
-              .insert(novoServico);
+              .select('id')
+              .eq('profissional_id', profissionalId)
+              .eq('nome', servicoModelo.nome)
+              .single();
 
-            if (insertError) {
-              console.error('❌ Erro ao inserir serviço:', insertError);
+            if (servicoExistente) {
+              // Reativar serviço existente
+              console.log('🔄 Reativando serviço existente:', servicoModelo.nome);
+              const { error: reactivateError } = await supabase
+                .from('servicos')
+                .update({ ativo: true })
+                .eq('id', servicoExistente.id);
+
+              if (reactivateError) {
+                console.error('❌ Erro ao reativar serviço:', reactivateError);
+              } else {
+                console.log('✅ Serviço reativado:', servicoModelo.nome);
+              }
             } else {
-              console.log('✅ Serviço criado:', servicoModelo.nome);
+              // Criar novo serviço específico para este profissional
+              const novoServico = {
+                nome: servicoModelo.nome,
+                preco: servicoModelo.preco,
+                duracao_minutos: servicoModelo.duracao_minutos,
+                unidade_id: servicoModelo.unidade_id || unidadeId,
+                profissional_id: profissionalId,
+                ativo: true
+              };
+
+              console.log('📋 Criando novo serviço:', novoServico);
+
+              const { error: insertError } = await supabase
+                .from('servicos')
+                .insert(novoServico);
+
+              if (insertError) {
+                console.error('❌ Erro ao inserir serviço:', insertError);
+              } else {
+                console.log('✅ Novo serviço criado:', servicoModelo.nome);
+              }
             }
           }
         }
       }
       
-      console.log('🎉 Serviços do profissional atualizados (agendamentos preservados pela constraint)!');
+      console.log('🎉 Serviços do profissional atualizados via SOFT DELETE! Agendamentos preservados!');
     } catch (error) {
       console.error('💥 Erro geral ao atualizar serviços:', error);
     }

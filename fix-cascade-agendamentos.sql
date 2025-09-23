@@ -38,16 +38,16 @@ ORDER BY tc.table_name, tc.constraint_name;
 ALTER TABLE agendamento_servicos 
 DROP CONSTRAINT IF EXISTS agendamento_servicos_servico_id_fkey;
 
--- 3. Adicionar nova constraint que preserva agendamentos
--- Usar RESTRICT em vez de CASCADE para evitar deletar agendamentos acidentalmente
+-- 3. Adicionar nova constraint que preserva agendamentos com SOFT DELETE
+-- Usar SET NULL para permitir soft delete mas manter agendamentos
 ALTER TABLE agendamento_servicos 
 ADD CONSTRAINT agendamento_servicos_servico_id_fkey 
 FOREIGN KEY (servico_id) 
 REFERENCES servicos(id) 
-ON DELETE RESTRICT;  -- RESTRICT impede delete se há agendamentos
+ON DELETE SET NULL;  -- SET NULL mantém agendamento mas remove referência ao serviço
 
--- ALTERNATIVA: Se quiser permitir delete mas manter agendamentos, use SET NULL:
--- ON DELETE SET NULL;  -- Mantém agendamento mas remove referência ao serviço
+-- OBSERVAÇÃO: Com sistema de SOFT DELETE, raramente deletaremos fisicamente
+-- Mas se deletarmos, o agendamento fica preservado com servico_id = NULL
 
 -- 4. Verificar se há outras constraints problemáticas na tabela agendamentos
 -- (Verificar se existe CASCADE direto de servicos para agendamentos via servico_id)
@@ -63,12 +63,12 @@ BEGIN
             ALTER TABLE agendamentos 
             DROP CONSTRAINT IF EXISTS agendamentos_servico_id_fkey;
             
-            -- Adicionar constraint RESTRICT para preservar agendamentos
+            -- Adicionar constraint SET NULL para preservar agendamentos com soft delete
             ALTER TABLE agendamentos 
             ADD CONSTRAINT agendamentos_servico_id_fkey 
             FOREIGN KEY (servico_id) 
             REFERENCES servicos(id) 
-            ON DELETE RESTRICT;
+            ON DELETE SET NULL;
             
             RAISE NOTICE 'Constraint em agendamentos.servico_id corrigida';
         EXCEPTION
@@ -105,8 +105,8 @@ COMMIT;
 
 -- RESULTADO ESPERADO:
 -- Agora quando um serviço é deletado da tabela 'servicos':
--- 1. Se há agendamentos usando esse serviço, o DELETE será bloqueado (RESTRICT)
--- 2. Agendamentos existentes ficam preservados
--- 3. Admin precisa primeiro cancelar/finalizar agendamentos antes de remover serviço
+-- 1. Agendamentos que usavam esse serviço ficam com servico_id = NULL (SET NULL)
+-- 2. Agendamentos existentes são preservados completamente
+-- 3. Com SOFT DELETE, raramente deletaremos fisicamente (apenas desativar)
 
 SELECT '✅ Constraints corrigidas! Agendamentos agora estão protegidos.' as status;
