@@ -11,6 +11,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { supabaseData } from '../../../lib/supabaseData';
 import ConfirmationModal from '../../ConfirmationModal';
 
 const AgendamentosManager = ({ currentUser }) => {
@@ -323,38 +324,53 @@ const AgendamentosManager = ({ currentUser }) => {
 
     setLoadingHorarios(true);
     try {
-      console.log('Carregando horários para:', { profissionalId, data, servicoId });
+      console.log('🔄 Carregando horários com lógica do app cliente:', { profissionalId, data, servicoId });
 
-      // Simplesmente habilitar todos os períodos por enquanto
-      // Isso permite que o usuário selecione os períodos
-      setPeriodosDisponiveis({
-        manha: true,
-        tarde: true,
-        noite: true
-      });
+      // Buscar dados do serviço para calcular duração
+      const servico = servicosFiltrados.find(s => s.id === servicoId) || 
+                     servicos.find(s => s.id === servicoId);
+      
+      const servicosSelecionados = servico ? [servico] : [];
 
-      // Gerar horários básicos para cada período
-      const horariosBasicos = {
-        manha: ['08:00', '08:20', '08:40', '09:00', '09:20', '09:40', '10:00', '10:20', '10:40', '11:00', '11:20', '11:40'],
-        tarde: ['14:00', '14:20', '14:40', '15:00', '15:20', '15:40', '16:00', '16:20', '16:40', '17:00', '17:20', '17:40'],
-        noite: ['19:00', '19:20', '19:40', '20:00', '20:20', '20:40', '21:00', '21:20', '21:40']
+      // Converter string para objeto Date se necessário
+      const dataObj = typeof data === 'string' ? new Date(data + 'T00:00:00') : data;
+      
+      console.log('📅 Data convertida:', dataObj);
+      console.log('🛠️ Serviços selecionados:', servicosSelecionados);
+
+      // Usar a função EXATA do app do cliente
+      const resultado = await supabaseData.getDadosCompletosData(
+        unidadeId,
+        dataObj,
+        profissionalId,
+        servicosSelecionados
+      );
+
+      console.log('✅ Resultado completo:', resultado);
+
+      // Aplicar EXATAMENTE a mesma lógica do app cliente
+      const periodosAtivos = {
+        manha: resultado.periodosComFolga?.manha === false && resultado.horariosDisponiveis?.manha?.length > 0,
+        tarde: resultado.periodosComFolga?.tarde === false && resultado.horariosDisponiveis?.tarde?.length > 0,
+        noite: resultado.periodosComFolga?.noite === false && resultado.horariosDisponiveis?.noite?.length > 0
       };
 
-      setHorariosDisponiveis(horariosBasicos);
+      console.log('🕒 Períodos disponíveis:', periodosAtivos);
+      console.log('⏰ Horários por período:', resultado.horariosDisponiveis);
+
+      setPeriodosDisponiveis(periodosAtivos);
+      setHorariosDisponiveis(resultado.horariosDisponiveis || {
+        manha: [],
+        tarde: [],
+        noite: []
+      });
 
     } catch (error) {
-      console.error('Erro ao carregar horários:', error);
-      // Mesmo em caso de erro, habilitar os períodos
-      setPeriodosDisponiveis({
-        manha: true,
-        tarde: true,
-        noite: true
-      });
-      setHorariosDisponiveis({
-        manha: ['08:00', '09:00', '10:00', '11:00'],
-        tarde: ['14:00', '15:00', '16:00', '17:00'],
-        noite: ['19:00', '20:00', '21:00']
-      });
+      console.error('❌ Erro ao carregar horários:', error);
+      
+      // Em caso de erro, limpar tudo (como no app cliente)
+      setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+      setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
     } finally {
       setLoadingHorarios(false);
     }
