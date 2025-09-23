@@ -1039,8 +1039,9 @@ const AgendamentosManager = ({ currentUser }) => {
           professionalId={editForm.profissional_id}
           unitId={unidadeId}
           servicosSelecionados={servicosFiltrados.filter(s => s.id === editForm.servico_id)}
-          currentDate={editForm.data_agendamento}
-          currentTime={editForm.horario_inicio}
+          currentDate={null}
+          currentTime={null}
+          isModal={true}
         />
       )}
 

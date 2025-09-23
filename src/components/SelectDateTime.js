@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 
-const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId, servicosSelecionados }) => {
+const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId, servicosSelecionados, isModal = false }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
@@ -288,7 +288,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     loadPeriodosDisponiveis();
   }, [unitId, selectedDate, professionalId, servicosSelecionados, diasSemHorarios, diasFolgaTotal]); // Removi selectedPeriod das dependências
 
-  // Set initial selections if provided
+  // Set initial selections if provided (não fazer quando null)
   useEffect(() => {
     if (currentDate && currentTime) {
       setSelectedDate(currentDate);
@@ -330,11 +330,274 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
 
   const handleContinue = () => {
     if (selectedDate && selectedTime) {
-      onSelect(selectedDate, selectedTime);
+      // Para o admin, calcular horário de fim baseado na duração do serviço
+      if (isModal && servicosSelecionados?.[0]?.duracao_minutos) {
+        const [horas, minutos] = selectedTime.split(':').map(Number);
+        const inicioMinutos = horas * 60 + minutos;
+        const fimMinutos = inicioMinutos + servicosSelecionados[0].duracao_minutos;
+        const fimHoras = Math.floor(fimMinutos / 60);
+        const fimMinutosResto = fimMinutos % 60;
+        const horarioFim = `${fimHoras.toString().padStart(2, '0')}:${fimMinutosResto.toString().padStart(2, '0')}:00`;
+        
+        const dataFormatted = selectedDate.toISOString().split('T')[0];
+        onSelect({
+          date: dataFormatted,
+          time: selectedTime + ':00',
+          endTime: horarioFim
+        });
+      } else {
+        onSelect(selectedDate, selectedTime);
+      }
       onClose();
     }
   };
 
+  // Se for modal (admin), renderizar como popup flutuante
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto mx-4">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-gray-900 text-xl font-semibold">Agendar Horário</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="mb-6">
+              <h3 className="text-gray-900 text-lg font-semibold mb-2">Quando você prefere?</h3>
+              <p className="text-gray-600">Escolha a melhor data e horário</p>
+            </div>
+
+            <div className="space-y-8">
+              {/* Calendar */}
+              <div>
+                <h4 className="text-gray-900 font-semibold mb-4">Calendário</h4>
+                
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between mb-4">
+                  <button 
+                    onClick={prevMonth}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <ChevronRight size={16} className="text-gray-600 rotate-180" />
+                  </button>
+                  
+                  <div className="text-center">
+                    <h5 className="text-lg font-semibold text-gray-900">
+                      {getMonthName(currentMonth)} {currentMonth.getFullYear()}
+                    </h5>
+                  </div>
+                  
+                  <button 
+                    onClick={nextMonth}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <ChevronRight size={16} className="text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border">
+                  {/* Days of week header */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                      <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar days */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {getDaysInMonth(currentMonth).map((day, index) => {
+                      if (!day) {
+                        return <div key={index} className="w-10 h-10"></div>;
+                      }
+
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isToday = day.toDateString() === today.toDateString();
+                      const isPast = day < today;
+                      const isClosed = closedDays.includes(day.getDay());
+                      const isSemHorarios = diasSemHorarios.includes(day.getDate());
+                      const isComHorarios = diasComHorarios.includes(day.getDate());
+                      const isFolgaTotal = diasFolgaTotal.includes(day.getDate());
+                      const isSelected = selectedDate && day && 
+                        (typeof selectedDate === 'object' ? 
+                          day.toDateString() === selectedDate.toDateString() : 
+                          day.toDateString() === new Date(selectedDate).toDateString());
+                      const isDisabled = isPast || isClosed;
+
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => !isDisabled && setSelectedDate(day)}
+                          disabled={isDisabled}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
+                            (isFolgaTotal || isSemHorarios) && !isSelected
+                              ? 'bg-red-100 text-red-600 border border-red-300 hover:bg-red-200'
+                              : isDisabled
+                              ? 'text-gray-200 cursor-not-allowed bg-gray-50'
+                              : isSelected
+                              ? 'bg-orange-500 text-white'
+                              : isComHorarios && !isSelected
+                              ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                              : isToday
+                              ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                          title={isFolgaTotal ? 'Profissional de folga (dia todo)' : isClosed ? 'Fechado neste dia' : isSemHorarios ? 'Sem horários disponíveis' : isComHorarios ? 'Horários disponíveis' : ''}
+                        >
+                          {day.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Slots */}
+              {selectedDate && (
+                <div>
+                  <h4 className="text-gray-900 font-semibold mb-4">Horários Disponíveis</h4>
+                  
+                  {/* Loading Spinner */}
+                  {loadingHorarios ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <>
+                      {/* Period Buttons */}
+                      <div className="flex space-x-2 mb-6">
+                        {periodosDisponiveis.manha && (
+                          <button
+                            onClick={() => setSelectedPeriod('manha')}
+                            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                              selectedPeriod === 'manha'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            ☀️ Manhã
+                          </button>
+                        )}
+                        {periodosDisponiveis.tarde && (
+                          <button
+                            onClick={() => setSelectedPeriod('tarde')}
+                            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                              selectedPeriod === 'tarde'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            🌤️ Tarde
+                          </button>
+                        )}
+                        {periodosDisponiveis.noite && (
+                          <button
+                            onClick={() => setSelectedPeriod('noite')}
+                            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                              selectedPeriod === 'noite'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            🌙 Noite
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Show only selected period times */}
+                      {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {horariosDisponiveis.manha.map(time => (
+                            <button
+                              key={time}
+                              onClick={() => setSelectedTime(time)}
+                              className={`py-3 px-2 rounded-xl text-sm font-semibold transition-all ${
+                                selectedTime === time
+                                  ? 'bg-orange-500 text-white shadow-lg'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {horariosDisponiveis.tarde.map(time => (
+                            <button
+                              key={time}
+                              onClick={() => setSelectedTime(time)}
+                              className={`py-3 px-2 rounded-xl text-sm font-semibold transition-all ${
+                                selectedTime === time
+                                  ? 'bg-orange-500 text-white shadow-lg'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {horariosDisponiveis.noite.map(time => (
+                            <button
+                              key={time}
+                              onClick={() => setSelectedTime(time)}
+                              className={`py-3 px-2 rounded-xl text-sm font-semibold transition-all ${
+                                selectedTime === time
+                                  ? 'bg-orange-500 text-white shadow-lg'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Mensagem se não houver horários disponíveis */}
+                      {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500">Nenhum horário disponível para este período.</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex space-x-3 mt-8 pt-6 border-t border-gray-200">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleContinue}
+                disabled={!selectedDate || !selectedTime}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:text-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+              >
+                Confirmar Horário
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderização original para tela cheia (app cliente)
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* Header */}
