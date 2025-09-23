@@ -143,7 +143,7 @@ const AgendamentosManager = ({ currentUser }) => {
               console.log('🔍 DEBUG - Buscando usuário:', agendamento.usuario_id);
               const { data: userData, error: userError } = await supabase
                 .from('users')
-                .select('*')
+                .select('id, email, nome, telefone, foto_url')
                 .eq('id', agendamento.usuario_id)
                 .single();
               
@@ -439,21 +439,12 @@ const AgendamentosManager = ({ currentUser }) => {
                   <div>
                     <p className="font-medium text-gray-900 flex items-center">
                       <User size={16} className="mr-2 text-gray-400" />
-                      {agendamento.users?.raw_user_meta_data?.nome || 
-                       agendamento.users?.raw_user_meta_data?.name ||
-                       agendamento.users?.user_metadata?.nome ||
-                       agendamento.users?.user_metadata?.name ||
-                       agendamento.users?.raw_user_meta_data?.full_name ||
-                       agendamento.users?.user_metadata?.full_name ||
+                      {agendamento.users?.nome || 
                        agendamento.users?.email?.split('@')[0] ||
                        'Cliente'}
                     </p>
                     <p className="text-sm text-gray-600">
-                      📞 {agendamento.users?.raw_user_meta_data?.telefone || 
-                           agendamento.users?.user_metadata?.telefone ||
-                           agendamento.users?.raw_user_meta_data?.phone ||
-                           agendamento.users?.user_metadata?.phone ||
-                           'Telefone não informado'}
+                      📞 {agendamento.users?.telefone || 'Telefone não informado'}
                     </p>
                   </div>
 
