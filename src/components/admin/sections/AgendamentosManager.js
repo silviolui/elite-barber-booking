@@ -443,21 +443,18 @@ const AgendamentosManager = ({ currentUser }) => {
                        agendamento.users?.raw_user_meta_data?.name ||
                        agendamento.users?.user_metadata?.nome ||
                        agendamento.users?.user_metadata?.name ||
+                       agendamento.users?.raw_user_meta_data?.full_name ||
+                       agendamento.users?.user_metadata?.full_name ||
                        agendamento.users?.email?.split('@')[0] ||
                        'Cliente'}
                     </p>
-                    <p className="text-sm text-gray-600">{agendamento.users?.email}</p>
-                    {(agendamento.users?.raw_user_meta_data?.telefone || 
-                      agendamento.users?.user_metadata?.telefone ||
-                      agendamento.users?.raw_user_meta_data?.phone ||
-                      agendamento.users?.user_metadata?.phone) && (
-                      <p className="text-sm text-gray-500">
-                        📞 {agendamento.users?.raw_user_meta_data?.telefone || 
-                             agendamento.users?.user_metadata?.telefone ||
-                             agendamento.users?.raw_user_meta_data?.phone ||
-                             agendamento.users?.user_metadata?.phone}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-600">
+                      📞 {agendamento.users?.raw_user_meta_data?.telefone || 
+                           agendamento.users?.user_metadata?.telefone ||
+                           agendamento.users?.raw_user_meta_data?.phone ||
+                           agendamento.users?.user_metadata?.phone ||
+                           'Telefone não informado'}
+                    </p>
                   </div>
 
                   {/* Date & Time */}
