@@ -13,6 +13,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   const [diasSemHorarios, setDiasSemHorarios] = useState([]); // Dias totalmente ocupados
   const [diasComHorarios, setDiasComHorarios] = useState([]); // Dias com horários disponíveis
   const [diasFolgaTotal, setDiasFolgaTotal] = useState([]); // Dias com folga total (vermelho escuro)
+  const [loadingHorarios, setLoadingHorarios] = useState(false); // Loading para horários
 
   // Funções do calendário
   const getMonthName = (date) => {
@@ -193,6 +194,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
     const loadPeriodosDisponiveis = async () => {
       if (!unitId || !selectedDate) {
         console.log('❌ Faltam dados:', { unitId, selectedDate });
+        setLoadingHorarios(false);
         return;
       }
 
@@ -204,8 +206,15 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         console.log('❌ Dia selecionado sem horários (ocupado ou folga total), não carregando períodos');
         setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
         setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+        setLoadingHorarios(false);
         return;
       }
+      
+      // INICIAR LOADING E LIMPAR DADOS ANTERIORES
+      setLoadingHorarios(true);
+      setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
+      setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
+      setSelectedTime(null); // Limpar horário selecionado anteriormente
       
       try {
         console.log('🚀 Carregando períodos OTIMIZADO para:', { unitId, selectedDate });
@@ -265,6 +274,9 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         // Fallback para método anterior em caso de erro
         console.warn('🔄 Tentando método não otimizado...');
         // Aqui você pode manter o código antigo como fallback se necessário
+      } finally {
+        // FINALIZAR LOADING
+        setLoadingHorarios(false);
       }
     };
 
@@ -280,6 +292,16 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
   }, [currentDate, currentTime]);
 
   // Horários agora são carregados dinamicamente da base de dados
+
+  // Componente de Loading Spinner
+  const LoadingSpinner = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="relative">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+      </div>
+      <p className="mt-4 text-gray-500 text-sm">Carregando horários disponíveis...</p>
+    </div>
+  );
 
   const renderTimeSlots = (times, title, icon) => (
     <div className="mb-6">
@@ -422,56 +444,63 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
             <div>
               <h4 className="text-gray-900 font-semibold mb-4">Horários Disponíveis</h4>
               
-              {/* Period Buttons - Apenas períodos disponíveis */}
-              <div className="flex space-x-2 mb-6">
-                {periodosDisponiveis.manha && (
-                  <button
-                    onClick={() => setSelectedPeriod('manha')}
-                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
-                      selectedPeriod === 'manha'
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    ☀️ Manhã
-                  </button>
-                )}
-                {periodosDisponiveis.tarde && (
-                  <button
-                    onClick={() => setSelectedPeriod('tarde')}
-                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
-                      selectedPeriod === 'tarde'
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    🌤️ Tarde
-                  </button>
-                )}
-                {periodosDisponiveis.noite && (
-                  <button
-                    onClick={() => setSelectedPeriod('noite')}
-                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
-                      selectedPeriod === 'noite'
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    🌙 Noite
-                  </button>
-                )}
-              </div>
+              {/* Loading Spinner */}
+              {loadingHorarios ? (
+                <LoadingSpinner />
+              ) : (
+                <>
+                  {/* Period Buttons - Apenas períodos disponíveis */}
+                  <div className="flex space-x-2 mb-6">
+                    {periodosDisponiveis.manha && (
+                      <button
+                        onClick={() => setSelectedPeriod('manha')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                          selectedPeriod === 'manha'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        ☀️ Manhã
+                      </button>
+                    )}
+                    {periodosDisponiveis.tarde && (
+                      <button
+                        onClick={() => setSelectedPeriod('tarde')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                          selectedPeriod === 'tarde'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        🌤️ Tarde
+                      </button>
+                    )}
+                    {periodosDisponiveis.noite && (
+                      <button
+                        onClick={() => setSelectedPeriod('noite')}
+                        className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-colors ${
+                          selectedPeriod === 'noite'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        🌙 Noite
+                      </button>
+                    )}
+                  </div>
 
-              {/* Show only selected period times */}
-              {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
-              {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
-              {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
+                  {/* Show only selected period times */}
+                  {selectedPeriod === 'manha' && horariosDisponiveis.manha.length > 0 && renderTimeSlots(horariosDisponiveis.manha, 'Manhã', '☀️')}
+                  {selectedPeriod === 'tarde' && horariosDisponiveis.tarde.length > 0 && renderTimeSlots(horariosDisponiveis.tarde, 'Tarde', '🌤️')}
+                  {selectedPeriod === 'noite' && horariosDisponiveis.noite.length > 0 && renderTimeSlots(horariosDisponiveis.noite, 'Noite', '🌙')}
 
-              {/* Mensagem se não houver horários disponíveis */}
-              {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Nenhum horário disponível para este período.</p>
-                </div>
+                  {/* Mensagem se não houver horários disponíveis */}
+                  {selectedPeriod && horariosDisponiveis[selectedPeriod]?.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">Nenhum horário disponível para este período.</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
