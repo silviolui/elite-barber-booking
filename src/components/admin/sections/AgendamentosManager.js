@@ -11,7 +11,6 @@ import {
   XCircle
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
-import { supabaseData } from '../../../lib/supabaseData';
 import ConfirmationModal from '../../ConfirmationModal';
 
 const AgendamentosManager = ({ currentUser }) => {
@@ -324,51 +323,86 @@ const AgendamentosManager = ({ currentUser }) => {
 
     setLoadingHorarios(true);
     try {
-      console.log('🔄 Carregando horários com lógica do app cliente:', { profissionalId, data, servicoId });
+      console.log('🔄 Carregando horários - versão simplificada:', { profissionalId, data, servicoId });
 
-      // Buscar dados do serviço para calcular duração
-      const servico = servicosFiltrados.find(s => s.id === servicoId) || 
-                     servicos.find(s => s.id === servicoId);
+      const dataStr = typeof data === 'string' ? data : data.toISOString().split('T')[0];
       
-      const servicosSelecionados = servico ? [servico] : [];
+      // Buscar configurações de horário da unidade
+      const { data: configData } = await supabase
+        .from('configuracoes')
+        .select('*')
+        .eq('unidade_id', unidadeId)
+        .single();
 
-      // Converter string para objeto Date se necessário
-      const dataObj = typeof data === 'string' ? new Date(data + 'T00:00:00') : data;
-      
-      console.log('📅 Data convertida:', dataObj);
-      console.log('🛠️ Serviços selecionados:', servicosSelecionados);
+      const intervalos = configData?.intervalo_minutos || 20;
+      console.log('⏰ Intervalo configurado:', intervalos, 'minutos');
 
-      // Usar a função EXATA do app do cliente
-      const resultado = await supabaseData.getDadosCompletosData(
-        unidadeId,
-        dataObj,
-        profissionalId,
-        servicosSelecionados
-      );
+      // Buscar horários ocupados do profissional
+      const { data: ocupados } = await supabase
+        .from('agendamentos')
+        .select('horario_inicio, horario_fim')
+        .eq('profissional_id', profissionalId)
+        .eq('data_agendamento', dataStr)
+        .neq('status', 'cancelled');
 
-      console.log('✅ Resultado completo:', resultado);
+      console.log('📅 Horários ocupados:', ocupados);
 
-      // Aplicar EXATAMENTE a mesma lógica do app cliente
-      const periodosAtivos = {
-        manha: resultado.periodosComFolga?.manha === false && resultado.horariosDisponiveis?.manha?.length > 0,
-        tarde: resultado.periodosComFolga?.tarde === false && resultado.horariosDisponiveis?.tarde?.length > 0,
-        noite: resultado.periodosComFolga?.noite === false && resultado.horariosDisponiveis?.noite?.length > 0
+      // Definir horários base por período
+      const periodosBase = {
+        manha: { inicio: '08:00', fim: '12:00' },
+        tarde: { inicio: '14:00', fim: '18:00' },
+        noite: { inicio: '19:00', fim: '22:00' }
       };
 
-      console.log('🕒 Períodos disponíveis:', periodosAtivos);
-      console.log('⏰ Horários por período:', resultado.horariosDisponiveis);
+      const horariosGerados = {};
+      const periodosAtivos = {};
+
+      const agora = new Date();
+      const dataHoje = agora.toISOString().split('T')[0];
+      const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+
+      for (const [periodo, config] of Object.entries(periodosBase)) {
+        const horarios = [];
+        const [horaIni, minIni] = config.inicio.split(':').map(Number);
+        const [horaFim, minFim] = config.fim.split(':').map(Number);
+        
+        const inicioMinutos = horaIni * 60 + minIni;
+        const fimMinutos = horaFim * 60 + minFim;
+
+        for (let minutos = inicioMinutos; minutos < fimMinutos; minutos += intervalos) {
+          const hora = Math.floor(minutos / 60);
+          const min = minutos % 60;
+          const horarioStr = `${hora.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+          
+          // Se é hoje, não mostrar horários passados
+          if (dataStr === dataHoje && minutos <= horaAtual + 20) {
+            continue;
+          }
+
+          // Verificar se não está ocupado
+          const ocupado = ocupados?.some(item => {
+            const inicio = item.horario_inicio;
+            const fim = item.horario_fim;
+            return horarioStr >= inicio && horarioStr < fim;
+          });
+
+          if (!ocupado) {
+            horarios.push(horarioStr);
+          }
+        }
+
+        horariosGerados[periodo] = horarios;
+        periodosAtivos[periodo] = horarios.length > 0;
+      }
+
+      console.log('✅ Horários gerados:', horariosGerados);
+      console.log('🕒 Períodos ativos:', periodosAtivos);
 
       setPeriodosDisponiveis(periodosAtivos);
-      setHorariosDisponiveis(resultado.horariosDisponiveis || {
-        manha: [],
-        tarde: [],
-        noite: []
-      });
+      setHorariosDisponiveis(horariosGerados);
 
     } catch (error) {
       console.error('❌ Erro ao carregar horários:', error);
-      
-      // Em caso de erro, limpar tudo (como no app cliente)
       setPeriodosDisponiveis({ manha: false, tarde: false, noite: false });
       setHorariosDisponiveis({ manha: [], tarde: [], noite: [] });
     } finally {
