@@ -272,8 +272,7 @@ const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, curren
         
         console.log('📋 Resumo final OTIMIZADO:', {
           periodos,
-          horariosMap,
-          selectedPeriod
+          horariosMap
         });
       } catch (error) {
         console.error('Erro ao carregar períodos disponíveis:', error);
