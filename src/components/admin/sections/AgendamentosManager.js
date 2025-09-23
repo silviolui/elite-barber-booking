@@ -25,6 +25,11 @@ const AgendamentosManager = ({ currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [dateFilter, setDateFilter] = useState('');
+  
+  // Estados para modal de pagamento
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedAgendamento, setSelectedAgendamento] = useState(null);
+  const [tipoPagamento, setTipoPagamento] = useState('');
 
   useEffect(() => {
     loadAgendamentos();
@@ -211,6 +216,40 @@ const AgendamentosManager = ({ currentUser }) => {
       console.error('🔍 DEBUG - Erro geral:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirModalPagamento = (agendamento) => {
+    setSelectedAgendamento(agendamento);
+    setTipoPagamento('');
+    setShowPaymentModal(true);
+  };
+
+  const confirmarPagamento = async () => {
+    if (!tipoPagamento) {
+      alert('Por favor, selecione o tipo de pagamento');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ 
+          status: 'confirmed',
+          tipo_pagamento: tipoPagamento,
+          data_confirmacao: new Date().toISOString()
+        })
+        .eq('id', selectedAgendamento.id);
+
+      if (error) throw error;
+
+      setShowPaymentModal(false);
+      setSelectedAgendamento(null);
+      setTipoPagamento('');
+      await loadAgendamentos();
+    } catch (error) {
+      console.error('Erro ao confirmar pagamento:', error);
+      alert('Erro ao confirmar pagamento: ' + error.message);
     }
   };
 
@@ -535,7 +574,7 @@ const AgendamentosManager = ({ currentUser }) => {
                   {agendamento.status === 'pending' && (
                     <>
                       <button
-                        onClick={() => updateAgendamentoStatus(agendamento.id, 'confirmed')}
+                        onClick={() => abrirModalPagamento(agendamento)}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
                       >
                         <CheckCircle size={16} />
@@ -581,6 +620,107 @@ const AgendamentosManager = ({ currentUser }) => {
           ))
         )}
       </div>
+
+      {/* Modal de Seleção de Tipo de Pagamento */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            {/* Header do Modal */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 rounded-t-xl">
+              <h3 className="text-xl font-bold text-white flex items-center">
+                <CheckCircle size={24} className="mr-3" />
+                Confirmar Pagamento
+              </h3>
+              <p className="text-green-100 text-sm mt-1">
+                Selecione como o cliente realizou o pagamento
+              </p>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              {/* Informações do Agendamento */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Cliente:</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedAgendamento?.users?.nome || 'Cliente'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-gray-600">Valor:</span>
+                  <span className="font-bold text-green-600">
+                    R$ {(selectedAgendamento?.servicos?.preco || selectedAgendamento?.preco_total || 30.00).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Opções de Pagamento */}
+              <div className="space-y-3 mb-6">
+                <p className="font-semibold text-gray-800 mb-4">Tipo de Pagamento:</p>
+                
+                {[
+                  { id: 'pix', label: 'PIX', emoji: '📱', color: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50' },
+                  { id: 'debito', label: 'Cartão de Débito', emoji: '💳', color: 'border-green-200 hover:border-green-400 hover:bg-green-50' },
+                  { id: 'credito', label: 'Cartão de Crédito', emoji: '💎', color: 'border-purple-200 hover:border-purple-400 hover:bg-purple-50' },
+                  { id: 'dinheiro', label: 'Dinheiro', emoji: '💵', color: 'border-yellow-200 hover:border-yellow-400 hover:bg-yellow-50' }
+                ].map((opcao) => (
+                  <label key={opcao.id} className="block">
+                    <input
+                      type="radio"
+                      name="tipoPagamento"
+                      value={opcao.id}
+                      checked={tipoPagamento === opcao.id}
+                      onChange={(e) => setTipoPagamento(e.target.value)}
+                      className="sr-only"
+                    />
+                    <div className={`
+                      border-2 rounded-lg p-4 cursor-pointer transition-all
+                      ${tipoPagamento === opcao.id 
+                        ? 'border-green-500 bg-green-50 shadow-md' 
+                        : `border-gray-200 ${opcao.color}`
+                      }
+                    `}>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{opcao.emoji}</span>
+                        <span className={`font-medium ${
+                          tipoPagamento === opcao.id ? 'text-green-700' : 'text-gray-700'
+                        }`}>
+                          {opcao.label}
+                        </span>
+                        {tipoPagamento === opcao.id && (
+                          <CheckCircle size={20} className="text-green-500 ml-auto" />
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setSelectedAgendamento(null);
+                    setTipoPagamento('');
+                  }}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarPagamento}
+                  disabled={!tipoPagamento}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <CheckCircle size={20} />
+                  <span>Confirmar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
