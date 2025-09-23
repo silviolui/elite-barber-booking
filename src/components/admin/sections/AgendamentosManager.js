@@ -36,8 +36,25 @@ const AgendamentosManager = ({ currentUser }) => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState({});
 
+  // Estados para modal de edição
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAgendamento, setEditingAgendamento] = useState(null);
+  const [profissionais, setProfissionais] = useState([]);
+  const [servicos, setServicos] = useState([]);
+  const [editForm, setEditForm] = useState({
+    cliente_nome: '',
+    cliente_telefone: '',
+    profissional_id: '',
+    servico_id: '',
+    data_agendamento: '',
+    horario_inicio: '',
+    horario_fim: ''
+  });
+
   useEffect(() => {
     loadAgendamentos();
+    loadProfissionais();
+    loadServicos();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAgendamentos = async () => {
@@ -221,6 +238,87 @@ const AgendamentosManager = ({ currentUser }) => {
       console.error('🔍 DEBUG - Erro geral:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProfissionais = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profissionais')
+        .select('*')
+        .eq('unidade_id', unidadeId)
+        .order('nome');
+      
+      if (error) throw error;
+      setProfissionais(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar profissionais:', error);
+    }
+  };
+
+  const loadServicos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('servicos')
+        .select('*')
+        .eq('unidade_id', unidadeId)
+        .order('nome');
+      
+      if (error) throw error;
+      setServicos(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error);
+    }
+  };
+
+  const abrirModalEdicao = (agendamento) => {
+    setEditingAgendamento(agendamento);
+    setEditForm({
+      cliente_nome: agendamento.users?.nome || '',
+      cliente_telefone: agendamento.users?.telefone || '',
+      profissional_id: agendamento.profissional_id || '',
+      servico_id: agendamento.servico_id || '',
+      data_agendamento: agendamento.data_agendamento || '',
+      horario_inicio: agendamento.horario_inicio || '',
+      horario_fim: agendamento.horario_fim || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const salvarEdicao = async () => {
+    try {
+      // Atualizar dados do usuário
+      const { error: userError } = await supabase
+        .from('users')
+        .update({
+          nome: editForm.cliente_nome,
+          telefone: editForm.cliente_telefone
+        })
+        .eq('id', editingAgendamento.usuario_id);
+
+      if (userError) throw userError;
+
+      // Atualizar dados do agendamento
+      const { error: agendamentoError } = await supabase
+        .from('agendamentos')
+        .update({
+          profissional_id: editForm.profissional_id,
+          servico_id: editForm.servico_id,
+          data_agendamento: editForm.data_agendamento,
+          horario_inicio: editForm.horario_inicio,
+          horario_fim: editForm.horario_fim
+        })
+        .eq('id', editingAgendamento.id);
+
+      if (agendamentoError) throw agendamentoError;
+
+      setShowEditModal(false);
+      setEditingAgendamento(null);
+      await loadAgendamentos();
+      alert('Agendamento editado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar edição:', error);
+      alert('Erro ao salvar edição: ' + error.message);
     }
   };
 
@@ -687,6 +785,7 @@ const AgendamentosManager = ({ currentUser }) => {
                   )}
                   
                   <button
+                    onClick={() => abrirModalEdicao(agendamento)}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
                   >
                     <Edit size={16} />
@@ -698,6 +797,168 @@ const AgendamentosManager = ({ currentUser }) => {
           ))
         )}
       </div>
+
+      {/* Modal de Edição de Agendamento */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header do Modal */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 rounded-t-xl">
+              <h3 className="text-xl font-bold text-white flex items-center">
+                <Edit size={24} className="mr-3" />
+                Editar Agendamento
+              </h3>
+              <p className="text-orange-100 text-sm mt-1">
+                Modifique as informações do agendamento
+              </p>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Dados do Cliente */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Dados do Cliente</h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nome do Cliente
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.cliente_nome}
+                        onChange={(e) => setEditForm({...editForm, cliente_nome: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="Nome do cliente"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Telefone
+                      </label>
+                      <input
+                        type="tel"
+                        value={editForm.cliente_telefone}
+                        onChange={(e) => setEditForm({...editForm, cliente_telefone: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dados do Serviço */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Dados do Serviço</h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Profissional
+                      </label>
+                      <select
+                        value={editForm.profissional_id}
+                        onChange={(e) => setEditForm({...editForm, profissional_id: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Selecione um profissional</option>
+                        {profissionais.map((prof) => (
+                          <option key={prof.id} value={prof.id}>
+                            {prof.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Serviço
+                      </label>
+                      <select
+                        value={editForm.servico_id}
+                        onChange={(e) => setEditForm({...editForm, servico_id: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Selecione um serviço</option>
+                        {servicos.map((servico) => (
+                          <option key={servico.id} value={servico.id}>
+                            {servico.nome} - R$ {servico.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data e Horário */}
+              <div className="mt-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">Data e Horário</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Data
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.data_agendamento}
+                      onChange={(e) => setEditForm({...editForm, data_agendamento: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Horário de Início
+                    </label>
+                    <input
+                      type="time"
+                      value={editForm.horario_inicio}
+                      onChange={(e) => setEditForm({...editForm, horario_inicio: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Horário de Término
+                    </label>
+                    <input
+                      type="time"
+                      value={editForm.horario_fim}
+                      onChange={(e) => setEditForm({...editForm, horario_fim: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex space-x-3 mt-8">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingAgendamento(null);
+                  }}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={salvarEdicao}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <CheckCircle size={20} />
+                  <span>Salvar Alterações</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Seleção de Tipo de Pagamento */}
       {showPaymentModal && (
