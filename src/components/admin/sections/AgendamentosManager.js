@@ -42,7 +42,6 @@ const AgendamentosManager = ({ currentUser }) => {
   const [editingAgendamento, setEditingAgendamento] = useState(null);
   const [profissionais, setProfissionais] = useState([]);
   const [servicos, setServicos] = useState([]);
-  const [servicosFiltrados, setServicosFiltrados] = useState([]);
   const [editForm, setEditForm] = useState({
     cliente_nome: '',
     cliente_telefone: '',
@@ -288,36 +287,7 @@ const AgendamentosManager = ({ currentUser }) => {
     }
   };
 
-  const filtrarServicosPorProfissional = async (profissionalId) => {
-    if (!profissionalId) {
-      setServicosFiltrados([]);
-      return;
-    }
 
-    try {
-      const { data, error } = await supabase
-        .from('profissional_servicos')
-        .select(`
-          servico_id,
-          servicos (
-            id,
-            nome,
-            preco,
-            duracao_minutos
-          )
-        `)
-        .eq('profissional_id', profissionalId)
-        .eq('ativo', true);
-
-      if (error) throw error;
-      
-      const servicosFiltrados = data?.map(item => item.servicos).filter(Boolean) || [];
-      setServicosFiltrados(servicosFiltrados);
-    } catch (error) {
-      console.error('Erro ao filtrar serviços por profissional:', error);
-      setServicosFiltrados([]);
-    }
-  };
 
   const carregarHorariosDisponiveis = async (profissionalId, data, servicoId) => {
     if (!profissionalId || !data || !servicoId) return;
@@ -325,8 +295,7 @@ const AgendamentosManager = ({ currentUser }) => {
     setLoadingHorarios(true);
     try {
       // Buscar dados do serviço para calcular duração
-      const servico = servicosFiltrados.find(s => s.id === servicoId) || 
-                     servicos.find(s => s.id === servicoId);
+      const servico = servicos.find(s => s.id === servicoId);
       
       const servicosSelecionados = servico ? [servico] : [];
 
@@ -371,10 +340,7 @@ const AgendamentosManager = ({ currentUser }) => {
       horario_fim: agendamento.horario_fim || ''
     });
 
-    // Filtrar serviços pelo profissional
-    if (agendamento.profissional_id) {
-      await filtrarServicosPorProfissional(agendamento.profissional_id);
-    }
+
 
     // Resetar seleções de horário
     setPeriodoSelecionado('');
@@ -385,9 +351,8 @@ const AgendamentosManager = ({ currentUser }) => {
     setShowEditModal(true);
   };
 
-  const handleProfissionalChange = async (profissionalId) => {
+  const handleProfissionalChange = (profissionalId) => {
     setEditForm({...editForm, profissional_id: profissionalId, servico_id: ''});
-    await filtrarServicosPorProfissional(profissionalId);
     
     // Resetar horários quando trocar profissional
     setPeriodoSelecionado('');
@@ -431,8 +396,7 @@ const AgendamentosManager = ({ currentUser }) => {
     setHorarioSelecionado(horario);
     
     // Calcular horário de fim baseado na duração do serviço
-    const servico = servicosFiltrados.find(s => s.id === editForm.servico_id) || 
-                   servicos.find(s => s.id === editForm.servico_id);
+    const servico = servicos.find(s => s.id === editForm.servico_id);
     const duracao = servico?.duracao_minutos || 30;
     
     const [hora, minuto] = horario.split(':').map(Number);
@@ -1044,12 +1008,9 @@ const AgendamentosManager = ({ currentUser }) => {
                         value={editForm.servico_id}
                         onChange={(e) => handleServicoChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        disabled={!editForm.profissional_id}
                       >
-                        <option value="">
-                          {!editForm.profissional_id ? 'Selecione um profissional primeiro' : 'Selecione um serviço'}
-                        </option>
-                        {servicosFiltrados.map((servico) => (
+                        <option value="">Selecione um serviço</option>
+                        {servicos.map((servico) => (
                           <option key={servico.id} value={servico.id}>
                             {servico.nome} - R$ {servico.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </option>
