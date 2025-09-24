@@ -61,6 +61,23 @@ const AgendamentosManager = ({ currentUser }) => {
     // Estado para modal de seleção de data/hora
     const [showDateTimeModal, setShowDateTimeModal] = useState(false);
 
+    // Estados para modal de criação de agendamento
+    const [showCriacaoModal, setShowCriacaoModal] = useState(false);
+    const [criacaoForm, setCriacaoForm] = useState({
+        cliente_nome: '',
+        cliente_telefone: '',
+        cliente_email: '',
+        profissional_id: '',
+        servico_id: '',
+        data_agendamento: '',
+        horario_inicio: '',
+        horario_fim: '',
+        observacoes: ''
+    });
+    const [showCriacaoDateTimeModal, setShowCriacaoDateTimeModal] = useState(false);
+    const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
+    const [criandoAgendamento, setCriandoAgendamento] = useState(false);
+
     // Função para definir filtros rápidos
     const handleQuickFilter = (filter) => {
         setQuickFilter(filter);
@@ -616,6 +633,158 @@ const AgendamentosManager = ({ currentUser }) => {
         }
     };
 
+    // ===== FUNÇÕES PARA CRIAÇÃO DE AGENDAMENTOS =====
+
+    const abrirModalCriacao = async () => {
+        setShowCriacaoModal(true);
+        // Carregar profissionais se ainda não estão carregados
+        if (profissionais.length === 0) {
+            await loadProfissionais();
+        }
+        // Limpar formulário
+        setCriacaoForm({
+            cliente_nome: '',
+            cliente_telefone: '',
+            cliente_email: '',
+            profissional_id: '',
+            servico_id: '',
+            data_agendamento: '',
+            horario_inicio: '',
+            horario_fim: '',
+            observacoes: ''
+        });
+        setUsuariosSugeridos([]);
+    };
+
+    const handleCriacaoProfissionalChange = async (profissionalId) => {
+        setCriacaoForm(prev => ({ ...prev, profissional_id: profissionalId, servico_id: '' }));
+        
+        if (profissionalId) {
+            await filtrarServicosPorProfissional(profissionalId);
+        } else {
+            setServicosFiltrados([]);
+        }
+    };
+
+    const handleCriacaoServicoChange = async (servicoId) => {
+        setCriacaoForm(prev => ({ ...prev, servico_id: servicoId }));
+    };
+
+    const buscarUsuariosPorTelefone = async (telefone) => {
+        if (telefone.length < 3) {
+            setUsuariosSugeridos([]);
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .rpc('buscar_usuarios_por_telefone', { p_telefone_partial: telefone });
+
+            if (error) {
+                console.error('Erro ao buscar usuários:', error);
+                setUsuariosSugeridos([]);
+                return;
+            }
+
+            setUsuariosSugeridos(data || []);
+        } catch (error) {
+            console.error('Erro ao buscar usuários:', error);
+            setUsuariosSugeridos([]);
+        }
+    };
+
+    const handleTelefoneChange = (telefone) => {
+        setCriacaoForm(prev => ({ ...prev, cliente_telefone: telefone }));
+        buscarUsuariosPorTelefone(telefone);
+    };
+
+    const selecionarUsuarioSugerido = (usuario) => {
+        setCriacaoForm(prev => ({
+            ...prev,
+            cliente_nome: usuario.name,
+            cliente_telefone: usuario.phone,
+            cliente_email: usuario.email || ''
+        }));
+        setUsuariosSugeridos([]);
+    };
+
+    const handleCriacaoDateTimeSelect = (data, horarioInicio, horarioFim) => {
+        setCriacaoForm(prev => ({
+            ...prev,
+            data_agendamento: data,
+            horario_inicio: horarioInicio,
+            horario_fim: horarioFim
+        }));
+        setShowCriacaoDateTimeModal(false);
+    };
+
+    const criarAgendamento = async () => {
+        // Validações básicas
+        if (!criacaoForm.cliente_nome.trim() || !criacaoForm.cliente_telefone.trim()) {
+            showError('Nome e telefone do cliente são obrigatórios');
+            return;
+        }
+
+        if (!criacaoForm.profissional_id || !criacaoForm.servico_id) {
+            showError('Profissional e serviço são obrigatórios');
+            return;
+        }
+
+        if (!criacaoForm.data_agendamento || !criacaoForm.horario_inicio || !criacaoForm.horario_fim) {
+            showError('Data e horário são obrigatórios');
+            return;
+        }
+
+        setCriandoAgendamento(true);
+
+        try {
+            // Buscar preço do serviço
+            const servicoSelecionado = servicosFiltrados.find(s => s.id === criacaoForm.servico_id);
+            const precoTotal = servicoSelecionado?.preco || 0;
+
+            const { data, error } = await supabase
+                .rpc('criar_agendamento_admin', {
+                    p_profissional_id: criacaoForm.profissional_id,
+                    p_unidade_id: unidadeId,
+                    p_servico_id: criacaoForm.servico_id,
+                    p_data_agendamento: criacaoForm.data_agendamento,
+                    p_horario_inicio: criacaoForm.horario_inicio,
+                    p_horario_fim: criacaoForm.horario_fim,
+                    p_preco_total: precoTotal,
+                    p_usuario_id: null, // Sempre criar como cliente direto
+                    p_cliente_nome: criacaoForm.cliente_nome,
+                    p_cliente_telefone: criacaoForm.cliente_telefone,
+                    p_cliente_email: criacaoForm.cliente_email || null,
+                    p_observacoes: criacaoForm.observacoes || null
+                });
+
+            if (error) {
+                console.error('Erro ao criar agendamento:', error);
+                showError(`Erro ao criar agendamento: ${error.message}`);
+                return;
+            }
+
+            const resultado = data[0]; // RPC retorna array
+
+            if (!resultado.success) {
+                showError(resultado.message);
+                return;
+            }
+
+            showSuccess('Agendamento criado com sucesso!');
+            setShowCriacaoModal(false);
+            
+            // Recarregar lista de agendamentos
+            await loadAgendamentos();
+
+        } catch (error) {
+            console.error('Erro ao criar agendamento:', error);
+            showError('Erro inesperado ao criar agendamento');
+        } finally {
+            setCriandoAgendamento(false);
+        }
+    };
+
     // Função deleteAgendamento removida - agora usa handleDeleteAgendamento
 
     const filteredAgendamentos = agendamentos.filter(agendamento => {
@@ -694,7 +863,10 @@ const AgendamentosManager = ({ currentUser }) => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900">Gerenciar Agendamentos</h2>
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <button 
+                    onClick={abrirModalCriacao}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center"
+                >
                     <Plus size={20} className="mr-2" />
                     Novo Agendamento
                 </button>
@@ -1283,6 +1455,269 @@ const AgendamentosManager = ({ currentUser }) => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal de Criação de Agendamento */}
+            {showCriacaoModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        {/* Header do Modal */}
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 rounded-t-xl">
+                            <h3 className="text-xl font-bold text-white flex items-center">
+                                <Plus size={24} className="mr-3" />
+                                Criar Novo Agendamento
+                            </h3>
+                            <p className="text-green-100 text-sm mt-1">
+                                Preencha os dados para criar um novo agendamento
+                            </p>
+                        </div>
+
+                        {/* Conteúdo do Modal */}
+                        <div className="p-6 space-y-6">
+                            {/* Dados do Cliente */}
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <User size={16} className="text-blue-600" />
+                                    </div>
+                                    <h4 className="font-semibold text-gray-800">Dados do Cliente</h4>
+                                </div>
+
+                                <div className="ml-10 space-y-4">
+                                    {/* Nome do Cliente */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Cliente *</label>
+                                        <input
+                                            type="text"
+                                            value={criacaoForm.cliente_nome}
+                                            onChange={(e) => setCriacaoForm(prev => ({ ...prev, cliente_nome: e.target.value }))}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                            placeholder="Nome completo do cliente"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Telefone do Cliente */}
+                                    <div className="relative">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Telefone do Cliente *</label>
+                                        <input
+                                            type="tel"
+                                            value={criacaoForm.cliente_telefone}
+                                            onChange={(e) => handleTelefoneChange(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                            placeholder="(11) 99999-9999"
+                                            required
+                                        />
+                                        
+                                        {/* Lista de Sugestões */}
+                                        {usuariosSugeridos.length > 0 && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                {usuariosSugeridos.map((usuario) => (
+                                                    <button
+                                                        key={usuario.id}
+                                                        onClick={() => selecionarUsuarioSugerido(usuario)}
+                                                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">{usuario.name}</p>
+                                                                <p className="text-sm text-gray-500">{usuario.phone}</p>
+                                                            </div>
+                                                            <span className="text-xs text-green-600">Cliente existente</span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Email do Cliente */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">E-mail (opcional)</label>
+                                        <input
+                                            type="email"
+                                            value={criacaoForm.cliente_email}
+                                            onChange={(e) => setCriacaoForm(prev => ({ ...prev, cliente_email: e.target.value }))}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                            placeholder="cliente@email.com"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Dados do Agendamento */}
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <Calendar size={16} className="text-purple-600" />
+                                    </div>
+                                    <h4 className="font-semibold text-gray-800">Dados do Agendamento</h4>
+                                </div>
+
+                                <div className="ml-10 space-y-4">
+                                    {/* Profissional */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Profissional *</label>
+                                        <select
+                                            value={criacaoForm.profissional_id}
+                                            onChange={(e) => handleCriacaoProfissionalChange(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                                            required
+                                        >
+                                            <option value="">Selecione um profissional</option>
+                                            {profissionais.map((profissional) => (
+                                                <option key={profissional.id} value={profissional.id}>
+                                                    {profissional.nome} - {profissional.especialidade}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Serviço */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Serviço *</label>
+                                        <select
+                                            value={criacaoForm.servico_id}
+                                            onChange={(e) => handleCriacaoServicoChange(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                                            disabled={!criacaoForm.profissional_id}
+                                            required
+                                        >
+                                            <option value="">
+                                                {!criacaoForm.profissional_id 
+                                                    ? 'Primeiro selecione um profissional' 
+                                                    : 'Selecione um serviço'
+                                                }
+                                            </option>
+                                            {servicosFiltrados.map((servico) => (
+                                                <option key={servico.id} value={servico.id}>
+                                                    {servico.nome} - R$ {servico.preco.toFixed(2)} ({servico.duracao_minutos}min)
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Data e Horário */}
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-medium text-gray-700">Data e Horário *</label>
+                                        
+                                        {criacaoForm.data_agendamento && criacaoForm.horario_inicio ? (
+                                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-3">
+                                                        <Calendar size={20} className="text-green-600" />
+                                                        <div>
+                                                            <p className="font-medium text-green-800">
+                                                                {formatDateBR(new Date(criacaoForm.data_agendamento + 'T00:00:00'))}
+                                                            </p>
+                                                            <p className="text-sm text-green-600">
+                                                                {criacaoForm.horario_inicio} - {criacaoForm.horario_fim}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setShowCriacaoDateTimeModal(true)}
+                                                        className="text-green-600 hover:text-green-700 font-medium"
+                                                        disabled={!criacaoForm.profissional_id || !criacaoForm.servico_id}
+                                                    >
+                                                        Alterar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setShowCriacaoDateTimeModal(true)}
+                                                disabled={!criacaoForm.profissional_id || !criacaoForm.servico_id}
+                                                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-green-400 hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                                            >
+                                                {!criacaoForm.profissional_id || !criacaoForm.servico_id
+                                                    ? 'Selecione profissional e serviço primeiro'
+                                                    : 'Clique para selecionar data e horário'
+                                                }
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Observações */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Observações (opcional)</label>
+                                        <textarea
+                                            value={criacaoForm.observacoes}
+                                            onChange={(e) => setCriacaoForm(prev => ({ ...prev, observacoes: e.target.value }))}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                            rows="3"
+                                            placeholder="Observações adicionais sobre o agendamento..."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Botões de Ação */}
+                            <div className="flex space-x-3 mt-8">
+                                <button
+                                    onClick={() => {
+                                        setShowCriacaoModal(false);
+                                        setCriacaoForm({
+                                            cliente_nome: '',
+                                            cliente_telefone: '',
+                                            cliente_email: '',
+                                            profissional_id: '',
+                                            servico_id: '',
+                                            data_agendamento: '',
+                                            horario_inicio: '',
+                                            horario_fim: '',
+                                            observacoes: ''
+                                        });
+                                        setUsuariosSugeridos([]);
+                                    }}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors"
+                                    disabled={criandoAgendamento}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={criarAgendamento}
+                                    disabled={
+                                        criandoAgendamento ||
+                                        !criacaoForm.cliente_nome.trim() || 
+                                        !criacaoForm.cliente_telefone.trim() || 
+                                        !criacaoForm.profissional_id || 
+                                        !criacaoForm.servico_id || 
+                                        !criacaoForm.data_agendamento || 
+                                        !criacaoForm.horario_inicio
+                                    }
+                                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                                >
+                                    {criandoAgendamento ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                            <span>Criando...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle size={20} />
+                                            <span>Criar Agendamento</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Seleção de Data/Hora para Criação */}
+            {showCriacaoDateTimeModal && criacaoForm.profissional_id && criacaoForm.servico_id && (
+                <SelectDateTime
+                    onClose={() => setShowCriacaoDateTimeModal(false)}
+                    onSelect={handleCriacaoDateTimeSelect}
+                    professionalId={criacaoForm.profissional_id}
+                    unitId={unidadeId}
+                    servicosSelecionados={servicosFiltrados.filter(s => s.id === criacaoForm.servico_id)}
+                    currentDate={null}
+                    currentTime={null}
+                    isModal={true}
+                />
             )}
 
             {/* Modal de Confirmação */}
