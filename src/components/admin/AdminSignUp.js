@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Building2, ArrowLeft } from 'lucide-react';
 import { auth, supabase } from '../../lib/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminSignUp = ({ onBackToLogin }) => {
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -83,7 +85,7 @@ const AdminSignUp = ({ onBackToLogin }) => {
         }
 
         // Sucesso - voltar para login
-        alert(`Conta administrativa criada com sucesso! ${isFirstAdmin ? 'Você é o Super Administrador.' : ''} Faça login para acessar o sistema.`);
+        showSuccess(`Conta administrativa criada com sucesso! ${isFirstAdmin ? 'Você é o Super Administrador.' : ''} Faça login para acessar o sistema.`);
         onBackToLogin();
       }
 

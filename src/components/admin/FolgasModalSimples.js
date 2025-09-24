@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Calendar, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
 const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
+  const { showSuccess, showError } = useToast();
   // const [tipoFolga, setTipoFolga] = useState('dia_semana_recorrente');
   const [diaSemana, setDiaSemana] = useState('');
   const [folgaManha, setFolgaManha] = useState(false);
@@ -50,10 +52,10 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
 
       if (error) throw error;
       await carregarFolgas(); // Recarregar lista
-      alert('✅ Folga removida com sucesso!');
+      showSuccess('Folga removida com sucesso!');
     } catch (error) {
       console.error('Erro ao remover folga:', error);
-      alert('❌ Erro ao remover folga: ' + error.message);
+      showError('Erro ao remover folga: ' + error.message);
     }
   };
 
@@ -83,11 +85,7 @@ const FolgasModalSimples = ({ isOpen, onClose, profissional }) => {
 
       if (error) throw error;
 
-      alert(`✅ Folga salva com sucesso para ${profissional?.nome}!
-- Dia: ${diasSemana.find(d => d.id === parseInt(diaSemana))?.nome}
-- Períodos: ${folgaManha ? 'Manhã ' : ''}${folgaTarde ? 'Tarde ' : ''}${folgaNoite ? 'Noite' : ''}
-
-Agora teste no app de agendamento!`);
+      showSuccess(`Folga salva com sucesso para ${profissional?.nome}! Dia: ${diasSemana.find(d => d.id === parseInt(diaSemana))?.nome} - Períodos: ${folgaManha ? 'Manhã ' : ''}${folgaTarde ? 'Tarde ' : ''}${folgaNoite ? 'Noite' : ''}`);
       
       // Resetar formulário
       setDiaSemana('');
@@ -98,7 +96,7 @@ Agora teste no app de agendamento!`);
       await carregarFolgas(); // Recarregar lista (modal permanece aberto)
     } catch (error) {
       console.error('Erro ao salvar folga:', error);
-      alert('❌ Erro ao salvar folga: ' + error.message);
+      showError('Erro ao salvar folga: ' + error.message);
     }
   };
 

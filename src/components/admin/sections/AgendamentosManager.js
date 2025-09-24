@@ -13,8 +13,10 @@ import {
 import { supabase } from '../../../lib/supabase';
 import ConfirmationModal from '../../ConfirmationModal';
 import SelectDateTime from '../../SelectDateTime';
+import { useToast } from '../../../contexts/ToastContext';
 
 const AgendamentosManager = ({ currentUser }) => {
+  const { showSuccess, showError, showWarning } = useToast();
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
   const unidadeId = adminData.unidade_id || currentUser?.unidade_id; // Usar currentUser como fallback
   
@@ -364,10 +366,10 @@ const AgendamentosManager = ({ currentUser }) => {
       setShowEditModal(false);
       setEditingAgendamento(null);
       await loadAgendamentos();
-      alert('Agendamento editado com sucesso!');
+      showSuccess('Agendamento editado com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar edição:', error);
-      alert('Erro ao salvar edição: ' + error.message);
+      showError('Erro ao salvar edição: ' + error.message);
     }
   };
 
@@ -379,7 +381,7 @@ const AgendamentosManager = ({ currentUser }) => {
 
   const confirmarPagamento = async () => {
     if (!tipoPagamento) {
-      alert('Por favor, selecione o tipo de pagamento');
+      showWarning('Por favor, selecione o tipo de pagamento');
       return;
     }
 
@@ -460,10 +462,10 @@ const AgendamentosManager = ({ currentUser }) => {
       setTipoPagamento('');
       await loadAgendamentos();
 
-      alert('Pagamento confirmado e movido para histórico com sucesso!');
+      showSuccess('Pagamento confirmado e movido para histórico com sucesso!');
     } catch (error) {
       console.error('❌ ERRO GERAL ao confirmar pagamento:', error);
-      alert('Erro ao confirmar pagamento: ' + error.message);
+      showError('Erro ao confirmar pagamento: ' + error.message);
     }
   };
 
@@ -485,11 +487,11 @@ const AgendamentosManager = ({ currentUser }) => {
       if (confirmAction === 'cancel') {
         await moverParaHistorico(confirmData.id, 'cancelado');
         await loadAgendamentos();
-        alert('Agendamento cancelado com sucesso!');
+        showSuccess('Agendamento cancelado com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao cancelar agendamento:', error);
-      alert(`Erro ao cancelar agendamento: ${error.message}`);
+      showError(`Erro ao cancelar agendamento: ${error.message}`);
     }
   };
 

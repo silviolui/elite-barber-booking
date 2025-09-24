@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Camera, X, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
 const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
+  const { showSuccess, showError, showWarning } = useToast();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(currentPhotoUrl);
 
@@ -12,13 +14,13 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
 
     // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione apenas imagens (JPG, PNG, etc.)');
+      showWarning('Por favor, selecione apenas imagens (JPG, PNG, etc.)');
       return;
     }
 
     // Validar tamanho (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Imagem muito grande. Máximo 5MB.');
+      showWarning('Imagem muito grande. Máximo 5MB.');
       return;
     }
 
@@ -40,9 +42,9 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
         
         // Se bucket não existe ou políticas RLS, mostrar instruções
         if (error.message.includes('Bucket not found') || error.message.includes('StorageApiError')) {
-          alert('Configure o Storage: Execute o SQL "fix-storage-policies.sql" ou crie o bucket "profissionais-fotos" manualmente no Supabase Dashboard');
+          showError('Configure o Storage: Execute o SQL "fix-storage-policies.sql" ou crie o bucket "profissionais-fotos" manualmente no Supabase Dashboard');
         } else {
-          alert(`Erro ao fazer upload: ${error.message}`);
+          showError(`Erro ao fazer upload: ${error.message}`);
         }
         return;
       }
@@ -58,7 +60,7 @@ const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
 
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload da foto.');
+      showError('Erro ao fazer upload da foto.');
     } finally {
       setUploading(false);
     }

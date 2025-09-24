@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
 import AgendamentoSucesso from './AgendamentoSucesso';
+import { useToast } from '../contexts/ToastContext';
 
 const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSelection, unidadesLoading }) => {
+  const { showError } = useToast();
   console.log('🔍 BookingHome props:', { skipUnidadeSelection, unidadesLoading, unidade: selections?.unit?.nome });
   
   const [quantidadeUnidades, setQuantidadeUnidades] = useState(0);
@@ -124,7 +126,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
       
     } catch (error) {
       console.error('❌ Erro ao finalizar agendamento:', error);
-      alert('Erro ao finalizar agendamento. Tente novamente.');
+      showError('Erro ao finalizar agendamento. Tente novamente.');
     }
   };
 

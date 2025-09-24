@@ -10,6 +10,7 @@ import SelectServices from './components/SelectServices';
 import SelectDateTime from './components/SelectDateTime';
 import Historico from './components/Historico';
 import AdminApp from './AdminApp';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Mock Data - dados para funcionar
 const mockData = {
@@ -327,18 +328,24 @@ function App() {
 
   // Se está no modo admin, renderizar AdminApp
   if (isAdminMode) {
-    return <AdminApp />;
+    return (
+      <ToastProvider>
+        <AdminApp />
+      </ToastProvider>
+    );
   }
 
   // Loading state para verificação de sessão
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Verificando sessão...</p>
+      <ToastProvider>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Verificando sessão...</p>
+          </div>
         </div>
-      </div>
+      </ToastProvider>
     );
   }
 
@@ -346,17 +353,21 @@ function App() {
   if (!isLoggedIn) {
     if (showSignUp) {
       return (
-        <SignUpScreen 
-          onSignUp={handleSignUp}
-          onBack={handleBackToLogin}
-        />
+        <ToastProvider>
+          <SignUpScreen 
+            onSignUp={handleSignUp}
+            onBack={handleBackToLogin}
+          />
+        </ToastProvider>
       );
     }
     return (
-      <LoginScreen 
-        onLogin={handleLogin} 
-        onShowSignUp={handleShowSignUp}
-      />
+      <ToastProvider>
+        <LoginScreen 
+          onLogin={handleLogin} 
+          onShowSignUp={handleShowSignUp}
+        />
+      </ToastProvider>
     );
   }
 
@@ -446,12 +457,14 @@ function App() {
   const showBottomNav = currentScreen === 'home' || activeTab !== 'agenda';
 
   return (
-    <div className="relative">
-      {renderMainContent()}
-      {showBottomNav && (
-        <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
-      )}
-    </div>
+    <ToastProvider>
+      <div className="relative">
+        {renderMainContent()}
+        {showBottomNav && (
+          <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+        )}
+      </div>
+    </ToastProvider>
   );
 }
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../contexts/ToastContext';
 
 const AdminCadastro = ({ onBackToLogin }) => {
+  const { showSuccess, showError } = useToast();
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -47,7 +49,7 @@ const AdminCadastro = ({ onBackToLogin }) => {
         });
 
       if (error) {
-        alert(`Erro ao criar admin: ${error.message}`);
+        showError(`Erro ao criar admin: ${error.message}`);
       } else {
         setSuccess(true);
         setTimeout(() => {
@@ -55,7 +57,7 @@ const AdminCadastro = ({ onBackToLogin }) => {
         }, 2000);
       }
     } catch (error) {
-      alert('Erro ao criar administrador. Tente novamente.');
+      showError('Erro ao criar administrador. Tente novamente.');
     } finally {
       setLoading(false);
     }
