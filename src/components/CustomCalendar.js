@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { getBrazilDate } from '../utils/timezone';
 
 const CustomCalendar = ({ selectedDate, onDateSelect, onClose }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getBrazilDate());
   const calendarRef = useRef(null);
 
   // Fechar calendário ao clicar fora
@@ -49,7 +50,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, onClose }) => {
   };
 
   const isToday = (day) => {
-    const today = new Date();
+    const today = getBrazilDate();
     return today.getDate() === day &&
            today.getMonth() === currentDate.getMonth() &&
            today.getFullYear() === currentDate.getFullYear();

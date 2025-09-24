@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import CustomCalendar from '../../CustomCalendar';
+import { formatDateBR, formatTimeBR, formatDateTimeBR } from '../../../utils/timezone';
 
 const HistoricoView = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -218,7 +219,7 @@ const HistoricoView = ({ currentUser }) => {
             <Calendar size={16} />
             <span className="text-sm font-medium">
               {dateFilter 
-                ? dateFilter.toLocaleDateString('pt-BR')
+                ? formatDateBR(dateFilter)
                 : 'Filtrar por Data'
               }
             </span>
@@ -273,7 +274,7 @@ const HistoricoView = ({ currentUser }) => {
                     <div>
                       <div className="flex items-center space-x-2">
                         <span className="text-lg font-bold text-gray-900">
-                          {new Date(item.data_agendamento).toLocaleDateString('pt-BR')}
+                          {formatDateBR(item.data_agendamento)}
                         </span>
                         <span className="text-gray-400">•</span>
                         <span className="text-lg font-semibold text-gray-700">
@@ -281,7 +282,7 @@ const HistoricoView = ({ currentUser }) => {
                         </span>
                       </div>
                       <div className="text-xs text-gray-500">
-                        Finalizado: {new Date(item.data_conclusao).toLocaleDateString('pt-BR')} às {new Date(item.data_conclusao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        Finalizado: {formatDateTimeBR(item.data_conclusao)}
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,100 @@
 import { supabase } from './supabase';
+import { 
+  getBrazilDate, 
+  toBrazilDate, 
+  formatDateBR, 
+  formatTimeBR, 
+  formatDateTimeBR,
+  getBrazilISOString,
+  dateToStringBrazil,
+  parseDateStringToBrazil,
+  timeStringToDate,
+  dateToTimeString,
+  isToday,
+  isPastDate,
+  addDays,
+  getStartOfDay,
+  getEndOfDay,
+  timeStringToDate,
+  dateToTimeString,
+  parseDateStringToBrazil
+} from '../utils/timezone';
 
 // Helper functions para carregar dados reais do Supabase
+
+// Funções auxiliares específicas para agendamentos
+const agendamentoHelpers = {
+  // Verifica disponibilidade de um horário específico
+  async verificarDisponibilidade(profissionalId, data, horarioInicio, duracaoMinutos) {
+    try {
+      // Garantir formato correto da data
+      const dataFormatada = typeof data === 'string' ? data : dateToStringBrazil(toBrazilDate(data));
+      
+      // Calcular horário de fim
+      const [hora, minuto] = horarioInicio.split(':').map(Number);
+      const inicioMinutos = hora * 60 + minuto;
+      const fimMinutos = inicioMinutos + duracaoMinutos;
+      const horaFim = Math.floor(fimMinutos / 60);
+      const minutoFim = fimMinutos % 60;
+      const horarioFim = `${horaFim.toString().padStart(2, '0')}:${minutoFim.toString().padStart(2, '0')}`;
+
+      // Buscar agendamentos conflitantes
+      const { data: conflitos, error } = await supabase
+        .from('agendamentos')
+        .select('horario_inicio, horario_fim')
+        .eq('profissional_id', profissionalId)
+        .eq('data_agendamento', dataFormatada)
+        .in('status', ['pending', 'confirmed']);
+
+      if (error) {
+        console.error('Erro ao verificar disponibilidade:', error);
+        return false;
+      }
+
+      // Verificar conflitos de horário
+      const temConflito = conflitos.some(agendamento => {
+        const [agendHoraInicio, agendMinutoInicio] = agendamento.horario_inicio.substring(0, 5).split(':').map(Number);
+        const [agendHoraFim, agendMinutoFim] = agendamento.horario_fim.substring(0, 5).split(':').map(Number);
+        const agendInicioMinutos = agendHoraInicio * 60 + agendMinutoInicio;
+        const agendFimMinutos = agendHoraFim * 60 + agendMinutoFim;
+
+        // Verifica sobreposição
+        return !(fimMinutos <= agendInicioMinutos || inicioMinutos >= agendFimMinutos);
+      });
+
+      return !temConflito;
+    } catch (error) {
+      console.error('Erro ao verificar disponibilidade:', error);
+      return false;
+    }
+  },
+
+  // Busca slots disponíveis para uma data específica
+  async buscarSlotsDisponiveis(unidadeId, profissionalId, data, servicosSelecionados = []) {
+    try {
+      // Usar função otimizada que já existe
+      const dadosCompletos = await supabaseData.getDadosCompletosData(
+        unidadeId, 
+        data, 
+        profissionalId, 
+        servicosSelecionados
+      );
+
+      return {
+        periodos: dadosCompletos.periodos,
+        horarios: dadosCompletos.horariosMap,
+        folgas: dadosCompletos.folgas
+      };
+    } catch (error) {
+      console.error('Erro ao buscar slots disponíveis:', error);
+      return {
+        periodos: { manha: false, tarde: false, noite: false },
+        horarios: { manha: [], tarde: [], noite: [] },
+        folgas: { manha: false, tarde: false, noite: false }
+      };
+    }
+  }
+};
 
 export const supabaseData = {
   // Carregar todas as empresas
@@ -61,6 +155,46 @@ export const supabaseData = {
     return data || [];
   },
 
+  // Carregar profissionais de uma unidade com informações sobre disponibilidade para uma data
+  async getProfissionaisPorUnidade(unidadeId, dataConsulta = null) {
+    try {
+      // Buscar profissionais básicos
+      const profissionais = await this.getProfissionais(unidadeId);
+
+      // Se não há data especificada, retornar apenas profissionais
+      if (!dataConsulta) {
+        return profissionais;
+      }
+
+      // Usar horário de Brasília para a data de consulta
+      const dataBrasil = typeof dataConsulta === 'string' 
+        ? parseDateStringToBrazil(dataConsulta) 
+        : toBrazilDate(dataConsulta);
+
+      // Adicionar informações de disponibilidade para cada profissional
+      const profissionaisComDisponibilidade = await Promise.all(
+        profissionais.map(async (profissional) => {
+          // Verificar se está de folga
+          const estaDefolga = await this.profissionalEstaDefolga(
+            profissional.id, 
+            dateToStringBrazil(dataBrasil)
+          );
+
+          return {
+            ...profissional,
+            disponivel: !estaDefolga,
+            dataConsulta: formatDateBR(dataBrasil)
+          };
+        })
+      );
+
+      return profissionaisComDisponibilidade;
+    } catch (error) {
+      console.error('Erro ao carregar profissionais por unidade:', error);
+      return [];
+    }
+  },
+
   // Carregar serviços de um profissional
   async getServicos(profissionalId) {
     const { data, error } = await supabase
@@ -83,6 +217,20 @@ export const supabaseData = {
       ? agendamentoData.servicos[0].id 
       : null;
 
+    // Garantir que a data está no formato correto para o banco (YYYY-MM-DD)
+    const dataAgendamento = typeof agendamentoData.data === 'string' 
+      ? agendamentoData.data 
+      : dateToStringBrazil(toBrazilDate(agendamentoData.data));
+
+    // Garantir que os horários estão no formato correto (HH:MM:SS)
+    const horarioInicio = agendamentoData.horarioInicio.includes(':') 
+      ? (agendamentoData.horarioInicio.length === 5 ? `${agendamentoData.horarioInicio}:00` : agendamentoData.horarioInicio)
+      : agendamentoData.horarioInicio;
+    
+    const horarioFim = agendamentoData.horarioFim.includes(':') 
+      ? (agendamentoData.horarioFim.length === 5 ? `${agendamentoData.horarioFim}:00` : agendamentoData.horarioFim)
+      : agendamentoData.horarioFim;
+
     const { data, error } = await supabase
       .from('agendamentos')
       .insert([
@@ -91,11 +239,12 @@ export const supabaseData = {
           profissional_id: agendamentoData.profissionalId,
           unidade_id: agendamentoData.unidadeId,
           servico_id: servicoId,
-          data_agendamento: agendamentoData.data,
-          horario_inicio: agendamentoData.horarioInicio,
-          horario_fim: agendamentoData.horarioFim,
+          data_agendamento: dataAgendamento,
+          horario_inicio: horarioInicio,
+          horario_fim: horarioFim,
           preco_total: agendamentoData.precoTotal,
-          observacoes: agendamentoData.observacoes || null
+          observacoes: agendamentoData.observacoes || null,
+          created_at: getBrazilISOString()
         }
       ])
       .select();
@@ -147,7 +296,17 @@ export const supabaseData = {
       console.error('Erro ao carregar agendamentos:', error);
       return [];
     }
-    return data || [];
+
+    // Formatear datas e horários usando timezone do Brasil
+    const agendamentosFormatados = (data || []).map(agendamento => ({
+      ...agendamento,
+      data_agendamento_formatada: formatDateBR(agendamento.data_agendamento),
+      horario_inicio_formatado: formatTimeBR(agendamento.horario_inicio),
+      horario_fim_formatado: formatTimeBR(agendamento.horario_fim),
+      data_criacao_formatada: agendamento.created_at ? formatDateTimeBR(agendamento.created_at) : null
+    }));
+
+    return agendamentosFormatados;
   },
 
   // Carregar horários disponíveis de um profissional
@@ -183,7 +342,9 @@ export const supabaseData = {
 
   // Verificar se unidade está aberta em um dia específico
   async isUnidadeAberta(unidadeId, data) {
-    const dayOfWeek = data.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
+    // Converter para horário de Brasília antes de calcular o dia da semana
+    const dataBrasil = toBrazilDate(data);
+    const dayOfWeek = dataBrasil.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
     
     const { data: horarios, error } = await supabase
       .from('horario_funcionamento')
@@ -208,11 +369,13 @@ export const supabaseData = {
 
   // NOVA FUNÇÃO: Verificar períodos disponíveis para um dia
   async getPeriodosDisponiveis(unidadeId, data) {
-    const dayOfWeek = data.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
+    // Converter para horário de Brasília antes de calcular o dia da semana
+    const dataBrasil = toBrazilDate(data);
+    const dayOfWeek = dataBrasil.getDay(); // 0=Domingo, 1=Segunda, ..., 6=Sábado
     
     console.log('🔍 getPeriodosDisponiveis:', {
       unidadeId,
-      data: data.toISOString(),
+      data: dataBrasil.toISOString(),
       dayOfWeek
     });
     
@@ -335,28 +498,29 @@ export const supabaseData = {
     const { duracaoTotal, slotsNecessarios } = this.calcularSlotsNecessarios(servicosSelecionados, intervaloSlots);
     
     // Verificar se é o dia de hoje e aplicar regra de 20 minutos de antecedência
-    const hoje = new Date();
-    const dataVerificacao = typeof data === 'string' ? new Date(data) : data;
-    const isHoje = dataVerificacao.toDateString() === hoje.toDateString();
+    // Usar horário de Brasília para comparações
+    const hojeBrasil = getBrazilDate();
+    const dataVerificacao = typeof data === 'string' ? parseDateStringToBrazil(data) : toBrazilDate(data);
+    const ehHoje = isToday(dataVerificacao);
     
     let horarioMinimoInicio = null;
-    if (isHoje) {
-      // Adicionar 20 minutos à hora atual e arredondar para próximo slot configurado
-      const agora = new Date();
-      agora.setMinutes(agora.getMinutes() + 20);
+    if (ehHoje) {
+      // Adicionar 20 minutos à hora atual (horário de Brasília) e arredondar para próximo slot configurado
+      const agoraBrasil = getBrazilDate();
+      agoraBrasil.setMinutes(agoraBrasil.getMinutes() + 20);
       
       // Arredondar para o próximo slot baseado no intervalo configurado
-      const minutosAtuais = agora.getMinutes();
+      const minutosAtuais = agoraBrasil.getMinutes();
       const minutosArredondados = Math.ceil(minutosAtuais / intervaloSlots) * intervaloSlots;
       
       if (minutosArredondados >= 60) {
-        agora.setHours(agora.getHours() + Math.floor(minutosArredondados / 60));
-        agora.setMinutes(minutosArredondados % 60);
+        agoraBrasil.setHours(agoraBrasil.getHours() + Math.floor(minutosArredondados / 60));
+        agoraBrasil.setMinutes(minutosArredondados % 60);
       } else {
-        agora.setMinutes(minutosArredondados);
+        agoraBrasil.setMinutes(minutosArredondados);
       }
       
-      horarioMinimoInicio = `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`;
+      horarioMinimoInicio = `${agoraBrasil.getHours().toString().padStart(2, '0')}:${agoraBrasil.getMinutes().toString().padStart(2, '0')}`;
       console.log(`🕐 Horário mínimo para hoje (20min + arredondamento para ${intervaloSlots}min):`, horarioMinimoInicio);
     }
     
@@ -383,7 +547,7 @@ export const supabaseData = {
       
       // Se é hoje, verificar se o horário atende à regra de antecedência
       let podeAgendar = true;
-      if (isHoje && horarioMinimoInicio) {
+      if (ehHoje && horarioMinimoInicio) {
         const [horaMinimaInicio, minutoMinimoInicio] = horarioMinimoInicio.split(':').map(Number);
         if (horaAtual < horaMinimaInicio || (horaAtual === horaMinimaInicio && minutoAtual < minutoMinimoInicio)) {
           podeAgendar = false;
@@ -462,7 +626,8 @@ export const supabaseData = {
   async getDadosCompletosData(unidadeId, data, profissionalId, servicosSelecionados = []) {
     try {
       console.log('🚀 Iniciando busca otimizada de dados...');
-      const dataStr = typeof data === 'string' ? data : data.toISOString().split('T')[0];
+      // Garantir que a data está no formato correto usando horário de Brasília
+      const dataStr = typeof data === 'string' ? data : dateToStringBrazil(toBrazilDate(data));
       
       // Primeira fase: buscar dados básicos em paralelo
       const [periodos, horariosOcupados] = await Promise.all([
@@ -580,7 +745,8 @@ export const supabaseData = {
 
   // Buscar horários ocupados de um profissional em uma data
   async getHorariosOcupados(profissionalId, data) {
-    const dataFormatada = typeof data === 'string' ? data : data.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Garantir formato correto da data usando horário de Brasília
+    const dataFormatada = typeof data === 'string' ? data : dateToStringBrazil(toBrazilDate(data)); // YYYY-MM-DD
     
     const { data: agendamentos, error } = await supabase
       .from('agendamentos')
@@ -763,5 +929,9 @@ export const supabaseData = {
     }
 
     return data || [];
-  }
+  },
+
+  // Expor funções auxiliares de agendamento
+  verificarDisponibilidade: agendamentoHelpers.verificarDisponibilidade,
+  buscarSlotsDisponiveis: agendamentoHelpers.buscarSlotsDisponiveis
 };

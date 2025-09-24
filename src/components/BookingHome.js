@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, MapPin, User, Scissors, Calendar, Check } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
+import { dateToStringBrazil } from '../utils/timezone';
 import AgendamentoSucesso from './AgendamentoSucesso';
 import { useToast } from '../contexts/ToastContext';
 
@@ -96,7 +97,7 @@ const BookingHome = ({ onNext, selections, currentUser, onLogout, skipUnidadeSel
         profissionalId: selections.professional?.id,
         unidadeId: selections.unit?.id,
         servicos: selections.services || [],
-        data: selections.date.toISOString().split('T')[0], // YYYY-MM-DD
+        data: dateToStringBrazil(selections.date), // YYYY-MM-DD no horário de Brasília
         horarioInicio: selections.time,
         horarioFim: horarioFim,
         precoTotal: precoTotal,

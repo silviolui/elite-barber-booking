@@ -1,11 +1,12 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { toBrazilDate } from '../utils/timezone';
 
 const AgendamentoModal = ({ agendamento, onClose, onConfirmar, onDesmarcar }) => {
   if (!agendamento) return null;
 
   const formatarData = (dataStr) => {
-    const data = new Date(dataStr);
+    const data = toBrazilDate(dataStr);
     const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
     

@@ -15,6 +15,7 @@ import ConfirmationModal from '../../ConfirmationModal';
 import SelectDateTime from '../../SelectDateTime';
 import { useToast } from '../../../contexts/ToastContext';
 import CustomDatePicker from '../../CustomDatePicker';
+import { getBrazilDate, formatDateBR, dateToStringBrazil, getBrazilISOString } from '../../../utils/timezone';
 
 const AgendamentosManager = ({ currentUser }) => {
     const { showSuccess, showError, showWarning } = useToast();
@@ -63,13 +64,13 @@ const AgendamentosManager = ({ currentUser }) => {
     // Função para definir filtros rápidos
     const handleQuickFilter = (filter) => {
         setQuickFilter(filter);
-        const today = new Date();
+        const today = getBrazilDate();
 
         switch (filter) {
             case 'amanha':
                 const tomorrow = new Date(today);
                 tomorrow.setDate(today.getDate() + 1);
-                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+                const tomorrowStr = dateToStringBrazil(tomorrow);
                 setDateStartFilter(tomorrowStr);
                 setDateEndFilter(tomorrowStr);
                 break;
@@ -79,15 +80,15 @@ const AgendamentosManager = ({ currentUser }) => {
                 const weekEnd = new Date(today);
                 weekStart.setDate(today.getDate() - today.getDay()); // Domingo
                 weekEnd.setDate(weekStart.getDate() + 6); // Sábado
-                setDateStartFilter(weekStart.toISOString().split('T')[0]);
-                setDateEndFilter(weekEnd.toISOString().split('T')[0]);
+                setDateStartFilter(dateToStringBrazil(weekStart));
+                setDateEndFilter(dateToStringBrazil(weekEnd));
                 break;
 
             case 'mes':
                 const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
                 const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                setDateStartFilter(monthStart.toISOString().split('T')[0]);
-                setDateEndFilter(monthEnd.toISOString().split('T')[0]);
+                setDateStartFilter(dateToStringBrazil(monthStart));
+                setDateEndFilter(dateToStringBrazil(monthEnd));
                 break;
 
             case 'todos':
@@ -446,7 +447,7 @@ const AgendamentosManager = ({ currentUser }) => {
             }
 
             // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
-            const agora = new Date();
+            const agora = getBrazilDate();
             const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
 
             // Preparar dados para histórico
@@ -463,7 +464,7 @@ const AgendamentosManager = ({ currentUser }) => {
                 valor_total: agendamento.preco_total,
                 tipo_pagamento: tipoPagamento,
                 forma_pagamento: tipoPagamento,
-                data_conclusao: horarioBrasil.toISOString()
+                data_conclusao: getBrazilISOString()
             };
 
             console.log('🔍 Dados para inserir no histórico:', dadosHistorico);
@@ -573,7 +574,7 @@ const AgendamentosManager = ({ currentUser }) => {
             }
 
             // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
-            const agora = new Date();
+            const agora = getBrazilDate();
             const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
 
             // Inserir no histórico
@@ -592,7 +593,7 @@ const AgendamentosManager = ({ currentUser }) => {
                     valor_total: agendamento.preco_total,
                     tipo_pagamento: agendamento.tipo_pagamento,
                     forma_pagamento: agendamento.tipo_pagamento, // Manter compatibilidade
-                    data_conclusao: horarioBrasil.toISOString()
+                    data_conclusao: getBrazilISOString()
                 });
 
             if (insertError) {
@@ -668,7 +669,7 @@ const AgendamentosManager = ({ currentUser }) => {
         // Evitar problemas de timezone - tratar como data local
         const [year, month, day] = dateString.split('-');
         const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('pt-BR');
+        return formatDateBR(date);
     };
 
     const formatTime = (timeString) => {

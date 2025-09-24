@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, Star, User, Scissors } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AgendamentoModal from './AgendamentoModal';
+import { getBrazilDate, formatDateBR, dateToStringBrazil, getBrazilISOString } from '../utils/timezone';
 
 const Historico = ({ usuarioId }) => {
   console.log('Historico.js - componente inicializado com usuarioId:', usuarioId);
@@ -70,11 +71,11 @@ const Historico = ({ usuarioId }) => {
     console.log('Carregando agendamentos para usuário:', usuarioId);
     
     // Obter data de hoje e ontem para incluir agendamentos recentes
-    const hoje = new Date();
+    const hoje = getBrazilDate();
     const ontem = new Date(hoje);
     ontem.setDate(hoje.getDate() - 1);
     
-    console.log('Data de filtro (ontem):', ontem.toISOString().split('T')[0]);
+    console.log('Data de filtro (ontem):', dateToStringBrazil(ontem));
     
     // TESTE: Ver todos os agendamentos SEM filtro para debug
     const { data: todosAgendamentos } = await supabase
@@ -92,7 +93,7 @@ const Historico = ({ usuarioId }) => {
       .select('*')
       .eq('usuario_id', usuarioId)
       .in('status', ['pending', 'confirmed']) // Incluir tanto pendentes quanto confirmados
-      .gte('data_agendamento', ontem.toISOString().split('T')[0]) // Incluir desde ontem
+      .gte('data_agendamento', dateToStringBrazil(ontem)) // Incluir desde ontem
       .order('data_agendamento', { ascending: true });
 
     console.log('🔍 CLIENTE - Agendamentos encontrados:', { 
@@ -130,7 +131,7 @@ const Historico = ({ usuarioId }) => {
   const carregarAgendamentosAbertosComUserId = async (userId) => {
     console.log('Carregando agendamentos para usuário (direto):', userId);
     
-    const hoje = new Date();
+    const hoje = getBrazilDate();
     const ontem = new Date(hoje);
     ontem.setDate(hoje.getDate() - 1);
     
@@ -139,7 +140,7 @@ const Historico = ({ usuarioId }) => {
       .select('*')
       .eq('usuario_id', userId)
       .in('status', ['pending', 'confirmed'])
-      .gte('data_agendamento', ontem.toISOString().split('T')[0])
+      .gte('data_agendamento', dateToStringBrazil(ontem))
       .order('data_agendamento', { ascending: true });
 
     console.log('Agendamentos encontrados (direto):', data, 'Erro:', error);
@@ -206,10 +207,9 @@ const Historico = ({ usuarioId }) => {
     dados.forEach(item => {
       const data = new Date(item.data_agendamento);
       const chave = `${data.getFullYear()}-${data.getMonth()}`;
-      const mesAno = data.toLocaleDateString('pt-BR', { 
-        month: 'long', 
-        year: 'numeric' 
-      });
+      const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesAno = meses[data.getMonth()] + ' ' + data.getFullYear();
       
       if (!grupos[chave]) {
         grupos[chave] = {
@@ -238,7 +238,7 @@ const Historico = ({ usuarioId }) => {
 
   const formatarDataSimples = (dataStr) => {
     const data = new Date(dataStr);
-    return data.toLocaleDateString('pt-BR');
+    return formatDateBR(data);
   };
 
   const formatarHorario = (inicio, fim) => {
@@ -328,7 +328,7 @@ const Historico = ({ usuarioId }) => {
           valor_total: agendamento.preco_total,
           tipo_pagamento: agendamento.tipo_pagamento,
           forma_pagamento: agendamento.tipo_pagamento, // Manter compatibilidade
-          data_conclusao: new Date().toISOString()
+          data_conclusao: getBrazilISOString()
         });
 
       if (insertError) {

@@ -10,6 +10,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { getBrazilDate, dateToStringBrazil } from '../../../utils/timezone';
 
 const DashboardOverview = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
@@ -35,8 +36,9 @@ const DashboardOverview = ({ currentUser }) => {
 
   const loadStats = async () => {
     try {
-      const hoje = new Date().toISOString().split('T')[0];
-      const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const hoje = dateToStringBrazil(getBrazilDate());
+      const brazilDate = getBrazilDate();
+      const inicioMes = dateToStringBrazil(new Date(brazilDate.getFullYear(), brazilDate.getMonth(), 1));
 
       // Construir queries baseadas na unidade do admin
       let agendamentosQuery = supabase.from('agendamentos').select('id', { count: 'exact' });

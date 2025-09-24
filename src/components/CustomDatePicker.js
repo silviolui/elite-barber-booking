@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import { getBrazilDate, toBrazilDate, formatDateBR, dateToStringBrazil, parseDateStringToBrazil } from '../utils/timezone';
 
 const CustomDatePicker = ({
     value,
@@ -11,14 +12,13 @@ const CustomDatePicker = ({
     maxDate = null
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(value ? new Date(value + 'T12:00:00') : null);
+    const [currentDate, setCurrentDate] = useState(getBrazilDate());
+    const [selectedDate, setSelectedDate] = useState(value ? parseDateStringToBrazil(value) : null);
     const containerRef = useRef(null);
 
     useEffect(() => {
         if (value) {
-            // Adicionar horário para evitar problemas de timezone
-            const date = new Date(value + 'T12:00:00');
+            const date = parseDateStringToBrazil(value);
             setSelectedDate(date);
             setCurrentDate(date);
         }
@@ -75,11 +75,7 @@ const CustomDatePicker = ({
         if (maxDate && date > maxDate) return;
 
         setSelectedDate(date);
-        // Corrigir problema de timezone - usar formatação local em vez de UTC
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const dateString = `${year}-${month}-${day}`;
+        const dateString = dateToStringBrazil(date);
         onChange(dateString);
         setIsOpen(false);
     };
@@ -94,7 +90,7 @@ const CustomDatePicker = ({
 
     const formatDisplayDate = (date) => {
         if (!date) return '';
-        return date.toLocaleDateString('pt-BR');
+        return formatDateBR(date);
     };
 
     const isDateDisabled = (date) => {
@@ -106,8 +102,8 @@ const CustomDatePicker = ({
 
     const isToday = (date) => {
         if (!date) return false;
-        const today = new Date();
-        return date.toDateString() === today.toDateString();
+        const today = getBrazilDate();
+        return toBrazilDate(date).toDateString() === today.toDateString();
     };
 
     const isSelected = (date) => {
@@ -223,7 +219,7 @@ const CustomDatePicker = ({
                     <div className="mt-4 pt-3 border-t border-gray-100">
                         <button
                             onClick={() => {
-                                const today = new Date();
+                                const today = getBrazilDate();
                                 handleDateSelect(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
                             }}
                             className="w-full text-center py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
