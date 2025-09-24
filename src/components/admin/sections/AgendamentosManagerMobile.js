@@ -7,16 +7,12 @@ import {
     Search,
     Plus,
     Edit,
-    CheckCircle,
-    XCircle,
     Scissors
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import ConfirmationModal from '../../ConfirmationModal';
-import SelectDateTime from '../../SelectDateTime';
 import { useToast } from '../../../contexts/ToastContext';
-import CustomDatePicker from '../../CustomDatePicker';
-import { getBrazilDate, formatDateBR, dateToStringBrazil, getBrazilISOString } from '../../../utils/timezone';
+import { getBrazilDate, dateToStringBrazil, getBrazilISOString } from '../../../utils/timezone';
 
 const AgendamentosManagerMobile = ({ currentUser }) => {
     const { showSuccess, showError, showWarning } = useToast();
@@ -40,41 +36,6 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmAction, setConfirmAction] = useState(null);
     const [confirmData, setConfirmData] = useState({});
-
-    // Estados para modal de edição
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editingAgendamento, setEditingAgendamento] = useState(null);
-    const [profissionais, setProfissionais] = useState([]);
-    const [servicosFiltrados, setServicosFiltrados] = useState([]);
-    const [editForm, setEditForm] = useState({
-        cliente_nome: '',
-        cliente_telefone: '',
-        profissional_id: '',
-        servico_id: '',
-        data_agendamento: '',
-        horario_inicio: '',
-        horario_fim: ''
-    });
-
-    // Estado para modal de seleção de data/hora
-    const [showDateTimeModal, setShowDateTimeModal] = useState(false);
-
-    // Estados para modal de criação de agendamento
-    const [showCriacaoModal, setShowCriacaoModal] = useState(false);
-    const [criacaoForm, setCriacaoForm] = useState({
-        cliente_nome: '',
-        cliente_telefone: '',
-        cliente_email: '',
-        profissional_id: '',
-        servico_id: '',
-        data_agendamento: '',
-        horario_inicio: '',
-        horario_fim: '',
-        observacoes: ''
-    });
-    const [showCriacaoDateTimeModal, setShowCriacaoDateTimeModal] = useState(false);
-    const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
-    const [criandoAgendamento, setCriandoAgendamento] = useState(false);
 
     // Função para definir filtros rápidos
     const handleQuickFilter = (filter) => {
@@ -315,21 +276,9 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
         }
     };
 
-    // Função para abrir modal de criação
+    // Função para abrir modal de criação (placeholder para futuro)
     const abrirModalCriacao = () => {
-        setShowCriacaoModal(true);
-        setCriacaoForm({
-            cliente_nome: '',
-            cliente_telefone: '',
-            cliente_email: '',
-            profissional_id: '',
-            servico_id: '',
-            data_agendamento: '',
-            horario_inicio: '',
-            horario_fim: '',
-            observacoes: ''
-        });
-        setUsuariosSugeridos([]);
+        showWarning('Funcionalidade de criação será implementada em breve');
     };
 
     const MobileAppointmentCard = ({ agendamento }) => (
