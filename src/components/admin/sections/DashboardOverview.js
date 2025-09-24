@@ -80,7 +80,9 @@ const DashboardOverview = ({ currentUser }) => {
       const confirmados = historicoData.filter(h => h.status === 'concluido').length;
       const cancelados = historicoData.filter(h => h.status === 'cancelado').length;
 
-      setStats({
+      // Usar callback para evitar race conditions
+      setStats(prev => ({
+        ...prev,
         totalAgendamentos: agendamentosResult.count || 0,
         agendamentosHoje: agendamentosHojeResult.count || 0,
         totalProfissionais: profissionaisResult.count || 0,
@@ -89,7 +91,7 @@ const DashboardOverview = ({ currentUser }) => {
         agendamentosConfirmados: confirmados,
         agendamentosCancelados: cancelados,
         loading: false
-      });
+      }));
 
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);

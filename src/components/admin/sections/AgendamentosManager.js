@@ -117,8 +117,20 @@ const AgendamentosManager = ({ currentUser }) => {
     };
 
     useEffect(() => {
-        loadAgendamentos();
-        loadProfissionais();
+        let isMounted = true;
+        
+        const loadData = async () => {
+            if (isMounted) {
+                await loadAgendamentos();
+                await loadProfissionais();
+            }
+        };
+        
+        loadData();
+        
+        return () => {
+            isMounted = false;
+        };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadAgendamentos = async () => {
