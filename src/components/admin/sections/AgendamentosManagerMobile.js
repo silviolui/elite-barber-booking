@@ -75,11 +75,13 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
         }
     };
 
-    // Carregar agendamentos - mesmo código da versão desktop
+    // Carregar agendamentos com queries separadas (evita erro de relacionamento)
     const loadAgendamentos = async () => {
         try {
             setLoading(true);
-            let query = supabase
+            
+            // 1. Buscar agendamentos básicos
+            let agendamentosQuery = supabase
                 .from('agendamentos')
                 .select(`
                     id,
@@ -98,43 +100,39 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                     servico_id,
                     cliente_nome,
                     cliente_telefone,
-                    cliente_email,
-                    users:usuario_id (
-                        id,
-                        nome,
-                        telefone,
-                        email
-                    ),
-                    profissionais:profissional_id (
-                        id,
-                        nome,
-                        especialidade
-                    ),
-                    unidades:unidade_id (
-                        id,
-                        nome,
-                        endereco
-                    ),
-                    servicos:servico_id (
-                        id,
-                        nome,
-                        duracao_minutos,
-                        preco
-                    )
+                    cliente_email
                 `)
                 .order('data_agendamento', { ascending: false })
                 .order('horario_inicio', { ascending: false });
 
             if (unidadeId) {
-                query = query.eq('unidade_id', unidadeId);
+                agendamentosQuery = agendamentosQuery.eq('unidade_id', unidadeId);
             }
 
-            const { data, error } = await query;
+            const { data: agendamentosData, error: agendamentosError } = await agendamentosQuery;
 
-            if (error) throw error;
+            if (agendamentosError) throw agendamentosError;
 
-            console.log('Agendamentos carregados:', data);
-            setAgendamentos(data || []);
+            // 2. Buscar dados relacionados separadamente
+            const [usersData, profissionaisData, unidadesData, servicosData] = await Promise.all([
+                supabase.from('users').select('id, nome, telefone, email'),
+                supabase.from('profissionais').select('id, nome, especialidade'),
+                supabase.from('unidades').select('id, nome, endereco'),
+                supabase.from('servicos').select('id, nome, duracao_minutos, preco')
+            ]);
+
+            // 3. Combinar dados manualmente
+            const agendamentosCompletos = agendamentosData.map(agendamento => ({
+                ...agendamento,
+                users: usersData.data?.find(user => user.id === agendamento.usuario_id) || null,
+                profissionais: profissionaisData.data?.find(prof => prof.id === agendamento.profissional_id) || null,
+                unidades: unidadesData.data?.find(unidade => unidade.id === agendamento.unidade_id) || null,
+                servicos: servicosData.data?.find(servico => servico.id === agendamento.servico_id) || null
+            }));
+
+            console.log('Agendamentos carregados:', agendamentosCompletos);
+            setAgendamentos(agendamentosCompletos);
+            
         } catch (error) {
             console.error('Erro ao carregar agendamentos:', error);
             showError('Erro ao carregar agendamentos: ' + error.message);
