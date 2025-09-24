@@ -130,19 +130,31 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                 servicos: servicosData.data?.find(servico => servico.id === agendamento.servico_id) || null
             }));
 
-            console.log('Agendamentos carregados:', agendamentosCompletos);
-            setAgendamentos(agendamentosCompletos);
+            // Usar callback para evitar race conditions
+            setAgendamentos(prev => agendamentosCompletos);
             
         } catch (error) {
             console.error('Erro ao carregar agendamentos:', error);
-            showError('Erro ao carregar agendamentos: ' + error.message);
+            if (showError) showError('Erro ao carregar agendamentos: ' + error.message);
         } finally {
-            setLoading(false);
+            setLoading(prev => false);
         }
     };
 
     useEffect(() => {
-        loadAgendamentos();
+        let isMounted = true;
+        
+        const loadData = async () => {
+            if (isMounted) {
+                await loadAgendamentos();
+            }
+        };
+        
+        loadData();
+        
+        return () => {
+            isMounted = false;
+        };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const formatDate = (dateString) => {
