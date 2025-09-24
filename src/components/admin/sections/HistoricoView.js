@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import CustomCalendar from '../../CustomCalendar';
-import { formatDateBR, formatTimeBR, formatDateTimeBR } from '../../../utils/timezone';
+import { formatDateBR, formatDateTimeBR } from '../../../utils/timezone';
 
 const HistoricoView = ({ currentUser }) => {
   const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');

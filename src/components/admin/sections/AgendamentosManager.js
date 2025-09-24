@@ -448,7 +448,7 @@ const AgendamentosManager = ({ currentUser }) => {
 
             // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
             const agora = getBrazilDate();
-            const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
+
 
             // Preparar dados para histórico
             const dadosHistorico = {
@@ -575,7 +575,7 @@ const AgendamentosManager = ({ currentUser }) => {
 
             // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
             const agora = getBrazilDate();
-            const horarioBrasil = new Date(agora.getTime() - (3 * 60 * 60 * 1000)); // GMT-3
+
 
             // Inserir no histórico
             const { error: insertError } = await supabase

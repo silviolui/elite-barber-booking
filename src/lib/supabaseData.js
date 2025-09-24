@@ -2,19 +2,10 @@ import { supabase } from './supabase';
 import { 
   getBrazilDate, 
   toBrazilDate, 
-  formatDateBR, 
-  formatTimeBR, 
-  formatDateTimeBR,
   getBrazilISOString,
   dateToStringBrazil,
   parseDateStringToBrazil,
-  timeStringToDate,
-  dateToTimeString,
-  isToday,
-  isPastDate,
-  addDays,
-  getStartOfDay,
-  getEndOfDay
+  isToday
 } from '../utils/timezone';
 
 // Helper functions para carregar dados reais do Supabase
@@ -33,7 +24,6 @@ const agendamentoHelpers = {
       const fimMinutos = inicioMinutos + duracaoMinutos;
       const horaFim = Math.floor(fimMinutos / 60);
       const minutoFim = fimMinutos % 60;
-      const horarioFim = `${horaFim.toString().padStart(2, '0')}:${minutoFim.toString().padStart(2, '0')}`;
 
       // Buscar agendamentos conflitantes
       const { data: conflitos, error } = await supabase
@@ -496,7 +486,6 @@ export const supabaseData = {
     
     // Verificar se é o dia de hoje e aplicar regra de 20 minutos de antecedência
     // Usar horário de Brasília para comparações
-    const hojeBrasil = getBrazilDate();
     const dataVerificacao = typeof data === 'string' ? parseDateStringToBrazil(data) : toBrazilDate(data);
     const ehHoje = isToday(dataVerificacao);
     

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { supabaseData } from '../lib/supabaseData';
-import { getBrazilDate, toBrazilDate, dateToStringBrazil } from '../utils/timezone';
+import { getBrazilDate, dateToStringBrazil } from '../utils/timezone';
 
 const SelectDateTime = ({ onClose, onSelect, professionalId, currentDate, currentTime, unitId, servicosSelecionados, isModal = false }) => {
     const [selectedDate, setSelectedDate] = useState(null);
