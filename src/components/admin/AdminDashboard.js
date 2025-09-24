@@ -33,7 +33,7 @@ const AdminDashboard = ({ activeSection, currentUser }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       {renderSection()}
     </div>
   );

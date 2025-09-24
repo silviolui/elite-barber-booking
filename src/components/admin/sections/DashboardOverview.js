@@ -98,22 +98,22 @@ const DashboardOverview = ({ currentUser }) => {
   };
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs md:text-sm font-medium text-gray-600 truncate">{title}</p>
+          <p className="text-xl md:text-3xl font-bold text-gray-900 mt-1">{value}</p>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1 truncate">{subtitle}</p>
           )}
         </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon size={24} className="text-white" />
+        <div className={`p-2 md:p-3 rounded-lg flex-shrink-0 ${color}`}>
+          <Icon size={20} className="text-white md:w-6 md:h-6" />
         </div>
       </div>
       {trend && (
-        <div className="mt-4 flex items-center text-sm text-green-600">
-          <TrendingUp size={16} className="mr-1" />
+        <div className="mt-3 md:mt-4 flex items-center text-xs md:text-sm text-green-600">
+          <TrendingUp size={14} className="mr-1 md:w-4 md:h-4" />
           {trend}
         </div>
       )}
@@ -122,13 +122,13 @@ const DashboardOverview = ({ currentUser }) => {
 
   if (stats.loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
               <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 md:h-4 bg-gray-200 rounded w-2/3 mb-3 md:mb-4"></div>
+                <div className="h-6 md:h-8 bg-gray-200 rounded w-1/2"></div>
               </div>
             </div>
           ))}
@@ -138,13 +138,13 @@ const DashboardOverview = ({ currentUser }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white p-6">
-        <h2 className="text-2xl font-bold mb-2">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white p-4 md:p-6">
+        <h2 className="text-lg md:text-2xl font-bold mb-1 md:mb-2">
           {unidadeId ? `Gestão - ${adminData.nome}` : 'Gestão Multi-Unidades'}
         </h2>
-        <p className="text-orange-100">
+        <p className="text-sm md:text-base text-orange-100">
           {unidadeId 
             ? 'Gerencie sua unidade de forma completa e eficiente'
             : 'Acesso total a todas as unidades da rede'
@@ -153,7 +153,7 @@ const DashboardOverview = ({ currentUser }) => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard
           title="Agendamentos Hoje"
           value={stats.agendamentosHoje}
@@ -188,7 +188,7 @@ const DashboardOverview = ({ currentUser }) => {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
         <StatCard
           title="Receita do Mês"
           value={`R$ ${stats.receitaMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
@@ -215,22 +215,22 @@ const DashboardOverview = ({ currentUser }) => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
-            <Calendar className="mr-3 text-orange-500" size={20} />
-            <span className="text-gray-700">Novo Agendamento</span>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Ações Rápidas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <button className="flex items-center p-3 md:p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors active:scale-95">
+            <Calendar className="mr-2 md:mr-3 text-orange-500 flex-shrink-0" size={18} />
+            <span className="text-sm md:text-base text-gray-700 font-medium">Novo Agendamento</span>
           </button>
           
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
-            <Users className="mr-3 text-orange-500" size={20} />
-            <span className="text-gray-700">Adicionar Profissional</span>
+          <button className="flex items-center p-3 md:p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors active:scale-95">
+            <Users className="mr-2 md:mr-3 text-orange-500 flex-shrink-0" size={18} />
+            <span className="text-sm md:text-base text-gray-700 font-medium">Adicionar Profissional</span>
           </button>
           
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors">
-            <Building2 className="mr-3 text-orange-500" size={20} />
-            <span className="text-gray-700">Nova Unidade</span>
+          <button className="flex items-center p-3 md:p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors active:scale-95">
+            <Building2 className="mr-2 md:mr-3 text-orange-500 flex-shrink-0" size={18} />
+            <span className="text-sm md:text-base text-gray-700 font-medium">Nova Unidade</span>
           </button>
         </div>
       </div>
