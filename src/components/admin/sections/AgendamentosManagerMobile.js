@@ -13,29 +13,32 @@ import { supabase } from '../../../lib/supabase';
 import ConfirmationModal from '../../ConfirmationModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { getBrazilDate, dateToStringBrazil, getBrazilISOString } from '../../../utils/timezone';
+import { useSafeState, useSafeAsync } from '../../../hooks/useSafeState';
 
 const AgendamentosManagerMobile = ({ currentUser }) => {
     const { showSuccess, showError, showWarning } = useToast();
     const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
     const unidadeId = adminData.unidade_id || currentUser?.unidade_id;
 
-    const [agendamentos, setAgendamentos] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('todos');
-    const [dateStartFilter, setDateStartFilter] = useState('');
-    const [dateEndFilter, setDateEndFilter] = useState('');
-    const [quickFilter, setQuickFilter] = useState('todos');
+    const [agendamentos, setAgendamentos] = useSafeState([]);
+    const [loading, setLoading] = useSafeState(true);
+    const [searchTerm, setSearchTerm] = useSafeState('');
+    const [statusFilter, setStatusFilter] = useSafeState('todos');
+    const [dateStartFilter, setDateStartFilter] = useSafeState('');
+    const [dateEndFilter, setDateEndFilter] = useSafeState('');
+    const [quickFilter, setQuickFilter] = useSafeState('todos');
 
     // Estados para modal de pagamento
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [selectedAgendamento, setSelectedAgendamento] = useState(null);
-    const [tipoPagamento, setTipoPagamento] = useState('');
+    const [showPaymentModal, setShowPaymentModal] = useSafeState(false);
+    const [selectedAgendamento, setSelectedAgendamento] = useSafeState(null);
+    const [tipoPagamento, setTipoPagamento] = useSafeState('');
 
     // Estados para modal de confirmação
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [confirmAction, setConfirmAction] = useState(null);
-    const [confirmData, setConfirmData] = useState({});
+    const [showConfirmModal, setShowConfirmModal] = useSafeState(false);
+    const [confirmAction, setConfirmAction] = useSafeState(null);
+    const [confirmData, setConfirmData] = useSafeState({});
+
+    const { safeAsync, isMounted } = useSafeAsync();
 
     // Função para definir filtros rápidos
     const handleQuickFilter = (filter) => {
@@ -77,7 +80,7 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
 
     // Carregar agendamentos com queries separadas (evita erro de relacionamento)
     const loadAgendamentos = async () => {
-        try {
+        return safeAsync(async () => {
             setLoading(true);
             
             // 1. Buscar agendamentos básicos
@@ -130,15 +133,18 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                 servicos: servicosData.data?.find(servico => servico.id === agendamento.servico_id) || null
             }));
 
-            // Usar callback para evitar race conditions
-            setAgendamentos(prev => agendamentosCompletos);
+            if (isMounted) {
+                setAgendamentos(agendamentosCompletos);
+                setLoading(false);
+            }
             
-        } catch (error) {
-            console.error('Erro ao carregar agendamentos:', error);
-            if (showError) showError('Erro ao carregar agendamentos: ' + error.message);
-        } finally {
-            setLoading(prev => false);
-        }
+        }).catch(error => {
+            if (isMounted) {
+                console.error('Erro ao carregar agendamentos:', error);
+                if (showError) showError('Erro ao carregar agendamentos: ' + error.message);
+                setLoading(false);
+            }
+        });
     };
 
     useEffect(() => {
@@ -552,8 +558,11 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                         <p className="text-gray-600">Nenhum agendamento encontrado</p>
                     </div>
                 ) : (
-                    filteredAgendamentos.map((agendamento) => (
-                        <MobileAppointmentCard key={agendamento.id} agendamento={agendamento} />
+                    filteredAgendamentos.map((agendamento, index) => (
+                        <MobileAppointmentCard 
+                            key={`${agendamento.id}-${index}`} 
+                            agendamento={agendamento} 
+                        />
                     ))
                 )}
             </div>
