@@ -14,6 +14,7 @@ import { supabase } from '../../../lib/supabase';
 import ConfirmationModal from '../../ConfirmationModal';
 import SelectDateTime from '../../SelectDateTime';
 import { useToast } from '../../../contexts/ToastContext';
+import CustomDatePicker from '../../CustomDatePicker';
 
 const AgendamentosManager = ({ currentUser }) => {
   const { showSuccess, showError, showWarning } = useToast();
@@ -27,7 +28,9 @@ const AgendamentosManager = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateStartFilter, setDateStartFilter] = useState('');
+  const [dateEndFilter, setDateEndFilter] = useState('');
+  const [quickFilter, setQuickFilter] = useState('todos');
   
   // Estados para modal de pagamento
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -56,6 +59,44 @@ const AgendamentosManager = ({ currentUser }) => {
 
   // Estado para modal de seleção de data/hora
   const [showDateTimeModal, setShowDateTimeModal] = useState(false);
+
+  // Função para definir filtros rápidos
+  const handleQuickFilter = (filter) => {
+    setQuickFilter(filter);
+    const today = new Date();
+    
+    switch (filter) {
+      case 'amanha':
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        setDateStartFilter(tomorrowStr);
+        setDateEndFilter(tomorrowStr);
+        break;
+        
+      case 'semana':
+        const weekStart = new Date(today);
+        const weekEnd = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay()); // Domingo
+        weekEnd.setDate(weekStart.getDate() + 6); // Sábado
+        setDateStartFilter(weekStart.toISOString().split('T')[0]);
+        setDateEndFilter(weekEnd.toISOString().split('T')[0]);
+        break;
+        
+      case 'mes':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        setDateStartFilter(monthStart.toISOString().split('T')[0]);
+        setDateEndFilter(monthEnd.toISOString().split('T')[0]);
+        break;
+        
+      case 'todos':
+      default:
+        setDateStartFilter('');
+        setDateEndFilter('');
+        break;
+    }
+  };
 
   useEffect(() => {
     loadAgendamentos();
@@ -586,9 +627,18 @@ const AgendamentosManager = ({ currentUser }) => {
 
     const matchesStatus = statusFilter === 'todos' || agendamento.status === statusFilter;
 
-    const matchesDate = !dateFilter || agendamento.data_agendamento === dateFilter;
+    // Filtro por período de datas
+    let matchesDateRange = true;
+    if (dateStartFilter && dateEndFilter) {
+      const agendamentoDate = agendamento.data_agendamento;
+      matchesDateRange = agendamentoDate >= dateStartFilter && agendamentoDate <= dateEndFilter;
+    } else if (dateStartFilter) {
+      matchesDateRange = agendamento.data_agendamento >= dateStartFilter;
+    } else if (dateEndFilter) {
+      matchesDateRange = agendamento.data_agendamento <= dateEndFilter;
+    }
 
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesStatus && matchesDateRange;
   });
 
   const getStatusBadge = (status) => {
@@ -652,8 +702,37 @@ const AgendamentosManager = ({ currentUser }) => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+        {/* Botões Rápidos */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Filtros Rápidos</h3>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'todos', label: 'Todos', icon: '📅' },
+              { id: 'amanha', label: 'Amanhã', icon: '⏰' },
+              { id: 'semana', label: 'Esta Semana', icon: '📆' },
+              { id: 'mes', label: 'Este Mês', icon: '🗓️' }
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => handleQuickFilter(filter.id)}
+                className={`
+                  flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors
+                  ${quickFilter === filter.id
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }
+                `}
+              >
+                <span>{filter.icon}</span>
+                <span>{filter.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filtros Detalhados */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Search */}
           <div className="relative">
             <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -679,21 +758,44 @@ const AgendamentosManager = ({ currentUser }) => {
             <option value="cancelled">Cancelado</option>
           </select>
 
-          {/* Date Filter */}
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          />
+          {/* Data Início */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+            <CustomDatePicker
+              value={dateStartFilter}
+              onChange={(date) => {
+                setDateStartFilter(date);
+                setQuickFilter(''); // Limpar filtro rápido quando usar filtro manual
+              }}
+              placeholder="Data início"
+              className="w-full"
+            />
+          </div>
+
+          {/* Data Fim */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+            <CustomDatePicker
+              value={dateEndFilter}
+              onChange={(date) => {
+                setDateEndFilter(date);
+                setQuickFilter(''); // Limpar filtro rápido quando usar filtro manual
+              }}
+              placeholder="Data fim"
+              className="w-full"
+              minDate={dateStartFilter ? new Date(dateStartFilter) : null}
+            />
+          </div>
 
           <button
             onClick={() => {
               setSearchTerm('');
               setStatusFilter('todos');
-              setDateFilter('');
+              setDateStartFilter('');
+              setDateEndFilter('');
+              setQuickFilter('todos');
             }}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 self-end"
           >
             Limpar Filtros
           </button>
