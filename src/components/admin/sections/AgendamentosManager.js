@@ -708,12 +708,13 @@ const AgendamentosManager = ({ currentUser }) => {
         setUsuariosSugeridos([]);
     };
 
-    const handleCriacaoDateTimeSelect = (data, horarioInicio, horarioFim) => {
+    const handleCriacaoDateTimeSelect = (dateTime) => {
+        console.log('Data/Hora selecionada:', dateTime);
         setCriacaoForm(prev => ({
             ...prev,
-            data_agendamento: data,
-            horario_inicio: horarioInicio,
-            horario_fim: horarioFim
+            data_agendamento: dateTime.date,    // "YYYY-MM-DD"
+            horario_inicio: dateTime.time,      // "HH:MM:SS"
+            horario_fim: dateTime.endTime       // "HH:MM:SS"
         }));
         setShowCriacaoDateTimeModal(false);
     };

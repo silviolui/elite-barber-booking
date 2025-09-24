@@ -155,7 +155,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3. View otimizada para o front-end admin listar agendamentos completos
+-- 3. View simplificada que funciona independente da estrutura da tabela users
 CREATE OR REPLACE VIEW agendamentos_admin AS
 SELECT 
   a.id,
@@ -168,11 +168,14 @@ SELECT
   a.status_pagamento,
   a.criado_em,
   a.atualizado_em,
+  a.usuario_id,
   
-  -- Dados do cliente (unificados)
-  COALESCE(u.name, a.cliente_nome) as nome_cliente,
-  COALESCE(u.phone, a.cliente_telefone) as telefone_cliente,
-  COALESCE(u.email, a.cliente_email) as email_cliente,
+  -- Dados do cliente - usar campos diretos da tabela agendamentos
+  COALESCE(a.cliente_nome, 'Cliente') as nome_cliente,
+  COALESCE(a.cliente_telefone, 'Não informado') as telefone_cliente,  
+  COALESCE(a.cliente_email, '') as email_cliente,
+  
+  -- Tipo de cliente
   CASE 
     WHEN a.usuario_id IS NOT NULL THEN 'cadastrado'
     ELSE 'direto'
@@ -195,7 +198,6 @@ SELECT
   s.preco as preco_servico
   
 FROM agendamentos a
-LEFT JOIN users u ON a.usuario_id = u.id
 LEFT JOIN profissionais p ON a.profissional_id = p.id
 LEFT JOIN unidades un ON a.unidade_id = un.id
 LEFT JOIN servicos s ON a.servico_id = s.id;
