@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../contexts/ToastContext';
 
 const AdminCadastro = ({ onBackToLogin }) => {
-  const { showSuccess, showError } = useToast();
+  const { showError } = useToast();
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

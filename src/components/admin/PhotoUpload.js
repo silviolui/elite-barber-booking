@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../contexts/ToastContext';
 
 const PhotoUpload = ({ currentPhotoUrl, onPhotoChange, profissionalNome }) => {
-  const { showSuccess, showError, showWarning } = useToast();
+  const { showError, showWarning } = useToast();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(currentPhotoUrl);
 
