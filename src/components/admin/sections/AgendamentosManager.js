@@ -122,184 +122,64 @@ const AgendamentosManager = ({ currentUser }) => {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadAgendamentos = async () => {
-        setLoading(true);
         try {
-            console.log('🔍 DEBUG - loadAgendamentos iniciando');
-            console.log('🔍 DEBUG - adminData:', adminData);
-            console.log('🔍 DEBUG - currentUser:', currentUser);
-            console.log('🔍 DEBUG - unidadeId:', unidadeId);
-
-            // PRIMEIRO: Testar consulta simples SEM FILTRO para ver se há dados
-            console.log('🔍 DEBUG - Testando consulta simples SEM filtro...');
-            const { data: allData, error: allError } = await supabase
+            setLoading(true);
+            
+            // Usar a mesma abordagem que funciona no mobile
+            let agendamentosQuery = supabase
                 .from('agendamentos')
-                .select('*')
-                .limit(5);
+                .select(`
+                    id,
+                    data_agendamento,
+                    horario_inicio,
+                    horario_fim,
+                    preco_total,
+                    observacoes,
+                    status,
+                    status_pagamento,
+                    criado_em,
+                    atualizado_em,
+                    usuario_id,
+                    profissional_id,
+                    unidade_id,
+                    servico_id,
+                    cliente_nome,
+                    cliente_telefone,
+                    cliente_email
+                `)
+                .order('data_agendamento', { ascending: false })
+                .order('horario_inicio', { ascending: false });
 
-            console.log('🔍 DEBUG - Consulta sem filtro:', {
-                count: allData?.length || 0,
-                error: allError,
-                primeiros5: allData
-            });
-
-            // SEGUNDO: Consulta básica SEM joins primeiro
-            console.log('🔍 DEBUG - Testando consulta básica sem joins...');
-            const { data: dataBasic, error: errorBasic } = await supabase
-                .from('agendamentos')
-                .select('*')
-                .order('data_agendamento', { ascending: true })
-                .order('horario_inicio', { ascending: true });
-
-            console.log('🔍 DEBUG - Consulta básica (sem joins):', {
-                count: dataBasic?.length || 0,
-                error: errorBasic,
-                dados: dataBasic?.slice(0, 2) // Mostrar só os 2 primeiros
-            });
-
-            // TERCEIRO: Tentar consulta com joins individuais para identificar o problema
-            let dataWithJoins = null;
-
-            try {
-                console.log('🔍 DEBUG - Testando joins individuais...');
-
-                const { data, error } = await supabase
-                    .from('agendamentos')
-                    .select(`
-            *,
-            users!inner (email, raw_user_meta_data),
-            profissionais!inner (nome, telefone),
-            unidades!inner (nome, endereco)
-          `)
-                    .limit(10)
-                    .order('data_agendamento', { ascending: true });
-
-                console.log('🔍 DEBUG - Joins com users, profissionais, unidades:', {
-                    count: data?.length || 0,
-                    error,
-                    dados: data?.slice(0, 1)
-                });
-
-                if (!error && data && data.length > 0) {
-                    dataWithJoins = data;
-                } else {
-                    // Fallback para consulta básica
-                    dataWithJoins = dataBasic;
-                }
-            } catch (joinError) {
-                console.log('🔍 DEBUG - Erro nos joins, usando dados básicos:', joinError);
-                dataWithJoins = dataBasic;
+            if (unidadeId) {
+                agendamentosQuery = agendamentosQuery.eq('unidade_id', unidadeId);
             }
 
-            // TERCEIRO: Se unidadeId existe, testar filtro
-            let finalData = dataWithJoins;
-            if (unidadeId && dataWithJoins && dataWithJoins.length > 0) {
-                console.log('🔍 DEBUG - Aplicando filtro manual por unidade:', unidadeId);
-                const filteredData = dataWithJoins.filter(item => item.unidade_id === unidadeId);
-                console.log('🔍 DEBUG - Dados após filtro manual:', {
-                    original: dataWithJoins.length,
-                    filtrado: filteredData.length,
-                    filteredData
-                });
+            const { data: agendamentosData, error: agendamentosError } = await agendamentosQuery;
 
-                // Testar também consulta direta com filtro (SEM joins problemáticos)
-                const { data: directFiltered, error: directError } = await supabase
-                    .from('agendamentos')
-                    .select('*')
-                    .eq('unidade_id', unidadeId)
-                    .order('data_agendamento', { ascending: true });
+            if (agendamentosError) throw agendamentosError;
 
-                console.log('🔍 DEBUG - Consulta direta com filtro unidade:', {
-                    count: directFiltered?.length || 0,
-                    error: directError,
-                    dados: directFiltered
-                });
+            // Buscar dados relacionados separadamente
+            const [usersData, profissionaisData, unidadesData, servicosData] = await Promise.all([
+                supabase.from('users').select('id, nome, telefone, email'),
+                supabase.from('profissionais').select('id, nome, especialidade'),
+                supabase.from('unidades').select('id, nome, endereco'),
+                supabase.from('servicos').select('id, nome, duracao_minutos, preco')
+            ]);
 
-                finalData = directFiltered || [];
-            } else {
-                console.log('🔍 DEBUG - Sem filtro de unidade ou sem dados');
-            }
+            // Combinar dados manualmente
+            const agendamentosCompletos = agendamentosData.map(agendamento => ({
+                ...agendamento,
+                users: usersData.data?.find(user => user.id === agendamento.usuario_id) || null,
+                profissionais: profissionaisData.data?.find(prof => prof.id === agendamento.profissional_id) || null,
+                unidades: unidadesData.data?.find(unidade => unidade.id === agendamento.unidade_id) || null,
+                servicos: servicosData.data?.find(servico => servico.id === agendamento.servico_id) || null
+            }));
 
-            console.log('🔍 DEBUG - Definindo agendamentos finais:', finalData?.length || 0);
-
-            // Se temos dados básicos, tentar enriquecer com dados relacionados separadamente
-            if (finalData && finalData.length > 0) {
-                try {
-                    console.log('🔍 DEBUG - Enriquecendo dados com informações relacionadas...');
-                    const enrichedData = await Promise.all(finalData.map(async (agendamento) => {
-                        const enriched = { ...agendamento };
-
-                        // Tentar buscar dados do usuário
-                        try {
-                            console.log('🔍 DEBUG - Buscando usuário:', agendamento.usuario_id);
-                            const { data: userData, error: userError } = await supabase
-                                .from('users')
-                                .select('id, email, nome, telefone, foto_url')
-                                .eq('id', agendamento.usuario_id)
-                                .single();
-
-                            console.log('🔍 DEBUG - Dados do usuário:', { userData, userError });
-                            if (userData) enriched.users = userData;
-                        } catch (err) {
-                            console.log('🔍 DEBUG - Erro ao buscar usuário:', err);
-                        }
-
-                        // Tentar buscar dados do profissional
-                        try {
-                            console.log('🔍 DEBUG - Buscando profissional:', agendamento.profissional_id);
-                            const { data: profData, error: profError } = await supabase
-                                .from('profissionais')
-                                .select('*')
-                                .eq('id', agendamento.profissional_id)
-                                .single();
-
-                            console.log('🔍 DEBUG - Dados do profissional:', { profData, profError });
-                            if (profData) enriched.profissionais = profData;
-                        } catch (err) {
-                            console.log('🔍 DEBUG - Erro ao buscar profissional:', err);
-                        }
-
-                        // Tentar buscar dados da unidade
-                        try {
-                            const { data: unidadeData } = await supabase
-                                .from('unidades')
-                                .select('nome, endereco')
-                                .eq('id', agendamento.unidade_id)
-                                .single();
-                            if (unidadeData) enriched.unidades = unidadeData;
-                        } catch (err) {
-                            console.log('Erro ao buscar unidade:', err);
-                        }
-
-                        // Tentar buscar dados do serviço se existir
-                        if (agendamento.servico_id) {
-                            try {
-                                const { data: servicoData } = await supabase
-                                    .from('servicos')
-                                    .select('nome, preco, duracao_minutos')
-                                    .eq('id', agendamento.servico_id)
-                                    .single();
-                                if (servicoData) enriched.servicos = servicoData;
-                            } catch (err) {
-                                console.log('Erro ao buscar serviço:', err);
-                            }
-                        }
-
-                        return enriched;
-                    }));
-
-                    console.log('🔍 DEBUG - Dados enriquecidos:', enrichedData.length);
-                    console.log('🔍 DEBUG - Primeiro agendamento enriquecido:', enrichedData[0]);
-                    setAgendamentos(enrichedData);
-                } catch (enrichError) {
-                    console.log('🔍 DEBUG - Erro ao enriquecer dados, usando dados básicos:', enrichError);
-                    setAgendamentos(finalData);
-                }
-            } else {
-                setAgendamentos([]);
-            }
-
+            setAgendamentos(agendamentosCompletos);
+            
         } catch (error) {
-            console.error('🔍 DEBUG - Erro geral:', error);
+            console.error('Erro ao carregar agendamentos:', error);
+            showError('Erro ao carregar agendamentos: ' + error.message);
         } finally {
             setLoading(false);
         }
