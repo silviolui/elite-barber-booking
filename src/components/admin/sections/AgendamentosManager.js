@@ -677,18 +677,27 @@ const AgendamentosManager = ({ currentUser }) => {
         }
 
         try {
-            const { data, error } = await supabase
+            // Tentar primeiro a função corrigida
+            let { data, error } = await supabase
                 .rpc('buscar_usuarios_por_telefone', { p_telefone_partial: telefone });
 
+            // Se der erro ou não retornar dados, tentar a função alternativa
+            if (error || !data || data.length === 0) {
+                const { data: dataAlternativo, error: errorAlternativo } = await supabase
+                    .rpc('buscar_clientes_por_telefone', { p_telefone_partial: telefone });
+                
+                if (!errorAlternativo) {
+                    data = dataAlternativo;
+                }
+            }
+
             if (error) {
-                console.error('Erro ao buscar usuários:', error);
-                setUsuariosSugeridos([]);
-                return;
+                console.log('Busca de usuários não disponível:', error);
             }
 
             setUsuariosSugeridos(data || []);
         } catch (error) {
-            console.error('Erro ao buscar usuários:', error);
+            console.log('Busca de usuários não disponível:', error);
             setUsuariosSugeridos([]);
         }
     };
