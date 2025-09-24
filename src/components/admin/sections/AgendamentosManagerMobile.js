@@ -7,8 +7,6 @@ import {
     Search,
     Plus,
     Edit,
-    CheckCircle,
-    XCircle,
     Scissors
 } from 'lucide-react';
 
