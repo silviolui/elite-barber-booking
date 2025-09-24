@@ -446,8 +446,7 @@ const AgendamentosManager = ({ currentUser }) => {
                 throw fetchError;
             }
 
-            // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
-            const agora = getBrazilDate();
+            // Preparar data de conclusão com fuso horário do Brasil
 
 
             // Preparar dados para histórico
@@ -573,8 +572,7 @@ const AgendamentosManager = ({ currentUser }) => {
                 return;
             }
 
-            // Preparar data de conclusão com fuso horário do Brasil (GMT-3)
-            const agora = getBrazilDate();
+            // Preparar data de conclusão com fuso horário do Brasil
 
 
             // Inserir no histórico

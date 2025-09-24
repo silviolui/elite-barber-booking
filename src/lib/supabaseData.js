@@ -25,8 +25,6 @@ const agendamentoHelpers = {
       const [hora, minuto] = horarioInicio.split(':').map(Number);
       const inicioMinutos = hora * 60 + minuto;
       const fimMinutos = inicioMinutos + duracaoMinutos;
-      const horaFim = Math.floor(fimMinutos / 60);
-      const minutoFim = fimMinutos % 60;
 
       // Buscar agendamentos conflitantes
       const { data: conflitos, error } = await supabase
