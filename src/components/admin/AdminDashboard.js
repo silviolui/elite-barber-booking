@@ -1,6 +1,7 @@
 import React from 'react';
 import DashboardOverview from './sections/DashboardOverview';
 import AgendamentosManager from './sections/AgendamentosManager';
+import AgendamentosManagerMobile from './sections/AgendamentosManagerMobile';
 import HistoricoView from './sections/HistoricoView';
 import UnidadesManager from './sections/UnidadesManager';
 import ProfissionaisManager from './sections/ProfissionaisManager';
@@ -14,7 +15,16 @@ const AdminDashboard = ({ activeSection, currentUser }) => {
       case 'dashboard':
         return <DashboardOverview currentUser={currentUser} />;
       case 'agendamentos':
-        return <AgendamentosManager currentUser={currentUser} />;
+        return (
+          <>
+            <div className="md:hidden">
+              <AgendamentosManagerMobile currentUser={currentUser} />
+            </div>
+            <div className="hidden md:block">
+              <AgendamentosManager currentUser={currentUser} />
+            </div>
+          </>
+        );
       case 'historico':
         return <HistoricoView currentUser={currentUser} />;
       case 'unidades':
