@@ -82,24 +82,40 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
             let query = supabase
                 .from('agendamentos')
                 .select(`
-                    *,
-                    users (
+                    id,
+                    data_agendamento,
+                    horario_inicio,
+                    horario_fim,
+                    preco_total,
+                    observacoes,
+                    status,
+                    status_pagamento,
+                    criado_em,
+                    atualizado_em,
+                    usuario_id,
+                    profissional_id,
+                    unidade_id,
+                    servico_id,
+                    cliente_nome,
+                    cliente_telefone,
+                    cliente_email,
+                    users:usuario_id (
                         id,
                         nome,
                         telefone,
                         email
                     ),
-                    profissionais (
+                    profissionais:profissional_id (
                         id,
                         nome,
                         especialidade
                     ),
-                    unidades (
+                    unidades:unidade_id (
                         id,
                         nome,
                         endereco
                     ),
-                    servicos (
+                    servicos:servico_id (
                         id,
                         nome,
                         duracao_minutos,
