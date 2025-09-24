@@ -2,6 +2,9 @@ import { supabase } from './supabase';
 import { 
   getBrazilDate, 
   toBrazilDate, 
+  formatDateBR, 
+  formatTimeBR, 
+  formatDateTimeBR,
   getBrazilISOString,
   dateToStringBrazil,
   parseDateStringToBrazil,
