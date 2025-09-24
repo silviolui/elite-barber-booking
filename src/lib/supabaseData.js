@@ -14,10 +14,7 @@ import {
   isPastDate,
   addDays,
   getStartOfDay,
-  getEndOfDay,
-  timeStringToDate,
-  dateToTimeString,
-  parseDateStringToBrazil
+  getEndOfDay
 } from '../utils/timezone';
 
 // Helper functions para carregar dados reais do Supabase
