@@ -7,47 +7,168 @@ import {
     Search,
     Plus,
     Edit,
+    CheckCircle,
+    XCircle,
     Scissors
 } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import ConfirmationModal from '../../ConfirmationModal';
+import SelectDateTime from '../../SelectDateTime';
+import { useToast } from '../../../contexts/ToastContext';
+import CustomDatePicker from '../../CustomDatePicker';
+import { getBrazilDate, formatDateBR, dateToStringBrazil, getBrazilISOString } from '../../../utils/timezone';
 
 const AgendamentosManagerMobile = ({ currentUser }) => {
+    const { showSuccess, showError, showWarning } = useToast();
+    const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+    const unidadeId = adminData.unidade_id || currentUser?.unidade_id;
+
     const [agendamentos, setAgendamentos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
+    const [dateStartFilter, setDateStartFilter] = useState('');
+    const [dateEndFilter, setDateEndFilter] = useState('');
     const [quickFilter, setQuickFilter] = useState('todos');
 
-    // Mock data - replace with real data loading
-    useEffect(() => {
-        // Simulate loading
-        setTimeout(() => {
-            setAgendamentos([
-                {
-                    id: '1',
-                    data_agendamento: '2025-09-24',
-                    horario_inicio: '08:00',
-                    horario_fim: '08:40',
-                    status: 'pending',
-                    preco_total: 30.00,
-                    cliente: {
-                        nome: 'SILVIO LUIZ GOMES DO MONTE JUNIOR',
-                        telefone: '71991016948'
-                    },
-                    profissional: {
-                        nome: 'Lucas M'
-                    },
-                    unidade: {
-                        nome: 'BookIA - Boulevard Shopping Camaçari'
-                    },
-                    servico: {
-                        nome: 'Corte cabelo',
-                        duracao_minutos: 40
-                    }
-                }
-            ]);
+    // Estados para modal de pagamento
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedAgendamento, setSelectedAgendamento] = useState(null);
+    const [tipoPagamento, setTipoPagamento] = useState('');
+
+    // Estados para modal de confirmação
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [confirmData, setConfirmData] = useState({});
+
+    // Estados para modal de edição
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingAgendamento, setEditingAgendamento] = useState(null);
+    const [profissionais, setProfissionais] = useState([]);
+    const [servicosFiltrados, setServicosFiltrados] = useState([]);
+    const [editForm, setEditForm] = useState({
+        cliente_nome: '',
+        cliente_telefone: '',
+        profissional_id: '',
+        servico_id: '',
+        data_agendamento: '',
+        horario_inicio: '',
+        horario_fim: ''
+    });
+
+    // Estado para modal de seleção de data/hora
+    const [showDateTimeModal, setShowDateTimeModal] = useState(false);
+
+    // Estados para modal de criação de agendamento
+    const [showCriacaoModal, setShowCriacaoModal] = useState(false);
+    const [criacaoForm, setCriacaoForm] = useState({
+        cliente_nome: '',
+        cliente_telefone: '',
+        cliente_email: '',
+        profissional_id: '',
+        servico_id: '',
+        data_agendamento: '',
+        horario_inicio: '',
+        horario_fim: '',
+        observacoes: ''
+    });
+    const [showCriacaoDateTimeModal, setShowCriacaoDateTimeModal] = useState(false);
+    const [usuariosSugeridos, setUsuariosSugeridos] = useState([]);
+    const [criandoAgendamento, setCriandoAgendamento] = useState(false);
+
+    // Função para definir filtros rápidos
+    const handleQuickFilter = (filter) => {
+        setQuickFilter(filter);
+        const today = getBrazilDate();
+
+        switch (filter) {
+            case 'amanha':
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+                const tomorrowStr = dateToStringBrazil(tomorrow);
+                setDateStartFilter(tomorrowStr);
+                setDateEndFilter(tomorrowStr);
+                break;
+
+            case 'semana':
+                const weekStart = new Date(today);
+                const weekEnd = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay()); // Domingo
+                weekEnd.setDate(weekStart.getDate() + 6); // Sábado
+                setDateStartFilter(dateToStringBrazil(weekStart));
+                setDateEndFilter(dateToStringBrazil(weekEnd));
+                break;
+
+            case 'mes':
+                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                setDateStartFilter(dateToStringBrazil(monthStart));
+                setDateEndFilter(dateToStringBrazil(monthEnd));
+                break;
+
+            case 'todos':
+            default:
+                setDateStartFilter('');
+                setDateEndFilter('');
+                break;
+        }
+    };
+
+    // Carregar agendamentos - mesmo código da versão desktop
+    const loadAgendamentos = async () => {
+        try {
+            setLoading(true);
+            let query = supabase
+                .from('agendamentos')
+                .select(`
+                    *,
+                    users (
+                        id,
+                        nome,
+                        telefone,
+                        email
+                    ),
+                    profissionais (
+                        id,
+                        nome,
+                        especialidade
+                    ),
+                    unidades (
+                        id,
+                        nome,
+                        endereco
+                    ),
+                    servicos (
+                        id,
+                        nome,
+                        duracao_minutos,
+                        preco
+                    )
+                `)
+                .order('data_agendamento', { ascending: false })
+                .order('horario_inicio', { ascending: false });
+
+            if (unidadeId) {
+                query = query.eq('unidade_id', unidadeId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            console.log('Agendamentos carregados:', data);
+            setAgendamentos(data || []);
+        } catch (error) {
+            console.error('Erro ao carregar agendamentos:', error);
+            showError('Erro ao carregar agendamentos: ' + error.message);
+        } finally {
             setLoading(false);
-        }, 1000);
-    }, []);
+        }
+    };
+
+    useEffect(() => {
+        loadAgendamentos();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -74,9 +195,141 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
         );
     };
 
-    const handleQuickFilter = (filterId) => {
-        setQuickFilter(filterId);
-        // Apply filter logic here
+    // Filtrar agendamentos
+    const filteredAgendamentos = agendamentos.filter(agendamento => {
+        // Filtro de busca
+        const searchLower = searchTerm.toLowerCase();
+        const matchSearch = !searchTerm || 
+            (agendamento.users?.nome || agendamento.cliente_nome || '').toLowerCase().includes(searchLower) ||
+            (agendamento.users?.telefone || agendamento.cliente_telefone || '').includes(searchTerm) ||
+            (agendamento.profissionais?.nome || '').toLowerCase().includes(searchLower) ||
+            (agendamento.servicos?.nome || '').toLowerCase().includes(searchLower);
+
+        // Filtro de status
+        const matchStatus = statusFilter === 'todos' || agendamento.status === statusFilter;
+
+        // Filtro de data
+        const matchDate = (!dateStartFilter || agendamento.data_agendamento >= dateStartFilter) &&
+                          (!dateEndFilter || agendamento.data_agendamento <= dateEndFilter);
+
+        return matchSearch && matchStatus && matchDate;
+    });
+
+    // Funções de ação - mesmas da versão desktop
+    const abrirModalPagamento = (agendamento) => {
+        setSelectedAgendamento(agendamento);
+        setTipoPagamento('');
+        setShowPaymentModal(true);
+    };
+
+    const confirmarPagamento = async () => {
+        if (!tipoPagamento) {
+            showWarning('Selecione o tipo de pagamento');
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('agendamentos')
+                .update({ 
+                    status_pagamento: 'paid',
+                    status: 'completed'
+                })
+                .eq('id', selectedAgendamento.id);
+
+            if (error) throw error;
+
+            // Inserir no histórico
+            const { error: historicoError } = await supabase
+                .from('historico')
+                .insert({
+                    agendamento_id: selectedAgendamento.id,
+                    usuario_id: selectedAgendamento.usuario_id,
+                    profissional_id: selectedAgendamento.profissional_id,
+                    unidade_id: selectedAgendamento.unidade_id,
+                    servico_id: selectedAgendamento.servico_id,
+                    data_agendamento: selectedAgendamento.data_agendamento,
+                    horario_inicio: selectedAgendamento.horario_inicio,
+                    horario_fim: selectedAgendamento.horario_fim,
+                    valor_total: selectedAgendamento.preco_total,
+                    status: 'concluido',
+                    tipo_pagamento: tipoPagamento,
+                    created_at: getBrazilISOString(getBrazilDate())
+                });
+
+            if (historicoError) {
+                console.warn('Aviso: erro ao inserir histórico:', historicoError);
+            }
+
+            showSuccess('Pagamento confirmado com sucesso!');
+            setShowPaymentModal(false);
+            loadAgendamentos();
+        } catch (error) {
+            console.error('Erro ao confirmar pagamento:', error);
+            showError('Erro ao confirmar pagamento: ' + error.message);
+        }
+    };
+
+    const cancelarAgendamento = (agendamento) => {
+        setConfirmAction('cancel');
+        setConfirmData({ agendamento });
+        setShowConfirmModal(true);
+    };
+
+    const executarCancelamento = async () => {
+        try {
+            const { error } = await supabase
+                .from('agendamentos')
+                .update({ status: 'cancelled' })
+                .eq('id', confirmData.agendamento.id);
+
+            if (error) throw error;
+
+            // Inserir no histórico
+            const { error: historicoError } = await supabase
+                .from('historico')
+                .insert({
+                    agendamento_id: confirmData.agendamento.id,
+                    usuario_id: confirmData.agendamento.usuario_id,
+                    profissional_id: confirmData.agendamento.profissional_id,
+                    unidade_id: confirmData.agendamento.unidade_id,
+                    servico_id: confirmData.agendamento.servico_id,
+                    data_agendamento: confirmData.agendamento.data_agendamento,
+                    horario_inicio: confirmData.agendamento.horario_inicio,
+                    horario_fim: confirmData.agendamento.horario_fim,
+                    valor_total: confirmData.agendamento.preco_total,
+                    status: 'cancelado',
+                    created_at: getBrazilISOString(getBrazilDate())
+                });
+
+            if (historicoError) {
+                console.warn('Aviso: erro ao inserir histórico:', historicoError);
+            }
+
+            showSuccess('Agendamento cancelado com sucesso!');
+            setShowConfirmModal(false);
+            loadAgendamentos();
+        } catch (error) {
+            console.error('Erro ao cancelar agendamento:', error);
+            showError('Erro ao cancelar agendamento: ' + error.message);
+        }
+    };
+
+    // Função para abrir modal de criação
+    const abrirModalCriacao = () => {
+        setShowCriacaoModal(true);
+        setCriacaoForm({
+            cliente_nome: '',
+            cliente_telefone: '',
+            cliente_email: '',
+            profissional_id: '',
+            servico_id: '',
+            data_agendamento: '',
+            horario_inicio: '',
+            horario_fim: '',
+            observacoes: ''
+        });
+        setUsuariosSugeridos([]);
     };
 
     const MobileAppointmentCard = ({ agendamento }) => (
@@ -113,10 +366,10 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                     <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-semibold text-blue-600 mb-1">Cliente</h4>
                         <p className="text-sm font-medium text-gray-900 truncate">
-                            {agendamento.cliente.nome}
+                            {agendamento.users?.nome || agendamento.cliente_nome || 'Cliente'}
                         </p>
                         <p className="text-xs text-gray-500">
-                            Telefone: {agendamento.cliente.telefone}
+                            Telefone: {agendamento.users?.telefone || agendamento.cliente_telefone || 'Não informado'}
                         </p>
                     </div>
                 </div>
@@ -129,12 +382,12 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                     <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-semibold text-purple-600 mb-1">Profissional</h4>
                         <p className="text-sm font-medium text-gray-900">
-                            {agendamento.profissional.nome}
+                            {agendamento.profissionais?.nome || 'Profissional'}
                         </p>
                         <div className="flex items-center space-x-1">
                             <MapPin size={12} className="text-gray-400" />
                             <p className="text-xs text-gray-500 truncate">
-                                {agendamento.unidade.nome}
+                                {agendamento.unidades?.nome || 'Unidade'}
                             </p>
                         </div>
                     </div>
@@ -148,19 +401,19 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                     <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-semibold text-green-600 mb-1">Serviço</h4>
                         <p className="text-sm font-medium text-gray-900">
-                            {agendamento.servico.nome}
+                            {agendamento.servicos?.nome || 'Corte de Cabelo'}
                         </p>
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-1">
                                 <span className="text-xs text-gray-500">Valor:</span>
                                 <span className="text-sm font-bold text-green-600">
-                                    R$ {agendamento.preco_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    R$ {(agendamento.servicos?.preco || agendamento.preco_total || 30.00).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
                             <div className="flex items-center space-x-1">
                                 <Clock size={12} className="text-gray-400" />
                                 <span className="text-xs text-gray-500">
-                                    {agendamento.servico.duracao_minutos} min
+                                    {agendamento.servicos?.duracao_minutos || 40} min
                                 </span>
                             </div>
                         </div>
@@ -171,10 +424,18 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
             {/* Action Buttons */}
             <div className="px-4 pb-4">
                 <div className="flex space-x-2">
-                    <button className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-colors">
+                    <button 
+                        onClick={() => abrirModalPagamento(agendamento)}
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-colors"
+                        disabled={agendamento.status === 'completed'}
+                    >
                         Confirmar Pagamento
                     </button>
-                    <button className="bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-colors">
+                    <button 
+                        onClick={() => cancelarAgendamento(agendamento)}
+                        className="bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-colors"
+                        disabled={agendamento.status === 'cancelled'}
+                    >
                         Cancelar
                     </button>
                     <button className="bg-gray-500 hover:bg-gray-600 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-colors">
@@ -215,7 +476,9 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
                 <div className="hidden md:block">
                     <h2 className="text-2xl font-bold text-gray-900">Gerenciar Agendamentos</h2>
                 </div>
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors shadow-sm flex items-center justify-center space-x-2 w-full md:w-auto">
+                <button 
+                    onClick={abrirModalCriacao}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors shadow-sm flex items-center justify-center space-x-2 w-full md:w-auto">
                     <Plus size={18} />
                     <span>Novo Agendamento</span>
                 </button>
@@ -308,17 +571,78 @@ const AgendamentosManagerMobile = ({ currentUser }) => {
 
             {/* Appointments List */}
             <div className="space-y-4">
-                {agendamentos.length === 0 ? (
+                {filteredAgendamentos.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
                         <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
                         <p className="text-gray-600">Nenhum agendamento encontrado</p>
                     </div>
                 ) : (
-                    agendamentos.map((agendamento) => (
+                    filteredAgendamentos.map((agendamento) => (
                         <MobileAppointmentCard key={agendamento.id} agendamento={agendamento} />
                     ))
                 )}
             </div>
+
+            {/* Modal de Pagamento */}
+            {showPaymentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirmar Pagamento</h3>
+                        <div className="mb-4">
+                            <p className="text-sm text-gray-600 mb-2">
+                                Cliente: {selectedAgendamento?.users?.nome || selectedAgendamento?.cliente_nome}
+                            </p>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Valor: R$ {(selectedAgendamento?.preco_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Pagamento
+                            </label>
+                            <select
+                                value={tipoPagamento}
+                                onChange={(e) => setTipoPagamento(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="dinheiro">Dinheiro</option>
+                                <option value="cartao">Cartão</option>
+                                <option value="pix">PIX</option>
+                            </select>
+                        </div>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmarPagamento}
+                                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Confirmação */}
+            {showConfirmModal && (
+                <ConfirmationModal
+                    isOpen={showConfirmModal}
+                    onClose={() => setShowConfirmModal(false)}
+                    onConfirm={confirmAction === 'cancel' ? executarCancelamento : () => {}}
+                    title={confirmAction === 'cancel' ? 'Cancelar Agendamento' : 'Confirmação'}
+                    message={confirmAction === 'cancel' 
+                        ? 'Tem certeza que deseja cancelar este agendamento?' 
+                        : 'Confirmar ação?'
+                    }
+                    confirmText="Confirmar"
+                    cancelText="Cancelar"
+                    type="danger"
+                />
+            )}
         </div>
     );
 };
